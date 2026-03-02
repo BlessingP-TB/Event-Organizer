@@ -1,0 +1,495 @@
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  FlatList,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { getEvents, updateEvent } from "../../data/Organiser/myEvents";
+
+const defaultImg = require("@/assets/images/TUT-Logo1.jpg");
+
+const tabs = ["All", "Waiting for Approval", "Approved", "Declined"];
+
+export default function Events() {
+  const [selectedTab, setSelectedTab] = useState("Waiting for Approval");
+  const [eventsData, setEventsData] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedEvent, setSelectedEvent] = useState(null);
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, []);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      const rawEvents = await getEvents();
+
+      // --- DEDUPLICATION LOGIC ---
+      const uniqueEvents = {};
+
+      rawEvents.forEach(event => {
+        // This confirms uniqueness and relies on the newest status calculated in myEvents.js
+        uniqueEvents[event.id] = event;
+      });
+
+      // Set the final array of unique events
+      setEventsData(Object.values(uniqueEvents));
+    };
+    fetchEvents();
+  }, []);
+
+  // FILTER: 1) tab  2) search
+  const filteredEvents = useMemo(() => {
+    const byTab =
+      selectedTab === "All"
+        ? eventsData
+        : eventsData.filter((e) => e.approval === selectedTab);
+
+    if (!searchQuery.trim()) return byTab;
+
+    const q = searchQuery.toLowerCase();
+    return byTab.filter(
+      (e) =>
+        e.title?.toLowerCase().includes(q) ||
+        e.category?.toLowerCase().includes(q) ||
+        e.location?.toLowerCase().includes(q) ||
+        e.organizer?.toLowerCase().includes(q)
+    );
+  }, [selectedTab, eventsData, searchQuery]);
+
+  const getStatusColor = (approval) => {
+    switch (approval) {
+      case "Waiting for Approval":
+        return { color: "#0077B6" };
+      case "Approved":
+        return { color: "#2e8b57" };
+      case "Declined":
+        return { color: "#c0392b" };
+      default:
+        return { color: "#555" };
+    }
+  };
+
+  const renderEventCard = ({ item }) => (
+    <View style={styles.card}>
+      <View style={styles.row}>
+        <View style={styles.left}>
+          <View style={styles.iconCircle}>
+            <Ionicons name="calendar-outline" size={26} color="#0077B6" />
+          </View>
+          <View style={styles.texts}>
+            <Text style={styles.title}>{item.title}</Text>
+            <Text style={styles.requestId}>Request ID: {item.id}</Text>
+            <View style={styles.metaRow}>
+              <Ionicons name="pricetag-outline" size={14} color="#777" />
+              <Text style={styles.metaText}>{item.category}</Text>
+            </View>
+            <View style={styles.metaRow}>
+              <Ionicons name="calendar" size={14} color="#777" />
+              <Text style={styles.metaText}>{item.date}</Text>
+            </View>
+            <Text style={[styles.status, getStatusColor(item.approval)]}>
+              {item.approval}
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.viewBtn}
+          onPress={() => setSelectedEvent(item)}
+        >
+          <Text style={styles.viewBtnText}>View Details</Text>
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+
+  const handleApprove = async () => {
+    try {
+      // 1. Await the status change on the backend
+      await updateEvent({
+        id: selectedEvent.id, approval: "Approved", status: "PUBLISHED"
+      });
+
+      // 2. Fetch the fresh, accurate list of events from the API
+      const events = await getEvents();
+      setEventsData(events);
+
+      // 3. Clear the details view
+      setSelectedEvent(null);
+    } catch (error) {
+      console.error("Failed to approve event:", error);
+    }
+  };
+
+  const handleReject = async () => {
+    try {
+      // 1. Await the status change on the backend
+      await updateEvent({ id: selectedEvent.id, approval: "Declined" });
+
+      // 2. Fetch the fresh, accurate list of events from the API
+      const events = await getEvents();
+      setEventsData(events);
+
+      // 3. Clear the details view
+      setSelectedEvent(null);
+    } catch (error) {
+      console.error("Failed to reject event:", error);
+    }
+  };
+
+  const renderDetailsView = () => {
+    if (!selectedEvent) return null;
+    const imageSource = selectedEvent.image || defaultImg;
+    const isPending = selectedEvent.approval === "Waiting for Approval";
+
+    // Safely extract organizer name and contact (email)
+    const organizerName = typeof selectedEvent.organizer === 'object' && selectedEvent.organizer !== null
+      ? selectedEvent.organizer.name
+      : selectedEvent.organizer || 'N/A';
+
+    const contactInfo = typeof selectedEvent.organizer === 'object' && selectedEvent.organizer !== null
+      ? selectedEvent.organizer.email
+      : selectedEvent.contact || 'N/A';
+
+    return (
+      <ScrollView style={styles.detailsContainer}>
+        <Image
+          source={typeof imageSource === "string" ? { uri: imageSource } : imageSource}
+          style={styles.eventImage}
+          resizeMode="cover"
+        />
+
+        <Text style={styles.detailsHeader}>Event Details</Text>
+        <Text style={styles.detailsTitle}>{selectedEvent.title}</Text>
+        <Text style={styles.detailsText}>Category: {selectedEvent.category}</Text>
+        <Text style={styles.detailsText}>Description: {selectedEvent.description}</Text>
+        <Text style={styles.detailsText}>Capacity: {selectedEvent.capacity}</Text>
+        <Text style={styles.detailsText}>Date: {selectedEvent.displayDate}</Text>
+        <Text style={styles.detailsText}>Time: {selectedEvent.time}</Text>
+        <Text style={styles.detailsText}>Duration: {selectedEvent.duration}</Text>
+        <Text style={styles.detailsText}>Location: {selectedEvent.location}</Text>
+        <Text style={styles.detailsText}>Price: {selectedEvent.price}</Text>
+
+        {/* FIX: Access the name property from the organizer object */}
+        <Text style={styles.detailsText}>Organizer: {organizerName}</Text>
+        {/* FIX: Access the email property for contact */}
+        <Text style={styles.detailsText}>Contact: {contactInfo}</Text>
+
+        {/* FIX: Handle missing/undefined tags array gracefully */}
+        <Text style={styles.detailsText}>
+          Tags: {selectedEvent.tags && Array.isArray(selectedEvent.tags) ? selectedEvent.tags.join(", ") : 'None'}
+        </Text>
+
+        <Text style={styles.detailsText}>Status: {selectedEvent.status}</Text>
+
+        {isPending && (
+          <View style={styles.actionRow}>
+            <TouchableOpacity style={styles.approveBtn} onPress={handleApprove}>
+              <Text style={styles.actionText}>Approve</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.rejectBtn} onPress={handleReject}>
+              <Text style={styles.actionText}>Reject</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+
+        <TouchableOpacity
+          style={styles.backBtn}
+          onPress={() => setSelectedEvent(null)}
+        >
+          <Text style={styles.backBtnText}>Back</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {selectedEvent ? (
+        renderDetailsView()
+      ) : (
+        <>
+          <Text style={styles.header}>Event Requests</Text>
+
+          {/* ====== SEARCH BAR ====== */}
+          <View style={styles.searchBar}>
+            <Ionicons name="search-outline" size={20} color="#999" />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search events..."
+              placeholderTextColor="#aaa"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+            />
+          </View>
+
+          <View style={styles.tabsRow}>
+            {tabs.map((tab) => (
+              <TouchableOpacity
+                key={tab}
+                style={[styles.tabBtn, selectedTab === tab && styles.activeTabBtn]}
+                onPress={() => setSelectedTab(tab)}
+              >
+                <Text
+                  style={[
+                    styles.tabText,
+                    selectedTab === tab && styles.activeTabText,
+                  ]}
+                >
+                  {tab}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={styles.sectionTitle}>{selectedTab}</Text>
+          <Text style={styles.itemCount}>{filteredEvents.length} items</Text>
+          <FlatList
+            data={filteredEvents}
+            keyExtractor={(item) => item.id}
+            renderItem={renderEventCard}
+            contentContainerStyle={{ paddingBottom: 40 }}
+            ListEmptyComponent={
+              <Text style={styles.emptyText}>No events in this category</Text>
+            }
+          />
+        </>
+      )}
+    </SafeAreaView>
+  );
+}
+
+/* =====================================================
+   STYLES  –  “Smart Events”  theme  (NO PURPLE)
+   ===================================================== */
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#f4f4f4",
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
+    paddingHorizontal: 16,
+  },
+  header: {
+    fontSize: 33,
+    fontWeight: "900",
+    color: "#191823",
+    marginBottom: 14,
+    textAlign: "center",
+  },
+  searchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    height: 48,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    fontSize: 16,
+    color: "#191823",
+  },
+  tabsRow: {
+    flexDirection: "row",
+    backgroundColor: "#fff",
+    borderRadius: 14,
+    padding: 4,
+    marginBottom: 16,
+    shadowColor: "#000",
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  tabBtn: {
+    flex: 1,
+    alignItems: "center",
+    paddingVertical: 10,
+    borderRadius: 10,
+  },
+  activeTabBtn: {
+    backgroundColor: "#0077B6",
+  },
+  tabText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#555",
+    textAlign: "center",
+  },
+  activeTabText: {
+    color: "#fff",
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#191823",
+    marginBottom: 4,
+  },
+  itemCount: {
+    fontSize: 14,
+    color: "#0077B6",
+    fontWeight: "600",
+    marginBottom: 12,
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: "#ececec",
+    shadowColor: "#000",
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
+  },
+  row: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  left: {
+    flexDirection: "row",
+    flex: 1,
+  },
+  iconCircle: {
+    backgroundColor: "#f2f8ff", // <- light blue-grey (NO purple)
+    borderRadius: 40,
+    width: 46,
+    height: 46,
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  texts: {
+    flex: 1,
+  },
+  title: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#191823",
+  },
+  requestId: {
+    fontSize: 12,
+    color: "#8e8e8e",
+    marginTop: 2,
+  },
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  metaText: {
+    fontSize: 13,
+    color: "#555",
+    marginLeft: 5,
+  },
+  status: {
+    fontWeight: "700",
+    fontSize: 14,
+    marginTop: 6,
+  },
+  viewBtn: {
+    backgroundColor: "#0077B6",
+    borderRadius: 20,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    shadowColor: "#0077B6",
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 4,
+  },
+  viewBtnText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 14,
+  },
+  emptyText: {
+    textAlign: "center",
+    color: "#888",
+    marginTop: 40,
+    fontSize: 15,
+  },
+  detailsContainer: {
+    flex: 1,
+    backgroundColor: "#fff",
+    padding: 20,
+    borderRadius: 12,
+  },
+  eventImage: {
+    width: "100%",
+    height: 200,
+    borderRadius: 12,
+    marginBottom: 15,
+  },
+  detailsHeader: {
+    fontSize: 22,
+    fontWeight: "700",
+    marginBottom: 10,
+    color: "#0077B6",
+  },
+  detailsTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 8,
+  },
+  detailsText: {
+    fontSize: 15,
+    marginBottom: 6,
+    color: "#333",
+  },
+  actionRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 20,
+  },
+  approveBtn: {
+    backgroundColor: "#2e8b57",
+    padding: 12,
+    borderRadius: 8,
+    flex: 1,
+    marginRight: 10,
+    alignItems: "center",
+  },
+  rejectBtn: {
+    backgroundColor: "#c0392b",
+    padding: 12,
+    borderRadius: 8,
+    flex: 1,
+    alignItems: "center",
+  },
+  actionText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 16,
+  },
+  backBtn: {
+    marginTop: 20,
+    alignSelf: "center",
+    padding: 10,
+  },
+  backBtnText: {
+    color: "#0077B6",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+});

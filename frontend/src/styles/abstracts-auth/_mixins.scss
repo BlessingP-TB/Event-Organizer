@@ -1,0 +1,70 @@
+// frontend/src/styles/abstracts-auth/_mixins.scss
+
+// Generic button style
+@mixin button-base {
+  background-color: $primary-color;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background-color 0.3s ease;
+
+  &:hover {
+    background-color: darken($primary-color, 10%);
+  }
+}
+
+// Filter button style
+@mixin filter-btn-style {
+  background-color: #eee;
+  color: #333;
+  border-radius: 6px;
+  padding: 0.5rem 1rem;
+  white-space: nowrap;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+
+  &:hover {
+    background-color: #ddd;
+  }
+
+  &.active {
+    background-color: $primary-color;
+    color: #fff;
+  }
+}
+
+// Event row style
+@mixin event-row-style {
+  display: flex;
+  gap: 1rem;
+  background: #fff;
+  padding: 1rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  align-items: center;
+}
+
+// Flex between helper
+@mixin flex-between {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+// Text style helper
+@mixin text-style($size, $weight, $color, $letter-spacing: 0, $line-height: 1.2) {
+  font-size: $size;
+  font-weight: $weight;
+  color: $color;
+  letter-spacing: $letter-spacing;
+  line-height: $line-height;
+}
+
+// Mobile optimizations (placeholder)
+@mixin mobile-optimizations {
+  // You can add global mobile tweaks here if needed
+}

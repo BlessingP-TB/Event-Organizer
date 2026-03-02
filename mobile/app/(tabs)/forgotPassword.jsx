@@ -1,0 +1,349 @@
+import React, { useState } from 'react';
+import { useNavigation } from "expo-router";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  TextInput,
+  StyleSheet,
+  Alert,
+  ScrollView,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
+import API_URL from '../../config';
+
+
+//const API_BASE = "http://10.220.32.206:3000";
+
+
+export default function ForgotPassword() {
+  const [email, setEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [step, setStep] = useState(1);
+  const [loading, setLoading] = useState(false);
+
+  const navigation = useNavigation();
+
+  const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
+  // Step 1: Send verification code
+  const handleSendCode = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    if (!validateEmail(email)) {
+      Alert.alert('Error', 'Please enter a valid email address');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+      setLoading(false);
+
+      if (res.ok) {
+        setStep(2);
+        Alert.alert('Code Sent', data.message || 'Verification code has been sent to your email');
+      } else {
+        Alert.alert('Error', data.message || 'Failed to send verification code');
+      }
+    } catch (err) {
+      setLoading(false);
+      console.log('Forgot Password Error:', err);
+      Alert.alert('Error', 'Network request failed. Check your API URL or backend status.');
+    }
+  };
+
+  // Step 2: Verify code
+  const handleVerifyCode = async () => {
+    if (!verificationCode) {
+      Alert.alert('Error', 'Please enter the verification code');
+      return;
+    }
+
+    if (verificationCode.length !== 6) {
+      Alert.alert('Error', 'Verification code must be 6 digits');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/verify-code`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, code: verificationCode }),
+      });
+
+      const data = await res.json();
+      setLoading(false);
+
+      if (res.ok) {
+        setStep(3);
+      } else {
+        Alert.alert('Error', data.message || 'Invalid verification code');
+      }
+    } catch (err) {
+      setLoading(false);
+      console.log('Verify Code Error:', err);
+      Alert.alert('Error', 'Network request failed. Check your API URL or backend status.');
+    }
+  };
+
+  // Step 3: Reset password
+  const handleResetPassword = async () => {
+    if (!newPassword || !confirmPassword) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert('Error', 'Password must be at least 6 characters long');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Error', 'Passwords do not match');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          code: verificationCode,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+      setLoading(false);
+
+      if (res.ok) {
+        Alert.alert(
+          'Success',
+          data.message || 'Your password has been reset successfully!',
+          [{ text: 'OK', onPress: () => navigation.goBack() }]
+        );
+      } else {
+        Alert.alert('Error', data.message || 'Failed to reset password');
+      }
+    } catch (err) {
+      setLoading(false);
+      console.log('Reset Password Error:', err);
+      Alert.alert('Error', 'Network request failed. Check your API URL or backend status.');
+    }
+  };
+
+  // Resend code
+  const resendCode = async () => {
+    try {
+      const res = await fetch(`${API_URL}/auth/resend-verification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        Alert.alert('Code Resent', data.message || 'A new verification code has been sent to your email');
+      } else {
+        Alert.alert('Error', data.message || 'Failed to resend verification code');
+      }
+    } catch (err) {
+      console.log('Resend Code Error:', err);
+      Alert.alert('Error', 'Network request failed. Check your API URL or backend status.');
+    }
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        {/* Back Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()}>
+            <MaterialIcons name="arrow-back" size={24} color="#37474f" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Reset Password</Text>
+          <View style={{ width: 24 }} />
+        </View>
+
+        {/* Progress Steps */}
+        <View style={styles.progressContainer}>
+          <View style={[styles.progressStep, step >= 1 && styles.activeStep]}>
+            <Text style={[styles.stepText, step >= 1 && styles.activeStepText]}>1</Text>
+            <Text style={styles.stepLabel}>Email</Text>
+          </View>
+          <View style={[styles.progressLine, step >= 2 && styles.activeLine]} />
+          <View style={[styles.progressStep, step >= 2 && styles.activeStep]}>
+            <Text style={[styles.stepText, step >= 2 && styles.activeStepText]}>2</Text>
+            <Text style={styles.stepLabel}>Verify</Text>
+          </View>
+          <View style={[styles.progressLine, step >= 3 && styles.activeLine]} />
+          <View style={[styles.progressStep, step >= 3 && styles.activeStep]}>
+            <Text style={[styles.stepText, step >= 3 && styles.activeStepText]}>3</Text>
+            <Text style={styles.stepLabel}>Reset</Text>
+          </View>
+        </View>
+
+        {/* Step 1 */}
+        {step === 1 && (
+          <View style={styles.formContainer}>
+            <MaterialIcons name="email" size={80} color="#0077B6" style={styles.icon} />
+            <Text style={styles.title}>Forgot Password?</Text>
+            <Text style={styles.subtitle}>
+              Enter your email address and we'll send you a verification code to reset your password.
+            </Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Email Address</Text>
+              <TextInput
+                style={styles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder="Enter your email"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoComplete="email"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleSendCode}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? 'Sending...' : 'Send Verification Code'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Step 2 */}
+        {step === 2 && (
+          <View style={styles.formContainer}>
+            <MaterialIcons name="verified" size={80} color="#0077B6" style={styles.icon} />
+            <Text style={styles.title}>Enter Verification Code</Text>
+            <Text style={styles.subtitle}>We've sent a 6-digit code to {email}</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Verification Code</Text>
+              <TextInput
+                style={styles.input}
+                value={verificationCode}
+                onChangeText={setVerificationCode}
+                placeholder="Enter 6-digit code"
+                keyboardType="number-pad"
+                maxLength={6}
+              />
+            </View>
+
+            <TouchableOpacity style={styles.resendContainer} onPress={resendCode}>
+              <Text style={styles.resendText}>Didn't receive code? </Text>
+              <Text style={styles.resendLink}>Resend</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleVerifyCode}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? 'Verifying...' : 'Verify Code'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* Step 3 */}
+        {step === 3 && (
+          <View style={styles.formContainer}>
+            <MaterialIcons name="lock-reset" size={80} color="#0077B6" style={styles.icon} />
+            <Text style={styles.title}>Set New Password</Text>
+            <Text style={styles.subtitle}>Create a new password for your account</Text>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>New Password</Text>
+              <TextInput
+                style={styles.input}
+                value={newPassword}
+                onChangeText={setNewPassword}
+                placeholder="Enter new password"
+                secureTextEntry
+                autoComplete="new-password"
+              />
+            </View>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Confirm Password</Text>
+              <TextInput
+                style={styles.input}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                placeholder="Confirm new password"
+                secureTextEntry
+                autoComplete="new-password"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleResetPassword}
+              disabled={loading}
+            >
+              <Text style={styles.buttonText}>
+                {loading ? 'Resetting...' : 'Reset Password'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f9f9f9' },
+  scrollContainer: { flexGrow: 1, alignItems: 'center', paddingVertical: 30 },
+  header: { width: '90%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 30 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#37474f' },
+  progressContainer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', width: '90%', marginBottom: 40 },
+  progressStep: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#e0e0e0', alignItems: 'center', justifyContent: 'center' },
+  activeStep: { backgroundColor: '#0077B6' },
+  stepText: { color: '#666', fontWeight: 'bold' },
+  activeStepText: { color: 'white' },
+  stepLabel: { fontSize: 12, color: '#666', marginTop: 5, textAlign: 'center' },
+  progressLine: { flex: 1, height: 2, backgroundColor: '#e0e0e0', marginHorizontal: 10 },
+  activeLine: { backgroundColor: '#0077B6' },
+  formContainer: { width: '90%', alignItems: 'center' },
+  icon: { marginBottom: 20 },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#37474f', marginBottom: 10, textAlign: 'center' },
+  subtitle: { fontSize: 16, color: '#607d8b', textAlign: 'center', marginBottom: 30, lineHeight: 22 },
+  inputGroup: { width: '100%', marginBottom: 20 },
+  label: { fontWeight: 'bold', marginBottom: 8, color: '#37474f', fontSize: 16 },
+  input: { width: '100%', borderColor: '#cfd8dc', borderWidth: 1, borderRadius: 12, padding: 15, backgroundColor: '#fff', color: '#37474f', fontSize: 16 },
+  button: { backgroundColor: '#000', paddingVertical: 15, borderRadius: 12, width: '100%', alignItems: 'center', marginTop: 10 },
+  buttonDisabled: { opacity: 0.6 },
+  buttonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
+  resendContainer: { flexDirection: 'row', marginBottom: 20 },
+  resendText: { color: '#607d8b' },
+  resendLink: { color: '#0077B6', fontWeight: 'bold' },
+});

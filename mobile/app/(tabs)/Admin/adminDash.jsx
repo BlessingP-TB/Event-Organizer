@@ -1,0 +1,740 @@
+import { Ionicons } from '@expo/vector-icons';
+import AntDesign from '@expo/vector-icons/AntDesign';
+import EvilIcons from '@expo/vector-icons/EvilIcons';
+import FontAwesome from '@expo/vector-icons/FontAwesome';
+import FontAwesome6 from '@expo/vector-icons/FontAwesome6';
+import MaterialCommunityIcons from '@expo/vector-icons/MaterialCommunityIcons';
+import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
+import { useFocusEffect } from '@react-navigation/native';
+import * as d3 from "d3";
+import { useNavigation, useRouter } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import Svg, { Path } from 'react-native-svg';
+import { useAdminDashboard } from '../../hooks/Admin/useAdminDashboard';
+
+
+export function LineGraph({ data, label, stat, color }) {
+
+  const { width: screenWidth } = useWindowDimensions();
+  const [GRAPH_ASPECT_RATIO, setGRAPH_ASPECT_RATIO] = useState(0.35);
+
+  // Dynamically set chart width based on screen size
+  useEffect(() => {
+    if (screenWidth < 380) {
+      setWidth(screenWidth - 60);
+      setGRAPH_ASPECT_RATIO(0.15)
+    } else if (screenWidth < 768) {
+      setWidth(screenWidth - 40);
+      setGRAPH_ASPECT_RATIO(0.12)
+    } else if (screenWidth < 1024) {
+      setWidth(screenWidth * 0.9);
+      setGRAPH_ASPECT_RATIO(0.1)
+    } else {
+      setWidth(screenWidth * 0.9);
+      setGRAPH_ASPECT_RATIO(0.08)
+    }
+  }, [screenWidth]);
+
+  const [containerWidth, setContainerWidth] = useState(Dimensions.get('window').width - 40);
+  const [width, setWidth] = useState(350);
+  const height = width * GRAPH_ASPECT_RATIO;
+
+  const min = Math.min(...data);
+  const max = Math.max(...data);
+
+  const yScale = d3.scaleLinear().domain([min, max]).range([height, 0]);
+  const xScale = d3.scaleLinear().domain([0, data.length - 1]).range([0, width]);
+
+  const linefn = d3.line().x((d, ix) => xScale(ix)).y((d, ix) => yScale(d)).curve(d3.curveMonotoneX);
+
+  const svgLine = linefn(data);
+
+  if (!width) {
+    // Return an empty View until layout is measured
+    return (
+      <View
+        style={{ width: "100%" }}
+        onLayout={(e) => setWidth(e.nativeEvent.layout.width)}
+      />
+    );
+  }
+
+
+  return (
+    <View
+      style={{ minHeight: 50, width: "100%", marginTop: 0, justifyContent: 'center', alignItems: 'flex-start' }}
+      onLayout={(ev) => {
+
+      }}
+    >
+      <Svg width={width} height={height}>
+        <Path d={svgLine} stroke={"#000"} fill={"none"} strokeWidth={1} />
+      </Svg>
+    </View>
+  );
+}
+
+export default function Admin() {
+  const navigation = useNavigation();
+  const [search, setSearch] = useState('');
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const router = useRouter();
+  const { width: screenWidth } = useWindowDimensions();
+  const { dashboard, isLoaded, reload, markAllNotificationsAsRead } = useAdminDashboard();
+  const unreadCount = (dashboard?.notifications || []).filter(n => !n.read).length;
+  // destructure to simplify access
+  const { notifications, occupancyData, revenueSummary, analyticsData } = dashboard || {
+    notifications: [],
+    occupancyData: [],
+    revenueSummary: {
+      amount: 'R0',
+      change: '+0%',
+      trend: 'vs. last month',
+      graph: [0, 0, 0, 0, 0]
+    },
+    analyticsData: []
+  };
+
+  // Removed useFocusEffect to prevent infinite reload loop
+  // Data is loaded on mount via useEffect in the hook
+
+  useEffect(() => {
+    navigation.setOptions({
+      header: () => (
+        <View style={style.headerContainer}>
+          <View style={style.row}>
+            <TouchableOpacity onPress={() => console.log('Notifications pressed')}>
+              <Image source={require('@/assets/images/TUT-Logo1.jpg')} style={style.logo} />
+
+            </TouchableOpacity>
+            <Text style={style.title}>Admin Dashboard</Text>
+            <View style={{ position: 'relative' }}>
+              <TouchableOpacity onPress={() => {
+                setIsNotificationOpen(true);
+                markAllNotificationsAsRead(); // 👈 make sure this exists in your hook
+              }}>
+                <Ionicons name="notifications-outline" size={26} color="black" />
+              </TouchableOpacity>
+              {unreadCount > 0 && (
+                <View style={{
+                  position: 'absolute',
+                  top: -2,
+                  right: -2,
+                  backgroundColor: 'red',
+                  width: 10,
+                  height: 10,
+                  borderRadius: 5,
+                  borderWidth: 1,
+                  borderColor: 'white',
+                }} />
+              )}
+            </View>
+            <TouchableOpacity onPress={() => router.replace("/(tabs)/Admin/Profile")}>
+              <Image source={require('@/assets/images/pp.jpg')} style={style.logo2} />
+            </TouchableOpacity>
+          </View>
+
+          <View style={style.searchBar}>
+            <EvilIcons name="search" size={24} color="black" />
+            <TextInput
+              style={style.input}
+              placeholder="Search users or events..."
+              placeholderTextColor={"#999"}
+              value={search}
+              onChangeText={setSearch}
+
+            />
+          </View>
+        </View>
+      ),
+    });
+
+
+  },);
+
+  if (!isLoaded) {
+    return <Text style={{ textAlign: 'center', marginTop: 50 }}>Loading Dashboard...</Text>;
+  }
+
+  const renderOccupancyBar = (occupied, total) => {
+    const percentage = (occupied / total) * 100;
+    return (
+      <View style={style.occupancyBarContainer}>
+        <View
+          style={[
+            style.occupancyBarFilled,
+            { width: `${percentage}%` }
+          ]}
+        />
+      </View>
+    );
+  };
+
+  return (
+    <View style={style.container}>
+      {isNotificationOpen && (
+        <View style={style.notificationDropdown}>
+          <View style={style.notificationHeader}>
+            <Text style={style.notificationTitle}>Notifications</Text>
+            <TouchableOpacity onPress={() => setIsNotificationOpen(false)}>
+              <AntDesign name="close" size={16} color="#999" />
+            </TouchableOpacity>
+          </View>
+
+          {notifications.length === 0 ? (
+            <Text style={style.emptyText}>No new notifications</Text>
+          ) : (
+            <ScrollView style={style.notificationList}>
+              {notifications.map((item) => (
+                <View key={item.id} style={style.notificationItem}>
+                  <View style={style.notificationIcon}>
+                    <Ionicons name="information-circle-outline" size={20} color="#0077B6" />
+                  </View>
+                  <View style={style.notificationContent}>
+                    <Text style={style.notificationItemTitle}>{item.title}</Text>
+                    <Text style={style.notificationItemMessage} numberOfLines={2}>
+                      {item.message}
+                    </Text>
+                    <Text style={style.notificationTime}>{item.time}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      )}
+
+      <ScrollView style={style.container2}
+        onTouchStart={() => isNotificationOpen && setIsNotificationOpen(false)}
+      >
+        <View style={style.card}>
+          <View style={style.cardHeader}>
+            <Text style={style.cardTitle}>Top 5 Most Booked Venues</Text>
+          </View>
+          <View style={style.occupancyList}>
+            {occupancyData.length > 0 ? (
+              occupancyData.map((item, index) => (
+                <View key={index} style={style.occupancyRow}>
+                  <Text style={style.occupancyLabel}>{item.name}</Text>
+                  {renderOccupancyBar(item.occupied, item.total)}
+                  <Text style={style.occupancyValue}>{item.occupied} bookings</Text>
+                </View>
+              ))
+            ) : (
+              <View style={style.occupancyRow}>
+                <Text style={style.occupancyLabel}>No booking data available</Text>
+                <View style={style.occupancyBarContainer}>
+                  <View style={[style.occupancyBarFilled, { width: '0%' }]} />
+                </View>
+                <Text style={style.occupancyValue}>0 bookings</Text>
+              </View>
+            )}
+          </View>
+          <Text style={style.occupancyCaption}>Shows the venues with the highest number of bookings this month.</Text>
+        </View>
+
+        <View style={style.revenueCard}>
+          <View style={style.revenueHeader}>
+            <Text style={style.revenueTitle}>Revenue Summary</Text>
+            <View style={style.monthlyBadge}>
+              <Text style={style.monthlyText}>Monthly</Text>
+            </View>
+          </View>
+          <View style={style.revenueAmountContainer}>
+            <Text style={style.revenueAmount}>{revenueSummary.amount}</Text>
+            <View style={style.revenueChange}>
+              <Ionicons name="caret-up" size={16} color="#4CAF50" />
+              <Text style={style.revenueChangeText}>{revenueSummary.change} {revenueSummary.trend}</Text>
+            </View>
+          </View>
+          <View style={style.revenueChart}>
+
+            <LineGraph
+              data={revenueSummary.graph || []}
+              color="#0077B6"
+              label="Views"
+              stat="24k"
+            />
+          </View>
+
+
+
+        </View>
+        <View style={style.box}>
+          <View style={style.box1}>
+            <View style={style.box12}>
+              <View>
+                <Text style={style.text5}>Registered Users</Text>
+                <Text style={style.number}>{analyticsData.totalRegisteredUsers?.value || '0'}</Text>
+              </View>
+              <SimpleLineIcons name="people" size={20} color="#0077B6" style={style.logo1} />
+            </View>
+            <View style={style.persentBox}>
+
+              <Text style={style.persent}>Across all departments</Text>
+
+            </View>
+          </View>
+          <View style={style.box2}>
+            <View style={style.box12}>
+              <View>
+                <Text style={style.text5}>Active Events</Text>
+                <Text style={style.number}>{analyticsData.activeEvents?.value || '0'}</Text>
+              </View>
+
+              <FontAwesome name="calendar-check-o" size={20} color="black" style={style.logo1} />
+
+            </View>
+            <View style={style.persentBox}>
+
+              <Text style={style.persent}>Currently running or upcoming</Text>
+
+            </View>
+          </View>
+          <View style={style.box3}>
+            <View style={style.box12}>
+              <View>
+                <Text style={style.text5}>Event Bookings</Text>
+                <Text style={style.number}>{analyticsData.eventBookingsMonth?.value || '0'}</Text>
+              </View>
+              <FontAwesome name="calendar-check-o" size={20} color="#0077B6" style={style.logo1} />
+
+            </View>
+            <View style={style.persentBox}>
+
+              <Text style={style.persent}>New Bookings this Month</Text>
+
+            </View>
+          </View>
+          <View style={style.box4}>
+            <View style={style.box12}>
+              <View>
+                <Text style={style.text5}>Total Venues</Text>
+                <Text style={style.number}>{analyticsData.totalVenues?.value || '0'}</Text>
+              </View>
+
+              <SimpleLineIcons name="settings" size={20} color="black" style={style.logo1} />
+            </View>
+            <View style={style.persentBox}>
+
+              <Text style={style.persent}>Total number of venues</Text>
+
+            </View>
+          </View>
+        </View>
+
+        {/* Horizontal buttons container */}
+        <View style={[
+          style.horizontalButtonsContainer,
+          screenWidth < 768 ? style.verticalButtonsContainer : style.horizontalButtonsContainer
+        ]}>
+          <TouchableOpacity style={[
+            style.searchBar2,
+            screenWidth < 768 ? style.fullWidthButton : style.halfWidthButton
+          ]} onPress={() => router.push("/(tabs)/Admin/eventDetails")}>
+            <FontAwesome6 name="lines-leaning" size={16} color="black" />
+            <Text style={style.text3}>Admin Approval Queue</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[
+            style.searchBar2,
+            screenWidth < 768 ? style.fullWidthButton : style.halfWidthButton
+          ]} onPress={() => router.replace("/(tabs)/Admin/report")}>
+            <MaterialCommunityIcons name="export-variant" size={16} color="#111111ff " />
+            <Text style={style.text4}>Analytics Export Options</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[
+            style.searchBar2,
+            screenWidth < 768 ? style.fullWidthButton : style.halfWidthButton
+          ]} onPress={() => router.replace("/(tabs)/Admin/AvailableVenue")}>
+            <MaterialCommunityIcons name="dots-horizontal" size={16} color="#111111ff " />
+            <Text style={style.text4}>Add Venues</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={[
+            style.searchBar2,
+            screenWidth < 768 ? style.fullWidthButton : style.halfWidthButton
+          ]} onPress={() => router.replace("/(tabs)/Admin/Calender")}>
+            <MaterialCommunityIcons name="calendar" size={16} color="#413f3fff " />
+            <Text style={style.text4}>Calender</Text>
+          </TouchableOpacity>
+        </View>
+
+      </ScrollView>
+
+    </View>
+  );
+}
+
+const style = StyleSheet.create({
+  horizontalButtonsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  number: {
+    fontSize: 28,
+    fontWeight: '600',
+    marginTop: 5,
+    marginLeft: 5,
+    color: "#333",
+  },
+  text3: {
+    marginLeft: 12,
+  },
+  text4: {
+    marginLeft: 12,
+  },
+  box: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    marginTop: 20,
+    marginBottom: 20,
+  },
+  box1: {
+    backgroundColor: '#fafafaff',
+    width: 165,
+    height: 130,
+    marginTop: 10,
+    padding: 2
+
+  },
+  box2: {
+    backgroundColor: '#fafafaff',
+    width: 165,
+    height: 130,
+    marginTop: 10,
+    padding: 2
+  },
+  box3: {
+    backgroundColor: '#fafafaff',
+    width: 165,
+    height: 130,
+    marginTop: 15,
+    padding: 2
+  },
+  box4: {
+    backgroundColor: '#fafafaff',
+    width: 165,
+    height: 130,
+    marginTop: 15,
+    padding: 2
+  },
+  box12: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  text5: {
+    fontSize: 15,
+    fontWeight: '300',
+    color: "#999",
+    marginTop: 9,
+  },
+  persent: {
+    fontSize: 10,
+    color: "#999",
+    marginLeft: 5
+
+  },
+  persentBox: {
+    flexDirection: 'row',
+    marginTop: "auto",
+    marginBottom: 20,
+
+  },
+  logo1: {
+    marginRight: 12,
+  },
+  revenueChangeText: {
+    fontSize: 14,
+    color: '#4CAF50',
+    fontWeight: '500',
+    marginLeft: 4,
+  },
+  revenueChart: {
+    height: 190,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 10,
+  },
+  chartLine: {
+    width: '100%',
+    height: 2,
+    backgroundColor: '#0077B6',
+    transform: [{ rotate: '-15deg' }],
+    position: 'relative',
+  },
+  monthlyText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  revenueAmountContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    marginBottom: 12,
+  },
+  revenueAmount: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#333',
+    marginRight: 12,
+  },
+  revenueChange: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  revenueCard: {
+    backgroundColor: '#fcfcfcff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 1,
+  },
+  revenueHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  revenueTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  monthlyBadge: {
+    backgroundColor: '#0077B6',
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 16,
+  },
+  occupancyCaption: {
+    fontSize: 12,
+    color: '#888',
+    textAlign: 'center',
+    marginTop: 8,
+  },
+
+  occupancyLabel: {
+    width: 80,
+    fontSize: 14,
+    color: '#555',
+    marginRight: 12,
+  },
+  occupancyBarContainer: {
+    flex: 1,
+    height: 30,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 6,
+    overflow: 'hidden',
+  },
+  occupancyBar: {
+    height: '100%',
+    backgroundColor: '#ddd',
+  },
+  occupancyBarFilled: {
+    height: '100%',
+    backgroundColor: '#0077B6',
+  },
+  viewDetails: {
+    fontSize: 14,
+    color: '#0077B6',
+    fontWeight: '500',
+  },
+  occupancyList: {
+    marginBottom: 16,
+  },
+  occupancyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  cardTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: '#333',
+  },
+  notificationDropdown: {
+    position: 'absolute',
+    top: -90, // Adjust based on your header height (~status bar + header)
+    right: 9,
+    width: 300,
+    maxHeight: 300,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#eee',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    zIndex: 1000,
+    padding: 12,
+  },
+  notificationHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  notificationTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  emptyText: {
+    color: '#999',
+    textAlign: 'center',
+    fontStyle: 'italic',
+    paddingVertical: 20,
+  },
+  notificationItem: {
+    flexDirection: 'row',
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
+  notificationIcon: {
+    marginRight: 12,
+    marginTop: 4,
+  },
+  notificationContent: {
+    flex: 1,
+  },
+  notificationItemTitle: {
+    fontWeight: '600',
+    fontSize: 14,
+    color: '#333',
+  },
+  notificationItemMessage: {
+    fontSize: 13,
+    color: '#666',
+    marginVertical: 4,
+  },
+  notificationTime: {
+    fontSize: 11,
+    color: '#999',
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    paddingLeft: 20,
+    paddingRight: 20,
+  },
+  container2: {
+    flex: 1,
+  },
+  subtitle: {
+    fontSize: 15,
+    textAlign: 'center',
+    marginTop: 10,
+    marginBottom: 20,
+    paddingLeft: 24,
+    paddingRight: 24,
+    color: '#3d3d3d'
+  },
+  button: {
+    marginTop: 20,
+    backgroundColor: '#1C1C1C',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+
+  },
+  buttonText: {
+    color: '#f2f2f2',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  headerContainer: {
+    paddingHorizontal: 15,
+    paddingTop: 55, // for status bar spacing (adjust if using SafeArea)
+    paddingBottom: 10,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ddd',
+  },
+  row: {
+    flexDirection: 'row',
+    marginBottom: 20,
+    alignItems: 'center',
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: '500',
+    marginLeft: 'auto',
+    marginRight: 'auto',
+  },
+  input: {
+    backgroundColor: '#f0f0f0',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    borderRadius: 8,
+    fontSize: 16,
+    outlineStyle: 'none',
+    flex: 1,
+  },
+  logo: {
+    width: 40,
+    height: 40,
+    marginLeft: 30
+  },
+  logo2: {
+    width: 40,
+    height: 40,
+    marginLeft: 10,
+    marginRight: 10,
+  },
+  searchBar: {
+    flexDirection: 'row',          // icon + text side by side
+    alignItems: 'center',          // vertically align
+    backgroundColor: '#f2f2f2',    // light background
+    borderRadius: 20,              // rounded look
+    paddingHorizontal: 12,
+    margin: 5,
+    height: 45,
+  },
+  searchBar2: {
+    flexDirection: 'row',          // icon + text side by side
+    alignItems: 'center',          // vertically align
+    backgroundColor: '#8cc3f6ff',
+    borderWidth: 1,
+    borderColor: '#f2f2f2',    // light background
+    borderRadius: 12,              // rounded look
+    paddingHorizontal: 12,
+    margin: 2,
+    height: 45,
+    flex: 1,
+    minWidth: '48%',
+    marginBottom: 8,
+  },
+
+});

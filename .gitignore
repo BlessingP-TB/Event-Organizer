@@ -1,0 +1,103 @@
+# ========================
+# Dependencies
+# ========================
+node_modules/
+package-lock.json
+
+# ========================
+# Environment Variables
+# ========================
+.env
+.env.local
+.env*.local
+
+# ========================
+# Build Outputs
+# ========================
+dist/
+dist-ssr/
+build/
+web-build/
+.expo/
+
+# ========================
+# Prisma Generated
+# ========================
+backend/generated/
+backend/prisma/generate/
+backend/src/generated/
+backend/.generated/
+
+# ========================
+# IDE / Editor
+# ========================
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# ========================
+# OS Files
+# ========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.lnk
+
+# ========================
+# Logs
+# ========================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ========================
+# Testing & Coverage
+# ========================
+coverage/
+*.lcov
+.nyc_output/
+
+# ========================
+# Runtime & Debug
+# ========================
+pids/
+*.pid
+*.seed
+*.pid.lock
+
+# ========================
+# Native / Mobile
+# ========================
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.pem
+.kotlin/
+.metro-health-check*
+expo-env.d.ts
+*.tsbuildinfo
+
+# ========================
+# Uploads (user content)
+# ========================
+backend/src/uploads/*
+!backend/src/uploads/.gitkeep
+
+# ========================
+# Misc
+# ========================
+*.local
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json

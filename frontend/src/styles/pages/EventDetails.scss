@@ -1,0 +1,497 @@
+@import '../abstracts-auth/_variable';
+
+// OVERRIDE COLORS (as used in your app)
+$primary-color: #0b4f78;
+$text-color: #0b4f78;
+$radius: 12px;
+$soft-bg: #ffffff;
+
+.event-details {
+  width: 100%;
+  min-height: 100vh;
+  padding: 20px;
+  font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: $text-color;
+  background-color: #f9fbfd;
+  box-sizing: border-box;
+  overflow-y: auto;
+
+  .header-title {
+    text-align: center;
+    font-size: 1.9rem;
+    font-weight: 700;
+    margin-bottom: 1.6rem;
+    color: $primary-color;
+    letter-spacing: -0.6px;
+  }
+
+  .event-image {
+    width: 100%;
+    height: 280px;
+    object-fit: cover;
+    border-radius: $radius;
+    margin-bottom: 1.8rem;
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.03);
+    transition: transform 0.4s ease;
+    
+    &:hover {
+      transform: scale(1.02);
+    }
+  }
+
+  .info-section {
+    margin-bottom: 2rem;
+    background: $soft-bg;
+    padding: 1.6rem;
+    border-radius: $radius;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05);
+    border: 1px solid rgba($primary-color, 0.08);
+
+    h3 {
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      color: $primary-color;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      &::before {
+        content: "";
+        display: inline-block;
+        width: 4px;
+        height: 18px;
+        background: $primary-color;
+        border-radius: 2px;
+      }
+    }
+
+    .subtitle {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: darken($primary-color, 8%);
+      margin-bottom: 0.8rem;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+
+      li {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 0.85rem;
+        font-size: 0.98rem;
+        color: #2d3748;
+        gap: 0.8rem;
+
+        svg {
+          flex-shrink: 0;
+          margin-top: 4px;
+          color: $primary-color;
+          font-size: 1.1rem;
+        }
+      }
+    }
+
+    p {
+      font-size: 0.98rem;
+      color: #2d3748;
+      line-height: 1.6;
+    }
+  }
+
+  // Booking Edit Form
+  .booking-edit-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    margin-top: 1rem;
+
+    label {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      font-weight: 600;
+      color: $primary-color;
+      font-size: 0.97rem;
+
+      input,
+      select,
+      textarea {
+        padding: 0.7rem 1rem;
+        border: 1px solid #dde6f0;
+        border-radius: $radius;
+        font-size: 1rem;
+        background-color: #fcfdff;
+        color: #111827;
+        transition: all 0.25s ease;
+
+        &:focus {
+          outline: none;
+          border-color: $primary-color;
+          box-shadow: 0 0 0 3px rgba($primary-color, 0.12);
+        }
+      }
+
+      input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: $primary-color;
+        cursor: pointer;
+      }
+    }
+
+    .edit-buttons {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.5rem;
+
+      button {
+        padding: 0.7rem 1.4rem;
+        border: none;
+        border-radius: $radius;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        flex: 1;
+
+        &.approve {
+          background: linear-gradient(135deg, $primary-color, lighten($primary-color, 12%));
+          color: white;
+          box-shadow: 0 4px 10px rgba($primary-color, 0.2);
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba($primary-color, 0.3);
+          }
+        }
+
+        &.reject {
+          background: linear-gradient(135deg, #d64545, #b23333);
+          color: white;
+          box-shadow: 0 4px 10px rgba(214, 69, 69, 0.2);
+          &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(196, 45, 45, 0.3);
+          }
+        }
+      }
+    }
+  }
+
+  .edit-booking-btn {
+    padding: 0.7rem 1.4rem;
+    border: 1px solid $primary-color;
+    background: transparent;
+    color: $primary-color;
+    border-radius: 30px;
+    cursor: pointer;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
+
+    &:hover {
+      background: $primary-color;
+      color: white;
+      box-shadow: 0 6px 14px rgba($primary-color, 0.25);
+      transform: translateY(-2px);
+    }
+  }
+
+  // DOCUMENTS SECTION — Fully Styled
+  .documents-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+    margin-top: 1rem;
+
+    .document-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.2rem;
+      border-radius: $radius;
+      background: $soft-bg;
+      border: 1px solid #edf2f7;
+      transition: all 0.3s ease;
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.09);
+        border-color: rgba($primary-color, 0.12);
+      }
+
+      .doc-info {
+        display: flex;
+        align-items: center;
+        gap: 1.1rem;
+        flex-grow: 1;
+        min-width: 0;
+
+        .doc-icon {
+          color: $primary-color;
+          font-size: 1.3rem;
+          min-width: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+
+        .doc-filename {
+          font-weight: 600;
+          color: $primary-color;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          flex: 1;
+          font-size: 1.02rem;
+        }
+
+        .doc-type {
+          font-size: 0.8rem;
+          font-weight: 600;
+          padding: 0.3rem 0.7rem;
+          border-radius: 50px;
+          background: #eaf5ff;
+          color: $primary-color;
+          text-transform: uppercase;
+          letter-spacing: 0.6px;
+          min-width: 70px;
+          text-align: center;
+        }
+
+        // Editable status display
+        .doc-status {
+          font-size: 0.82rem;
+          font-weight: 700;
+          padding: 0.32rem 0.8rem;
+          border-radius: 50px;
+          text-transform: uppercase;
+          letter-spacing: 0.8px;
+          min-width: 88px;
+          text-align: center;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          border: 1px solid transparent;
+
+          &.pending {
+            background: linear-gradient(120deg, #e0f0ff, #d0e8ff);
+            color: $primary-color;
+            border: 1px solid rgba($primary-color, 0.2);
+          }
+
+          &.approved {
+            background: linear-gradient(120deg, #d1f9ed, #c0f2e0);
+            color: #0d6e4f;
+            border: 1px solid rgba(13, 110, 79, 0.25);
+          }
+
+          &.rejected {
+            background: linear-gradient(120deg, #ffe2e2, #ffd5d5);
+            color: #a92a2a;
+            border: 1px solid rgba(169, 42, 42, 0.25);
+          }
+
+          &:hover {
+            opacity: 0.9;
+            transform: scale(1.03);
+          }
+        }
+
+        // Inline edit form for status
+        .doc-status-edit {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+
+          select {
+            padding: 0.4rem 0.6rem;
+            border: 1px solid rgba($primary-color, 0.3);
+            border-radius: 30px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            background: white;
+            color: $text-color;
+          }
+
+          button {
+            padding: 0.35rem 0.6rem;
+            border-radius: 30px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &:first-child {
+              background: $primary-color;
+              color: white;
+              &:hover { opacity: 0.9; }
+            }
+            &:last-child {
+              background: #f1f5f9;
+              color: #ef4444;
+              border: 1px solid #e2e8f0;
+              &:hover { background: #e2e8f0; }
+            }
+          }
+        }
+      }
+
+      .download-btn {
+        padding: 0.6rem 1.2rem;
+        border-radius: 30px;
+        border: 1px solid $primary-color;
+        background: transparent;
+        color: $primary-color;
+        font-weight: 600;
+        font-size: 0.92rem;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        transition: all 0.25s ease;
+
+        &:hover {
+          background: $primary-color;
+          color: white;
+          box-shadow: 0 4px 10px rgba($primary-color, 0.22);
+        }
+      }
+    }
+  }
+
+  // Reject Reason Modal
+  .reject-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 2rem;
+    border-radius: $radius;
+    box-shadow: 0 12px 36px rgba(0, 0, 0, 0.25);
+    z-index: 1000;
+    width: 90%;
+    max-width: 500px;
+    border: 1px solid rgba($primary-color, 0.1);
+
+    label {
+      display: block;
+      margin-bottom: 0.8rem;
+      font-weight: 600;
+      color: $primary-color;
+    }
+
+    select,
+    textarea {
+      width: 100%;
+      padding: 0.7rem;
+      margin-bottom: 1rem;
+      border: 1px solid #dde6f0;
+      border-radius: $radius;
+      font-size: 1rem;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .error-text {
+      color: #e53e3e;
+      font-size: 0.9rem;
+      margin-bottom: 1rem;
+    }
+
+    button {
+      padding: 0.7rem 1.4rem;
+      border: none;
+      border-radius: $radius;
+      font-weight: 600;
+      cursor: pointer;
+      font-size: 1rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+
+      &.approve {
+        background: linear-gradient(135deg, $primary-color, lighten($primary-color, 12%));
+        color: white;
+        margin-right: 0.8rem;
+      }
+
+      &.reject {
+        background: #f1f5f9;
+        color: #ef4444;
+        border: 1px solid #e2e8f0;
+      }
+    }
+  }
+
+  // Approval Action Buttons (Fixed at bottom)
+  .buttons {
+    display: flex;
+    gap: 16px;
+    margin-top: 2.5rem;
+    justify-content: center;
+
+    button {
+      flex: 1;
+      max-width: 220px;
+      padding: 0.9rem;
+      font-size: 1.05rem;
+      font-weight: 600;
+      border-radius: 30px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      min-height: 50px;
+
+      &.approve {
+        background: linear-gradient(to right, $primary-color, lighten($primary-color, 10%));
+        color: white;
+        box-shadow: 0 5px 12px rgba($primary-color, 0.22);
+      }
+      &.reject {
+        background: linear-gradient(to right, #d12f2f, #b02525);
+        color: white;
+        box-shadow: 0 5px 12px rgba(209, 47, 47, 0.22);
+      }
+
+      &:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 7px 18px rgba(0, 0, 0, 0.2);
+      }
+    }
+  }
+
+  // Responsive
+  @media (min-width: 768px) {
+    padding: 40px;
+    max-width: 1140px;
+    margin: 0 auto;
+
+    .header-title { font-size: 2.1rem; }
+    .event-image { height: 360px; }
+
+    .info-section {
+      padding: 2rem;
+    }
+
+    .buttons {
+      margin-top: 3rem;
+    }
+  }
+}
+
+// Optional: overlay when modal is open
+body:has(.reject-container) {
+  overflow: hidden;
+}

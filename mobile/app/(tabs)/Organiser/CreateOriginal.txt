@@ -1,0 +1,1150 @@
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import DateTimePicker from '@react-native-community/datetimepicker';
+import * as DocumentPicker from 'expo-document-picker';
+import { useNavigation, useRouter } from "expo-router";
+import React, { useEffect, useMemo, useState } from "react";
+import {
+  Alert,
+  Dimensions,
+  FlatList,
+  Image,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from "react-native";
+import { useAdminVenue } from "../../hooks/Admin/useVanue";
+import { Calendar } from 'react-native-calendars';
+import { saveEvent, updateEvent } from '../../data/Organiser/myEvents'; // 👈 ADJUST PATH IF NEEDED
+import { useProfileData } from "../../hooks/organiser/useprofileData";
+import { useLocalSearchParams } from 'expo-router';
+import { useEvents } from '../../hooks/organiser/useMyEvents';
+import { useAdminCalendar } from "../../hooks/Admin/useCalender";
+const { width: screenWidth } = Dimensions.get('window');
+const resources = [
+  { id: 1, name: "Microphones", image: "https://soundofministry.co.za/wp-content/uploads/2018/10/R21-mic.jpg" },
+  { id: 2, name: "Projectors", image: "https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?auto=format&fit=crop&w=200&q=80" },
+  { id: 3, name: "Chairs", image: "https://images.unsplash.com/photo-1506439773649-6e0eb8cfb237?auto=format&fit=crop&w=200&q=80" },
+  { id: 4, name: "Tables", image: "https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?auto=format&fit=crop&w=200&q=80" },
+  { id: 5, name: "Speakers", image: "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?auto=format&fit=crop&w=200&q=80" },
+  { id: 6, name: "Whiteboards", image: "https://images.unsplash.com/photo-1611224923853-80b023f02d71?auto=format&fit=crop&w=200&q=80" }
+];
+const eventTypes = [
+  "Official", "Academic related", "Private", "External", "Student"
+];
+const guestTypes = [
+  "VIP", "Media", "Staff", "Student", "Special protocol required"
+];
+const termsText = `VENUE BOOKING APPLICATION
+The institution may grant the APPLICANT permission to use the following in terms of the conditions set out:
+• Facilities for sport are booked through the Sport Division (012) 382-5399/4121
+• Residence facilities are booked through the Residence Division (012) 382-4856
+• Promotional events on campus are booked through Corporate Affairs and Marketing (012) 382-6542
+On approval of an application, both parties should complete, sign and date the form.
+CONDITIONS:
+1. Only someone who has been duly authorised may sign the AA02 form.
+2. Cancellations should be made in writing to the Facility Management Office at least five workdays before the relevant function starts.
+3. The APPLICANT is responsible for all costs as determined by the institution.
+4. The APPLICANT indemnifies the institution against any claims, losses, damages, or liabilities arising from the use of the venue.
+5. The APPLICANT must ensure that the venue is left in the same condition as received.
+6. No alterations, additions, or modifications may be made to the venue without prior written consent.
+7. The institution reserves the right to cancel or reschedule bookings with reasonable notice.
+8. All applicable laws, regulations, and institutional policies must be adhered to during the event.
+9. The APPLICANT is responsible for obtaining any necessary licenses or permits.
+10. Payment terms must be adhered to as specified in the booking agreement.
+By accepting these terms, you acknowledge that you have read, understood, and agree to be bound by all conditions set forth in this venue booking application.`;
+
+function getMarkedDates() {
+  const marked = {};
+  // Class ranges (weekdays only)
+  const classRanges = [
+    // 2025
+    { start: new Date('2025-02-03'), end: new Date('2025-03-28') },
+    { start: new Date('2025-04-07'), end: new Date('2025-06-30') },
+    { start: new Date('2025-07-14'), end: new Date('2025-09-19') },
+    { start: new Date('2025-09-29'), end: new Date('2025-12-05') },
+    // 2026
+    { start: new Date('2026-02-02'), end: new Date('2026-03-27') },
+    { start: new Date('2026-04-07'), end: new Date('2026-06-30') },
+    { start: new Date('2026-07-13'), end: new Date('2026-09-18') },
+    { start: new Date('2026-09-28'), end: new Date('2026-12-04') },
+  ];
+  classRanges.forEach(range => {
+    let current = new Date(range.start);
+    while (current <= range.end) {
+      if (current.getDay() !== 0 && current.getDay() !== 6) {
+        const dateStr = current.toISOString().split('T')[0];
+        marked[dateStr] = { marked: true, dotColor: 'red' };
+      }
+      current.setDate(current.getDate() + 1);
+    }
+  });
+  // Other can't book ranges (all days)
+  const cantBookRanges = [
+    // Exams 2025
+    { start: new Date('2025-05-26'), end: new Date('2025-06-13') },
+    { start: new Date('2025-11-24'), end: new Date('2025-12-05') },
+    // Supp exams 2025
+    { start: new Date('2025-06-17'), end: new Date('2025-06-30') },
+    // Late apps 2025
+    { start: new Date('2025-01-20'), end: new Date('2025-01-24') },
+    // Reg 2025
+    { start: new Date('2025-01-16'), end: new Date('2025-02-02') },
+    { start: new Date('2025-07-14'), end: new Date('2025-08-01') },
+    // Exit/special 2025
+    { start: new Date('2025-01-27'), end: new Date('2025-01-31') },
+    { start: new Date('2025-08-03'), end: new Date('2025-08-07') },
+    // Closed 2025
+    { start: new Date('2025-12-06'), end: new Date('2026-01-05') },
+    // Exams 2026
+    { start: new Date('2026-05-25'), end: new Date('2026-06-12') },
+    { start: new Date('2026-11-23'), end: new Date('2026-12-4') },
+    // Supp exams 2026
+    { start: new Date('2026-06-17'), end: new Date('2026-06-30') },
+    // Late apps 2026
+    { start: new Date('2026-01-15'), end: new Date('2026-01-23') },
+    // Reg 2026
+    { start: new Date('2026-01-15'), end: new Date('2026-02-01') },
+    { start: new Date('2026-07-13'), end: new Date('2026-07-31') },
+    // Exit/special 2026
+    { start: new Date('2026-01-26'), end: new Date('2026-01-30') },
+    { start: new Date('2026-08-03'), end: new Date('2026-08-07') },
+    // Closed 2026
+    { start: new Date('2026-12-05'), end: new Date('2027-01-05') },
+  ];
+  cantBookRanges.forEach(range => {
+    let current = new Date(range.start);
+    while (current <= range.end) {
+      const dateStr = current.toISOString().split('T')[0];
+      marked[dateStr] = { marked: true, dotColor: 'red' };
+      current.setDate(current.getDate() + 1);
+    }
+  });
+  // Can book dates (unmark)
+  const canBookDates = [
+    // Public holidays 2025
+    '2025-01-01', '2025-03-21', '2025-04-18', '2025-04-21', '2025-04-27', '2025-04-28',
+    '2025-05-01', '2025-06-16', '2025-08-09', '2025-09-24', '2025-12-16', '2025-12-25', '2025-12-26',
+    // Public holidays 2026
+    '2026-01-01', '2026-03-21', '2026-04-03', '2026-04-06', '2026-04-27', '2026-05-01',
+    '2026-06-16', '2026-08-09', '2026-08-10', '2026-09-24', '2026-12-16', '2026-12-25', '2026-12-26',
+    // TUT holidays and recesses 2025
+    '2025-03-31', '2025-04-01', '2025-04-02', '2025-04-03', '2025-04-04',
+    '2025-04-14', '2025-06-15', '2025-09-22', '2025-09-23', '2025-09-24', '2025-09-25', '2025-09-26',
+    '2025-12-15',
+    // TUT holidays and recesses 2026
+    '2026-03-30', '2026-03-31', '2026-04-01', '2026-04-02',
+    '2026-06-15', '2026-09-21', '2026-09-22', '2026-09-23', '2026-09-25',
+    // Predicate days
+    '2025-05-19',
+    '2026-05-18', '2026-05-19', '2026-05-20', '2026-05-21', '2026-05-22'
+  ];
+  canBookDates.forEach(dateStr => {
+    if (marked[dateStr]) {
+      delete marked[dateStr];
+    }
+  });
+  return marked;
+}
+
+// Image Slider Component
+const ImageSlider = ({ images }) => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const nextImage = () => {
+    setCurrentIndex((prevIndex) =>
+      prevIndex === images.length - 1 ? 0 : prevIndex + 1
+    );
+  };
+  const prevImage = () => {
+    setCurrentIndex((prevIndex) =>
+      prevIndex === 0 ? images.length - 1 : prevIndex - 1
+    );
+  };
+  return (
+    <View style={styles.sliderContainer}>
+      <Image
+        source={{ uri: images[currentIndex] }}
+        style={styles.sliderImage}
+        resizeMode="cover"
+      />
+      {/* Navigation Arrows */}
+      <TouchableOpacity style={[styles.arrowButton, styles.leftArrow]} onPress={prevImage}>
+        <Ionicons name="chevron-back" size={24} color="#fff" />
+      </TouchableOpacity>
+      <TouchableOpacity style={[styles.arrowButton, styles.rightArrow]} onPress={nextImage}>
+        <Ionicons name="chevron-forward" size={24} color="#fff" />
+      </TouchableOpacity>
+      {/* Dots Indicator */}
+      <View style={styles.dotsContainer}>
+        {images.map((_, index) => (
+          <View
+            key={index}
+            style={[
+              styles.dot,
+              index === currentIndex ? styles.activeDot : styles.inactiveDot
+            ]}
+          />
+        ))}
+      </View>
+    </View>
+  );
+};
+
+export default function Create() {
+  const { venues, reload } = useAdminVenue();
+  const [selectedVenue, setSelectedVenue] = useState(null);
+  const [viewType, setViewType] = useState("grid");
+  const [selectedEventTypes, setSelectedEventTypes] = useState([]);
+  const [selectedGuestTypes, setSelectedGuestTypes] = useState([]);
+  const [eventName, setEventName] = useState("");
+  const [eventType, setEventType] = useState("");
+  const [purpose, setPurpose] = useState("");
+  const [capacity, setCapacity] = useState("0");
+  const [date, setDate] = useState("");
+  const [uploadedBanner, setUploadedBanner] = useState(null);
+  const [uploadedProof, setUploadedProof] = useState(null);
+  const navigation = useNavigation();
+  const router = useRouter();
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [showCampusPicker, setShowCampusPicker] = useState(false);
+  const [showStartTimePicker, setShowStartTimePicker] = useState(false);
+  const [showEndTimePicker, setShowEndTimePicker] = useState(false);
+  const [selectedStartTime, setSelectedStartTime] = useState(new Date());
+  const [selectedEndTime, setSelectedEndTime] = useState(new Date());
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
+  const [campus, setCampus] = useState("Emalahleni");
+  const [termsAccepted, setTermsAccepted] = useState(false);
+  const [showTermsModal, setShowTermsModal] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [tempDate, setTempDate] = useState(new Date());
+  const profile = useProfileData();
+  const Email = profile?.userInfo?.[0]?.email || "no-email@tut.ac.za"; // fallback
+  const { eventId } = useLocalSearchParams();
+  const { getEventById } = useEvents();
+  const { availableDates } = useAdminCalendar();
+  const currentDate = new Date().toISOString().split('T')[0]; // Today's date
+  const [availableDateDetails, setAvailableDateDetails] = useState(null);
+
+  useEffect(() => {
+    reload();
+  }, []);
+
+  useEffect(() => {
+    if (venues.length > 0 && selectedVenue === null) {
+      setSelectedVenue(venues[0].id);
+    }
+  }, [venues, selectedVenue]);
+
+  useEffect(() => {
+    if (eventId) {
+      const eventToEdit = getEventById(eventId);
+      if (eventToEdit) {
+        setEventName(eventToEdit.title || "");
+        setPurpose(eventToEdit.description || "");
+        setCapacity((eventToEdit.capacity || "0").replace(' attendees', ''));
+        setTermsAccepted(true);
+        setDate(eventToEdit.displayDate || "");
+        const timeParts = (eventToEdit.time || "").split(' - ');
+        if (timeParts.length === 2) {
+          setStartTime(timeParts[0]);
+          setEndTime(timeParts[1]);
+        }
+        const extractedCampus = extractCampusFromLocation(eventToEdit.location);
+        setCampus(extractedCampus);
+        const venueMatch = venues.find(v => v.location === eventToEdit.location);
+        setSelectedVenue(venueMatch ? venueMatch.id : venues[0].id);
+        setSelectedEventTypes(eventToEdit.tags || []);
+        setSelectedGuestTypes(eventToEdit.guestTypes || []);
+        const initialResourceQuantities = resources.reduce((acc, r) => {
+          const existing = (eventToEdit.resources || []).find(res => res.name === r.name);
+          acc[r.id] = existing ? String(existing.quantity) : "0";
+          return acc;
+        }, {});
+        setResourceQuantities(initialResourceQuantities);
+        const initialServices = {
+          Liquor: false,
+          "Kitchen Facilities": false,
+          "Cleaning Services": false,
+          "Extra Security": false,
+          ...eventToEdit.services
+        };
+        setServices(initialServices);
+        if (eventToEdit.bannerUri) {
+          setUploadedBanner({ uri: eventToEdit.bannerUri });
+        }
+      }
+    }
+  }, [eventId]);
+
+  const extractCampusFromLocation = (location) => {
+    const campuses = ["Emalahleni", "Polokwane", "Ga-Rankuwa", "Pretoria", "Soshanguve"];
+    return campuses.find(campus => location.includes(campus)) || "Emalahleni";
+  };
+
+  const [resourceQuantities, setResourceQuantities] = useState(
+    resources.reduce((acc, r) => ({ ...acc, [r.id]: "0" }), {})
+  );
+
+  const [services, setServices] = useState({
+    Liquor: false,
+    "Kitchen Facilities": false,
+    "Cleaning Services": false,
+    "Extra Security": false,
+  });
+
+  const campusOptions = ["Emalahleni", "Polokwane", "Ga-Rankuwa", "Pretoria", "Soshanguve"];
+
+  const filteredVenues = useMemo(() => {
+    const capacityNum = parseInt(capacity) || 0;
+    const query = campus.toLowerCase().trim();
+    const filtered = venues.filter(venue => {
+      const matchesLocation = !query || venue.location.toLowerCase().includes(query);
+      const matchesCapacity = capacityNum === 0 || venue.mlCapacity >= capacityNum;
+      return matchesLocation && matchesCapacity;
+    });
+    return filtered;
+  }, [campus, capacity]);
+
+  const pickDocument = async (setter) => {
+    let result = await DocumentPicker.getDocumentAsync({});
+    if (result && result.assets && result.assets.length > 0 && result.assets[0].uri) {
+      setter(result.assets[0]);
+    }
+  };
+
+  const incCapacity = () => setCapacity(c => (parseInt(c) || 0) + 1 + "");
+  const decCapacity = () => setCapacity(c => Math.max((parseInt(c) || 0) - 1, 0) + "");
+  const incResource = (id) =>
+    setResourceQuantities(q => ({ ...q, [id]: String((parseInt(q[id]) || 0) + 1) }));
+  const decResource = (id) =>
+    setResourceQuantities(q => ({ ...q, [id]: String(Math.max((parseInt(q[id]) || 0) - 1, 0)) }));
+  const onChangeResource = (id, val) =>
+    setResourceQuantities(q => ({ ...q, [id]: val.replace(/[^0-9]/g, "") }));
+
+  const handleDateChange = (event, selectedDate) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+    }
+    if (selectedDate) {
+      setTempDate(selectedDate);
+      if (event.type === 'set') {
+        setDate(selectedDate.toISOString().split('T')[0]);
+        if (Platform.OS === 'ios') {
+          setShowDatePicker(false);
+        }
+      } else if (event.type === 'dismissed' && Platform.OS === 'android') {
+        setShowDatePicker(false);
+      }
+    }
+  };
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, []);
+
+  const renderVenueGrid = () => {
+    if (filteredVenues.length === 0) {
+      return (
+        <View style={{ padding: 20, alignItems: "center" }}>
+          <Text style={{ color: "#be1922", fontSize: 16, fontWeight: "600" }}>
+            No venue of such capacity
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 7, marginLeft: 5 }}>
+        {filteredVenues.map(venue => (
+          <TouchableOpacity key={venue.id} style={[styles.venueCard, selectedVenue === venue.id && styles.venueCardSelected]} onPress={() => setSelectedVenue(venue.id)}>
+            <Text style={styles.venueTitle}>{venue.title}</Text>
+            <Text style={styles.venueLocation}><Ionicons name="location-outline" size={15} /> {venue.location}</Text>
+            <Text style={styles.venuePrice}>{venue.price}</Text>
+            <ImageSlider images={venue.previewImages} />
+            <Text style={styles.venueSubLabel}>Live Availability:</Text>
+            <View style={styles.capacityPill}>
+              <Text style={styles.capacityPillText}>Capacity: {venue.mlCapacity}</Text>
+            </View>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    );
+  };
+
+  const renderVenueList = () => {
+    if (filteredVenues.length === 0) {
+      return (
+        <View style={{ padding: 20, alignItems: "center" }}>
+          <Text style={{ color: "#be1922", fontSize: 16, fontWeight: "600" }}>
+            No venue of such capacity
+          </Text>
+        </View>
+      );
+    }
+    return (
+      <FlatList
+        data={filteredVenues}
+        keyExtractor={item => item.id.toString()}
+        contentContainerStyle={{ paddingBottom: 10 }}
+        renderItem={({ item }) => (
+          <TouchableOpacity
+            style={[styles.venueListCard, selectedVenue === item.id && styles.venueCardSelected]}
+            onPress={() => setSelectedVenue(item.id)}
+          >
+            <Image source={{ uri: item.image }} style={styles.venueListImage} />
+            <View style={styles.venueListInfo}>
+              <Text style={styles.venueTitle}>{item.title}</Text>
+              <Text style={styles.venueLocation}>
+                <Ionicons name="location-outline" size={14} /> {item.location}
+              </Text>
+              <Text style={styles.venuePrice}>{item.price}</Text>
+              <Text style={styles.venueSubLabel}>Capacity: {item.mlCapacity}</Text>
+            </View>
+          </TouchableOpacity>
+        )}
+      />
+    );
+  };
+
+  const markedDates = useMemo(() => {
+    const marks = {};
+    const venueAvailabilities = {};
+    availableDates.forEach((item) => {
+      const matchesVenue = 
+        (Array.isArray(item.venueIds) && item.venueIds.includes(selectedVenue)) ||
+        (item.venueId === selectedVenue);
+      if (matchesVenue && item.date) {
+        marks[item.date] = {
+          marked: true,
+          dotColor: "blue",
+        };
+        venueAvailabilities[item.date] = item;
+      }
+    });
+    setAvailableDateDetails(venueAvailabilities);
+    return marks;
+  }, [availableDates, selectedVenue]);
+
+  const handleDayPress = (day) => {
+    const selectedDate = day.dateString;
+    if (availableDateDetails && availableDateDetails[selectedDate]) {
+      const avail = availableDateDetails[selectedDate];
+      Alert.alert(
+        "Venue Available",
+        `Available on ${selectedDate}\nStart: ${avail.startTime}\nEnd: ${avail.endTime}`,
+        [{ text: "OK", onPress: () => setDate(selectedDate) }]
+      );
+    } else {
+      Alert.alert("Not Available", "This date is not available for the selected venue.");
+    }
+  };
+
+  return (
+    <ScrollView style={{ backgroundColor: "#fafafc" }} contentContainerStyle={{ paddingBottom: 30 }}>
+      {/* Event Details (without Date/Time) */}
+      <View style={styles.detailsBlock}>
+        <Text style={styles.sectionTitle}>Event Details</Text>
+        <View style={styles.labelInputGroup}>
+          <Text style={styles.fieldLabel}>Event Name</Text>
+          <TextInput style={styles.input} value={eventName} onChangeText={setEventName} placeholder="Enter event name" />
+        </View>
+        <View style={styles.labelInputGroup}>
+          <Text style={styles.fieldLabel}>Purpose of the event</Text>
+          <TextInput style={styles.input} value={purpose} onChangeText={setPurpose} placeholder="Enter purpose of the event" />
+        </View>
+        <View style={styles.labelInputGroup}>
+          <Text style={styles.fieldLabel}>Campus</Text>
+          <TouchableOpacity style={styles.pickerInput} onPress={() => setShowCampusPicker(true)}>
+            <Ionicons name="location-outline" size={20} color="#0077B6" style={{ marginRight: 10 }} />
+            <Text style={campus ? styles.pickerTextSet : styles.pickerTextPlaceholder}>{campus ? campus : "Select campus"}</Text>
+          </TouchableOpacity>
+          <Modal visible={showCampusPicker} transparent={true} animationType="slide">
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Select Campus</Text>
+                {campusOptions.map(option => (
+                  <TouchableOpacity key={option} style={styles.modalOption} onPress={() => { setCampus(option); setShowCampusPicker(false); }}>
+                    <Text style={styles.modalOptionText}>{option}</Text>
+                  </TouchableOpacity>
+                ))}
+                <TouchableOpacity style={styles.modalClose} onPress={() => setShowCampusPicker(false)}>
+                  <Text style={styles.modalCloseText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </Modal>
+        </View>
+        <View style={styles.labelInputGroup}>
+          <Text style={styles.fieldLabel}>Capacity</Text>
+          <View style={styles.capacityRow}>
+            <TouchableOpacity style={styles.capBtn} onPress={decCapacity}>
+              <Ionicons name="remove-circle-outline" size={24} color="#0077B6" />
+            </TouchableOpacity>
+            <TextInput style={[styles.input, { width: 60, textAlign: "center", marginRight: 4, marginLeft: 4 }]}
+              value={capacity} onChangeText={v => setCapacity(v.replace(/[^0-9]/g, ""))} placeholder="0" keyboardType="numeric" />
+            <TouchableOpacity style={styles.capBtn} onPress={incCapacity}>
+              <Ionicons name="add-circle-outline" size={24} color="#0077B6" />
+            </TouchableOpacity>
+          </View>
+        </View>
+        {/* ⬆️ Date and Time removed from here */}
+      </View>
+
+      {/* Venue Selection */}
+      <Text style={styles.sectionTitle}>Venue Selection</Text>
+      <View style={styles.switchBar}>
+        <TouchableOpacity style={[styles.switchButton, viewType === "grid" && styles.switchSelected]} onPress={() => setViewType("grid")}>
+          <Text style={[styles.switchButtonText, viewType === "grid" && styles.switchButtonTextSelected]}>Grid View</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={[styles.switchButton, viewType === "list" && styles.switchSelected]} onPress={() => setViewType("list")}>
+          <Text style={[styles.switchButtonText, viewType === "list" && styles.switchButtonTextSelected]}>List View</Text>
+        </TouchableOpacity>
+      </View>
+      {viewType === "grid" ? renderVenueGrid() : renderVenueList()}
+
+      {/* Date and Time — MOVED HERE, after Venue Selection */}
+      <View style={styles.detailsBlock}>
+        <Text style={styles.sectionTitle}>Date & Time</Text>
+        <View style={styles.labelInputGroup}>
+          <Text style={styles.fieldLabel}>Date</Text>
+          <TouchableOpacity style={styles.pickerInput} onPress={() => setShowCalendar(true)}>
+            <Ionicons name="calendar-outline" size={20} color="#0077B6" style={{ marginRight: 10 }} />
+            <Text style={date ? styles.pickerTextSet : styles.pickerTextPlaceholder}>{date ? date : "Select date"}</Text>
+          </TouchableOpacity>
+              {showCalendar && (
+                <View style={styles.calendarModal}>
+                {selectedVenue ? (
+                <Calendar
+                  markedDates={markedDates}
+                  minDate={currentDate}
+                  onDayPress={handleDayPress}
+                />
+              ) : (
+                <Text style={{ textAlign: 'center', padding: 20, color: '#888' }}>
+                  Select a venue to view available dates.
+                </Text>
+              )}
+              {selectedVenue && availableDates.length > 0 && (
+                <Text style={{ marginTop: 10, color: 'blue', fontSize: 12 }}>
+                  Note: Only blue dot dates can be booked for the selected venue. Press dot to see availability details.
+                </Text>
+              )}
+              {selectedVenue && availableDates.length > 0 && 
+                !availableDates.some(item => 
+                  (Array.isArray(item.venueIds) && item.venueIds.includes(selectedVenue)) ||
+                  (item.venueId === selectedVenue)
+                ) && (
+                  <Text style={{ marginTop: 10, color: 'orange', fontSize: 14, fontWeight: 'bold', textAlign: 'center' }}>
+                    No available dates for this venue. Please select a different venue or contact admin.
+                  </Text>
+                )
+              }
+              {availableDates.length === 0 && (
+                <Text style={{ marginTop: 10, color: 'red', fontSize: 14, fontWeight: 'bold', textAlign: 'center' }}>
+                  No venue availability data. Please contact admin.
+                </Text>
+              )}
+              <TouchableOpacity style={styles.calendarClose} onPress={() => setShowCalendar(false)}>
+                <Text style={styles.calendarCloseText}>Close</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
+        <View style={styles.labelInputGroup}>
+          <Text style={styles.fieldLabel}>Time</Text>
+          <View style={styles.timeRow}>
+            <View style={styles.timeColumn}>
+              <Text style={styles.timeLabel}>Start Time</Text>
+              <TouchableOpacity style={styles.pickerInput} onPress={() => setShowStartTimePicker(true)}>
+                <Ionicons name="time-outline" size={20} color="#0077B6" style={{ marginRight: 10 }} />
+                <Text style={startTime ? styles.pickerTextSet : styles.pickerTextPlaceholder}>{startTime ? startTime : "Select start time"}</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={styles.timeColumn}>
+              <Text style={styles.timeLabel}>End Time</Text>
+              <TouchableOpacity style={styles.pickerInput} onPress={() => setShowEndTimePicker(true)}>
+                <Ionicons name="time-outline" size={20} color="#0077B6" style={{ marginRight: 10 }} />
+                <Text style={endTime ? styles.pickerTextSet : styles.pickerTextPlaceholder}>{endTime ? endTime : "Select end time"}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+          {showStartTimePicker && (
+            <DateTimePicker
+              value={selectedStartTime}
+              mode="time"
+              is24Hour={true}
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowStartTimePicker(false);
+                if (selectedDate) {
+                  setSelectedStartTime(selectedDate);
+                  const hours = selectedDate.getHours().toString().padStart(2, '0');
+                  const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
+                  setStartTime(`${hours}:${minutes}`);
+                }
+              }}
+            />
+          )}
+          {showEndTimePicker && (
+            <DateTimePicker
+              value={selectedEndTime}
+              mode="time"
+              is24Hour={true}
+              display="default"
+              onChange={(event, selectedDate) => {
+                setShowEndTimePicker(false);
+                if (selectedDate) {
+                  setSelectedEndTime(selectedDate);
+                  const hours = selectedDate.getHours().toString().padStart(2, '0');
+                  const minutes = selectedDate.getMinutes().toString().padStart(2, '0');
+                  setEndTime(`${hours}:${minutes}`);
+                }
+              }}
+            />
+          )}
+        </View>
+      </View>
+
+      {/* Event Schedule Calendar */}
+      
+
+      {/* Resource Catalogue */}
+      <View style={styles.resourceBlock}>
+        <Text style={styles.sectionTitle}>Resource Catalogue</Text>
+        <View style={styles.resourceGrid}>
+          {resources.map(res => (
+            <View key={res.id} style={styles.resourceItem}>
+              <Image source={{ uri: res.image }} style={styles.resourceIcon} />
+              <Text style={styles.resourceLabel}>{res.name}</Text>
+              <View style={styles.capacityRow}>
+                <TouchableOpacity style={styles.capBtn} onPress={() => decResource(res.id)}>
+                  <Ionicons name="remove-circle-outline" size={21} color="#0077B6" />
+                </TouchableOpacity>
+                <TextInput
+                  style={[styles.input, { width: 48, textAlign: "center", marginRight: 2, marginLeft: 2, paddingVertical: 4, fontSize: 14 }]}
+                  value={resourceQuantities[res.id]}
+                  onChangeText={v => onChangeResource(res.id, v)}
+                  placeholder="0"
+                  keyboardType="numeric"
+                />
+                <TouchableOpacity style={styles.capBtn} onPress={() => incResource(res.id)}>
+                  <Ionicons name="add-circle-outline" size={21} color="#0077B6" />
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Services Required */}
+      <View style={styles.servicesBlock}>
+        <Text style={styles.sectionTitle}>Services Required</Text>
+        {Object.keys(services).map(s => (
+          <View key={s} style={styles.serviceRow}>
+            <Text style={styles.serviceLabel}>{s}</Text>
+            <View style={{ flexDirection: "row", gap: 12 }}>
+              <TouchableOpacity
+                style={[styles.yesNoBtn, services[s] && styles.yesNoBtnSelected]}
+                onPress={() => setServices(st => ({ ...st, [s]: true }))}
+              >
+                <Text style={[styles.yesNoText, services[s] && styles.yesNoTextSelected]}>Yes</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.yesNoBtn, !services[s] && styles.yesNoBtnSelected]}
+                onPress={() => setServices(st => ({ ...st, [s]: false }))}
+              >
+                <Text style={[styles.yesNoText, !services[s] && styles.yesNoTextSelected]}>No</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {/* Type of function */}
+      <View style={styles.typeBlock}>
+        <Text style={styles.sectionTitle}>Type of function</Text>
+        <View style={styles.checkboxContainer}>
+          {eventTypes.map(type => (
+            <TouchableOpacity key={type} style={styles.checkboxRow} onPress={() => setSelectedEventTypes(prev => prev.includes(type) ? prev.filter(x => x !== type) : [...prev, type])}>
+              <MaterialIcons name={selectedEventTypes.includes(type) ? "check-box" : "check-box-outline-blank"} size={21} color="#0077B6" />
+              <Text style={styles.checkLabel}>{type}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Type of Guest */}
+      <View style={styles.typeBlock}>
+        <Text style={styles.sectionTitle}>Type of Guest</Text>
+        <View style={styles.checkboxContainer}>
+          {guestTypes.map(type => (
+            <TouchableOpacity key={type} style={styles.checkboxRow} onPress={() => setSelectedGuestTypes(prev => prev.includes(type) ? prev.filter(x => x !== type) : [...prev, type])}>
+              <MaterialIcons name={selectedGuestTypes.includes(type) ? "check-box" : "check-box-outline-blank"} size={21} color="#0077B6" />
+              <Text style={styles.checkLabel}>{type}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      </View>
+
+      {/* Branding & Mock-up */}
+      <View style={styles.mockupBlock}>
+        <Text style={styles.sectionTitle}>Branding & Mock-up</Text>
+        <TouchableOpacity onPress={() => pickDocument(setUploadedBanner)} style={styles.uploadArea}>
+          <Ionicons name="cloud-upload-outline" size={32} color="#666" style={{ marginBottom: 6 }} />
+          <Text style={styles.uploadText}>Upload Image</Text>
+        </TouchableOpacity>
+        {uploadedBanner && <Image source={{ uri: uploadedBanner.uri }} style={styles.bannerPreview} />}
+        <Text style={styles.mockPreviewLabel}>Banner Mock-up Preview:</Text>
+        <View style={styles.bannerBlock}>
+          {uploadedBanner ? <Image source={{ uri: uploadedBanner.uri }} style={styles.bannerImageInPreview} /> : <View style={styles.bannerImageInPreviewGrey} />}
+        </View>
+      </View>
+
+      {/* Terms and Conditions */}
+      <View style={styles.termsBlock}>
+        <Text style={styles.sectionTitle}>Terms and Conditions</Text>
+        <TouchableOpacity style={styles.checkboxRow} onPress={() => setShowTermsModal(true)}>
+          <MaterialIcons name={termsAccepted ? "check-box" : "check-box-outline-blank"} size={21} color="#0077B6" />
+          <Text style={styles.checkLabel}>I have read and accept the terms and conditions</Text>
+        </TouchableOpacity>
+        {!termsAccepted && (
+          <Text style={styles.termsError}>You must accept the terms and conditions to proceed with your booking.</Text>
+        )}
+        <Modal visible={showTermsModal} transparent={true} animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Terms and Conditions</Text>
+              <ScrollView style={styles.termsScroll}>
+                {termsText.split('\n').map((line, index) => (
+                  <Text key={index} style={styles.termsLine}>{line}</Text>
+                ))}
+              </ScrollView>
+              <View style={styles.modalActions}>
+                <TouchableOpacity style={styles.btnAccept} onPress={() => { setTermsAccepted(true); setShowTermsModal(false); }}>
+                  <Text style={styles.btnAcceptText}>Accept</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.btnDecline} onPress={() => { setTermsAccepted(false); setShowTermsModal(false); }}>
+                  <Text style={styles.btnDeclineText}>Decline</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      </View>
+
+      {/* Submit Button */}
+      <TouchableOpacity style={[styles.saveButton, !termsAccepted && styles.saveButtonDisabled]}
+        disabled={!termsAccepted}
+        onPress={async () => {
+          if (!eventName || !purpose || !date || !startTime || !endTime || !termsAccepted) {
+            Alert.alert("Error", "Please fill all required fields and accept the terms and conditions.");
+            return;
+          }
+          const isDateAvailable = availableDates.some(item => {
+            const matchesVenue = 
+              (Array.isArray(item.venueIds) && item.venueIds.includes(selectedVenue)) ||
+              (item.venueId === selectedVenue);
+            return matchesVenue && item.date === date;
+          });
+          if (!isDateAvailable) {
+            Alert.alert(
+              "Invalid Date",
+              "The selected date is not available for this venue. Please choose an available date (blue dot) or select a different venue.",
+              [{ text: "OK" }]
+            );
+            return;
+          }
+          const venue = venues.find(v => v.id === selectedVenue);
+          const eventDate = new Date(date);
+          const displayDate = eventDate.toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+          });
+          const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+          const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+          const dayName = days[eventDate.getDay()];
+          const day = eventDate.getDate();
+          const monthName = months[eventDate.getMonth()];
+          const startHour = parseInt(startTime.split(':')[0]);
+          const ampm = startHour < 12 ? 'AM' : 'PM';
+          const listDate = `${dayName}, ${day} ${monthName} at ${startTime} ${ampm}`;
+          const start = new Date(`2000-01-01T${startTime}`);
+          const end = new Date(`2000-01-01T${endTime}`);
+          const diffMs = end - start;
+          const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+          const duration = diffHrs > 0
+            ? `${diffHrs} hour${diffHrs > 1 ? 's' : ''}`
+            : "Less than 1 hour";
+          const newEvent = {
+            id: eventId ? parseInt(eventId) : Date.now(),
+            title: eventName,
+            date: listDate,
+            displayDate: displayDate,
+            time: `${startTime} - ${endTime}`,
+            duration: duration,
+            location: venue ? venue.location : campus,
+            capacity: `${capacity || '0'} attendees`,
+            price: venue ? venue.price : "Free",
+            organizer: "TUT Organizer",
+            contact: Email,
+            category: selectedEventTypes.length > 0 ? selectedEventTypes[0] : "Other",
+            tags: [...selectedEventTypes],
+            description: purpose,
+            image: uploadedBanner?.uri || venue?.image || "https://via.placeholder.com/800",
+            status: "Upcoming",
+            approval: eventId ? "Waiting for Approval" : "Waiting for Approval",
+            campus: campus,
+            guestTypes: [...selectedGuestTypes],
+            resources: Object.entries(resourceQuantities)
+              .filter(([id, qty]) => parseInt(qty) > 0)
+              .map(([id, qty]) => {
+                const res = resources.find(r => r.id === parseInt(id));
+                return res ? { name: res.name, quantity: qty } : null;
+              })
+              .filter(Boolean),
+            services: Object.fromEntries(
+              Object.entries(services).filter(([key, enabled]) => enabled)
+            ),
+            bannerUri: uploadedBanner?.uri || null,
+          };
+          try {
+            if (eventId) {
+              await updateEvent(newEvent);
+              Alert.alert("Success", "Your event has been updated!", [
+                {
+                  text: "OK",
+                  onPress: () => {
+                    setSelectedVenue(venues[0].id);
+                    setViewType("grid");
+                    setSelectedEventTypes([]);
+                    setSelectedGuestTypes([]);
+                    setEventName("");
+                    setPurpose("");
+                    setCapacity("0");
+                    setDate("");
+                    setUploadedBanner(null);
+                    setUploadedProof(null);
+                    setShowCalendar(false);
+                    setShowCampusPicker(false);
+                    setShowStartTimePicker(false);
+                    setShowEndTimePicker(false);
+                    setSelectedStartTime(new Date());
+                    setSelectedEndTime(new Date());
+                    setStartTime("");
+                    setEndTime("");
+                    setCampus("Emalahleni");
+                    setResourceQuantities(resources.reduce((acc, r) => ({ ...acc, [r.id]: "0" }), {}));
+                    setServices({
+                      Liquor: false,
+                      "Kitchen Facilities": false,
+                      "Cleaning Services": false,
+                      "Extra Security": false,
+                    });
+                    setTermsAccepted(false);
+                    setShowTermsModal(false);
+                    router.push("./Events");
+                  }
+                }
+              ]);
+            } else {
+              await saveEvent(newEvent);
+              Alert.alert("Success", "Your event has been submitted!", [
+                {
+                  text: "OK",
+                  onPress: () => {
+                    setSelectedVenue(venues[0].id);
+                    setViewType("grid");
+                    setSelectedEventTypes([]);
+                    setSelectedGuestTypes([]);
+                    setEventName("");
+                    setPurpose("");
+                    setCapacity("0");
+                    setDate("");
+                    setUploadedBanner(null);
+                    setUploadedProof(null);
+                    setShowCalendar(false);
+                    setShowCampusPicker(false);
+                    setShowStartTimePicker(false);
+                    setShowEndTimePicker(false);
+                    setSelectedStartTime(new Date());
+                    setSelectedEndTime(new Date());
+                    setStartTime("");
+                    setEndTime("");
+                    setCampus("Emalahleni");
+                    setResourceQuantities(resources.reduce((acc, r) => ({ ...acc, [r.id]: "0" }), {}));
+                    setServices({
+                      Liquor: false,
+                      "Kitchen Facilities": false,
+                      "Cleaning Services": false,
+                      "Extra Security": false,
+                    });
+                    setTermsAccepted(false);
+                    setShowTermsModal(false);
+                    router.push("./Events");
+                  }
+                }
+              ]);
+            }
+          } catch (error) {
+            console.error("Submission error:", error);
+            Alert.alert("Error", "Failed to save your event. Please try again.");
+          }
+        }}>
+        <Text style={styles.saveButtonText}>Submit</Text>
+      </TouchableOpacity>
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { backgroundColor: "#fafafc" },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginHorizontal: 16,
+    marginVertical: 10,
+    color: "#191823"
+  },
+  labelInputGroup: { marginBottom: 14 },
+  fieldLabel: { fontWeight: '700', color: "#0077B6", fontSize: 15, marginBottom: 4, marginLeft: 3 },
+  input: {
+    backgroundColor: '#f5f5f5', borderRadius: 7, marginBottom: 0, paddingHorizontal: 15, paddingVertical: 10, fontSize: 15
+  },
+  resourceBlock: { backgroundColor: "#fff", borderRadius: 15, margin: 13, padding: 17, marginTop: 4 },
+  resourceGrid: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between" },
+  resourceItem: { width: "30%", marginBottom: 14, alignItems: "center" },
+  resourceIcon: { width: 60, height: 60, borderRadius: 8, marginBottom: 5 },
+  resourceLabel: { color: "#222", fontWeight: "600", fontSize: 14, textAlign: "center" },
+  capacityRow: {
+    flexDirection: "row", alignItems: "center",
+    marginTop: 2, marginBottom: 0,
+  },
+  capBtn: { padding: 1, marginHorizontal: 2 },
+  pickerInput: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 9,
+    paddingHorizontal: 13,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 7,
+  },
+  pickerTextPlaceholder: { color: "#999", fontSize: 15 },
+  pickerTextSet: { color: "#0077B6", fontSize: 15, fontWeight: "700" },
+  switchBar: {
+    flexDirection: "row", marginHorizontal: 8, marginVertical: 8,
+    justifyContent: "flex-start", gap: 10
+  },
+  switchButton: {
+    flex: 1,
+    backgroundColor: "#e9e9ee", borderRadius: 8, paddingVertical: 7,
+    justifyContent: "center", alignItems: "center"
+  },
+  switchSelected: {
+    backgroundColor: '#0077B6'
+  },
+  switchButtonText: {
+    color: '#57516b', fontWeight: "700", fontSize: 15
+  },
+  switchButtonTextSelected: {
+    color: "#fff"
+  },
+  venueCard: {
+    backgroundColor: '#fff', borderRadius: 16, padding: 12, marginRight: 13,
+    minWidth: 240, maxWidth: 252, elevation: 2, borderWidth: 1, borderColor: '#ececec'
+  },
+  venueCardSelected: { borderWidth: 2, borderColor: '#0077B6' },
+  venueTitle: { fontSize: 16, fontWeight: '700', color: '#0077B6' },
+  venueLocation: { fontSize: 13, color: '#767676', marginVertical: 2 },
+  venuePrice: { fontSize: 14, color: '#000', fontWeight: 'bold', marginVertical: 2 },
+  venueSubLabel: { fontSize: 13, color: "#888", marginTop: 4 },
+  capacityPill: { alignSelf: 'flex-start', backgroundColor: '#0077B6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 7, marginTop: 4 },
+  capacityPillText: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  typeBlock: { backgroundColor: "#fff", marginTop: 12, marginHorizontal: 8, borderRadius: 15, padding: 17 },
+  checkboxContainer: { flexDirection: "row", flexWrap: "wrap", marginTop: 8 },
+  checkboxRow: { flexDirection: "row", alignItems: "center", marginRight: 18, marginBottom: 8 },
+  checkLabel: { marginLeft: 4, fontSize: 15, color: "#0077B6", fontWeight: "500" },
+  mockupBlock: { backgroundColor: "#fff", margin: 13, borderRadius: 15, padding: 16, marginBottom: 12 },
+  uploadArea: { alignSelf: "center", alignItems: "center", paddingVertical: 12, marginBottom: 10 },
+  uploadText: { color: "#0077B6", fontWeight: "500", fontSize: 15, marginTop: 3 },
+  mockPreviewLabel: { marginTop: 12, marginLeft: 6, fontSize: 14, color: '#222' },
+  bannerBlock: { marginTop: 7, alignItems: "center", width: '100%' },
+  bannerPreview: { alignSelf: "center", width: 175, height: 70, borderRadius: 8, marginBottom: 6 },
+  bannerImageInPreview: { width: "94%", height: 41, borderRadius: 7 },
+  bannerImageInPreviewGrey: {
+    width: "94%", height: 41, borderRadius: 7, backgroundColor: '#ececec'
+  },
+  detailsBlock: { backgroundColor: "#fff", marginHorizontal: 8, borderRadius: 15, padding: 16, marginVertical: 5, paddingTop: 30 },
+  calendarBlock: { backgroundColor: "#fff", marginTop: 12, marginHorizontal: 8, borderRadius: 13, padding: 15, marginBottom: 10 },
+  saveButton: {
+    backgroundColor: "#0077B6", borderRadius: 15, marginHorizontal: 14, marginTop: 12, paddingVertical: 17, alignItems: "center"
+  },
+  saveButtonDisabled: {
+    backgroundColor: "#ccc"
+  },
+  saveButtonText: { color: "#fff", fontWeight: "800", fontSize: 18 },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    width: '80%',
+    maxHeight: '60%',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 15,
+    textAlign: 'center',
+    color: '#191823',
+  },
+  modalOption: {
+    paddingVertical: 10,
+    paddingHorizontal: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: '#ececec',
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: '#252438',
+  },
+  modalClose: {
+    marginTop: 15,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  modalCloseText: {
+    fontSize: 16,
+    color: '#0077B6',
+    fontWeight: '600',
+  },
+  timeRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  timeColumn: {
+    flex: 1,
+    marginHorizontal: 5,
+  },
+  timeLabel: {
+    fontSize: 14,
+    color: "#0077B6",
+    fontWeight: "600",
+    marginBottom: 4,
+  },
+  termsBlock: { backgroundColor: "#fff", margin: 13, borderRadius: 15, padding: 16, marginBottom: 12 },
+  termsError: { color: '#be1922', fontSize: 14, marginTop: 8, textAlign: 'center' },
+  termsScroll: { maxHeight: 200 },
+  termsLine: { fontSize: 14, color: '#252438', marginBottom: 4 },
+  modalActions: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 20 },
+  btnAccept: { backgroundColor: '#0077B6', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
+  btnAcceptText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  btnDecline: { backgroundColor: '#be1922', paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8 },
+  btnDeclineText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  servicesBlock: { backgroundColor: "#fff", marginTop: 12, marginHorizontal: 8, borderRadius: 15, padding: 17 },
+  serviceRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 14 },
+  serviceLabel: { fontSize: 15, color: "#0077B6", fontWeight: "600" },
+  yesNoBtn: { borderWidth: 1, borderColor: "#ccc", borderRadius: 6, paddingHorizontal: 14, paddingVertical: 5, backgroundColor: "#f5f5f5" },
+  yesNoBtnSelected: { backgroundColor: "#0077B6", borderColor: "#0077B6" },
+  yesNoText: { color: "#555", fontWeight: "600", fontSize: 14 },
+  yesNoTextSelected: { color: "#fff" },
+  venueListCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 12,
+    marginHorizontal: 13,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: '#ececec',
+    elevation: 1,
+    alignItems: 'center'
+  },
+  venueListImage: {
+    width: 90,
+    height: 70,
+    borderRadius: 8,
+    marginRight: 12,
+    backgroundColor: '#e0e0e0'
+  },
+  venueListInfo: { flex: 1 },
+  sliderContainer: {
+    position: 'relative',
+    width: '100%',
+    height: 95,
+    borderRadius: 10,
+    marginVertical: 6,
+    overflow: 'hidden',
+    backgroundColor: '#e0e0e0'
+  },
+  sliderImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 10,
+  },
+  arrowButton: {
+    position: 'absolute',
+    top: '50%',
+    transform: [{ translateY: -12 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    padding: 4,
+    zIndex: 1,
+  },
+  leftArrow: {
+    left: 8,
+  },
+  rightArrow: {
+    right: 8,
+  },
+  dotsContainer: {
+    position: 'absolute',
+    bottom: 8,
+    left: 0,
+    right: 0,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    marginHorizontal: 3,
+  },
+  activeDot: {
+    backgroundColor: '#0077B6',
+    width: 8,
+    height: 8,
+  },
+  inactiveDot: {
+    backgroundColor: 'rgba(255, 255, 255, 0.6)',
+  },
+  calendarModal: {
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 20,
+    marginTop: 10,
+  },
+  calendarClose: {
+    marginTop: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    backgroundColor: '#0077B6',
+    borderRadius: 8,
+  },
+  calendarCloseText: {
+    color: '#fff',
+    fontWeight: '600',
+    fontSize: 16,
+  },
+});

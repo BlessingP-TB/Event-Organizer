@@ -1,0 +1,175 @@
+// frontend/src/styles/components/_sidebar.scss
+@import '../abstracts-auth/_variable';
+
+.sidebar {
+  width: 250px;
+  background: traqnsparent;
+  box-shadow: $shadow;
+  height: 100vh;
+  position: fixed;
+  left: 0;
+  top: 0;
+  padding-top: 70px;
+
+  .sidebar-menu {
+    display: flex;
+    flex-direction: column;
+    padding: 20px 0;
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 15px 25px;
+      color: $text-color;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+      cursor: pointer;
+
+      i {
+        width: 20px;
+        text-align: center;
+        font-size: 18px;
+      }
+
+      span {
+        font-weight: 500;
+      }
+
+      &:hover {
+        background-color: rgba(0, 0, 0, 0.05);
+      }
+
+      &.active {
+        background-color: rgba(0, 0, 0, 0.08);
+      }
+    }
+
+    .notification-icon {
+      position: relative;
+
+      .notification-popup {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 250px;
+        background: transparent;
+        padding: 10px;
+        margin-top: 5px;
+        z-index: 999;
+
+        // 🔹 Add scrolling
+        max-height: 300px; // adjust as needed
+        overflow-y: auto;
+
+        ul {
+          list-style: none;
+          padding: 0;
+          margin: 0;
+
+          li {
+            background-color: $primary-color;
+            color: white;
+            border-radius: 8px;
+            padding: 10px;
+            font-size: 14px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+
+            &:hover {
+              background-color: $primary-hover;
+            }
+
+            &:last-child {
+              margin-bottom: 0;
+            }
+          }
+        }
+
+        .empty {
+          background-color: $primary-color;
+          color: white;
+          border-radius: 8px;
+          padding: 10px;
+          font-size: 14px;
+          text-align: center;
+        }
+      }
+    }
+  }
+}
+
+.notification-icon {
+  position: relative;
+  cursor: pointer;
+
+  .badge {
+    background: #ff4d4f;
+    color: white;
+    border-radius: 50%;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    position: absolute;
+    top: -5px;
+    right: -10px;
+  }
+
+  .notification-popup {
+    position: absolute;
+    top: 45px;
+    left: 0;
+    background: #fff;
+    color: #333;
+    width: 250px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    z-index: 999;
+    padding: 0.5rem 0;
+
+    // 🔹 Add scrolling
+    max-height: 300px; // adjust as needed
+    overflow-y: auto;
+
+    ul {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+
+      li {
+        padding: 0.5rem 1rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+
+        &.unread {
+          background-color: #f6f8fa;
+          font-weight: 600;
+        }
+
+        &:hover {
+          background: #eef3f8;
+        }
+
+        .dismiss-btn {
+          background: none;
+          border: none;
+          font-size: 1rem;
+          cursor: pointer;
+          color: #888;
+
+          &:hover {
+            color: #000;
+          }
+        }
+      }
+    }
+
+    .empty {
+      text-align: center;
+      padding: 1rem;
+      color: #666;
+    }
+  }
+}

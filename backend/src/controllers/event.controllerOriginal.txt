@@ -1,0 +1,85 @@
+const { eventService } = require('../services/index.service');
+const { catchAsync, ApiError } = require('../utils/index.util');
+const { HTTP_STATUS, EVENT_STATUS, ERROR_MESSAGES } = require('../constants/index.constants');
+
+const createEvent = catchAsync(async (req, res) => {
+    const event = await eventService.createEvent(
+        req.user.id,
+        req.body);
+    res.status(HTTP_STATUS.CREATED).send(event);
+});
+// C:\Users\User\Documents\BackendS2-full-app\BackendS2-full-app\src\controllers\event.controller.js
+
+/*const createEvent = catchAsync(async (req, res) => {
+    // !!! TEMPORARY HARDCODED ID FOR POSTMAN TESTING !!!
+    const TEST_ORGANIZER_ID = '59133a1f-19ad-462c-bbb7-ea61fc4bd4a3';
+
+    // Pass the hardcoded ID and the request body
+    const event = await eventService.createEvent(TEST_ORGANIZER_ID, req.body);
+
+    res.status(HTTP_STATUS.CREATED).send(event);
+});*/
+const listPublicEvents = catchAsync(async (req, res) => {
+    const paginatedResult = await eventService.listPublicEvents(req.query);
+    res.status(HTTP_STATUS.OK).send(paginatedResult);
+});
+
+const listOrganizerEvents = catchAsync(async (req, res) => {
+    const paginatedResult = await eventService.listOrganizerEvents(
+        req.user.id,
+        req.query
+    );
+    res.status(HTTP_STATUS.OK).send(paginatedResult);
+});
+/*const listOrganizerEvents = catchAsync(async (req, res) => {
+    // !!! TEMPORARY HARDCODED ID FOR POSTMAN TESTING !!!
+    const TEST_ORGANIZER_ID = '5e9b6002-15c3-4101-9941-ff134d3cff4f';
+
+    const paginatedResult = await eventService.listOrganizerEvents(
+        TEST_ORGANIZER_ID, // 👈 Use the hardcoded ID
+        req.query
+    );
+    res.status(HTTP_STATUS.OK).send(paginatedResult);
+});*/
+const getEvent = catchAsync(async (req, res) => {
+    const event = await eventService.getEventById(req.params.id);
+
+    /* if (event.status !== EVENT_STATUS.PUBLISHED) {
+         throw new ApiError(HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.EVENT_NOT_FOUND);
+     }*/
+
+    res.status(HTTP_STATUS.OK).send(event);
+});
+
+const updateEvent = catchAsync(async (req, res) => {
+    const event = await eventService.updateEvent(req.params.eventId, req.body);
+    res.status(HTTP_STATUS.OK).send(event);
+});
+
+const deleteEvent = catchAsync(async (req, res) => {
+    await eventService.deleteEvent(req.params.eventId);
+    res.status(HTTP_STATUS.NO_CONTENT).send();
+});
+
+const publishEvent = catchAsync(async (req, res) => {
+    const event = await eventService.publishEvent(req.params.eventId);
+    res.status(HTTP_STATUS.OK).send(event);
+});
+
+const listTicketDefinitions = catchAsync(async (req, res) => {
+    const definitions = await eventService.listEventTicketDefinitions(
+        req.params.id
+    );
+    res.status(HTTP_STATUS.OK).send(definitions);
+});
+
+module.exports = {
+    createEvent,
+    listPublicEvents,
+    listOrganizerEvents,
+    getEvent,
+    updateEvent,
+    deleteEvent,
+    publishEvent,
+    listTicketDefinitions,
+};

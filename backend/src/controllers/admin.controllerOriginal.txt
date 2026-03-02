@@ -1,0 +1,210 @@
+const {
+    adminService,
+    organizerService,
+    venueService,
+    toolService,
+    eventService,
+    approvalService,
+} = require('../services/index.service');
+const { catchAsync } = require('../utils/index.util');
+const { HTTP_STATUS } = require('../constants/index.constants');
+
+const listUsers = catchAsync(async (req, res) => {
+    const paginatedResult = await adminService.listUsers(req.query);
+    res.status(HTTP_STATUS.OK).send(paginatedResult);
+});
+
+const getUser = catchAsync(async (req, res) => {
+    const user = await adminService.getUserById(req.params.id);
+    res.status(HTTP_STATUS.OK).send(user);
+});
+
+const updateUser = catchAsync(async (req, res) => {
+    const user = await adminService.updateUser(req.params.id, req.body);
+    res.status(HTTP_STATUS.OK).send(user);
+});
+
+const deleteUser = catchAsync(async (req, res) => {
+    await adminService.deleteUser(req.params.id, req.user.id);
+    res.status(HTTP_STATUS.NO_CONTENT).send();
+});
+
+const listOrganizerProfiles = catchAsync(async (req, res) => {
+    const paginatedResult = await organizerService.listOrganizerProfiles(
+        req.query
+    );
+    res.status(HTTP_STATUS.OK).send(paginatedResult);
+});
+
+const verifyOrganizerProfile = catchAsync(async (req, res) => {
+    const profile = await organizerService.verifyOrganizerProfile(
+        req.params.profileId,
+        req.body,
+        req.user.id
+    );
+    res.status(HTTP_STATUS.OK).send(profile);
+});
+
+const createVenue = catchAsync(async (req, res) => {
+    const venue = await venueService.createVenue(req.body);
+    res.status(HTTP_STATUS.CREATED).send(venue);
+});
+
+const listAllVenues = catchAsync(async (req, res) => {
+    const paginatedResult = await venueService.listAllVenues(req.query);
+    res.status(HTTP_STATUS.OK).send(paginatedResult);
+});
+
+const updateVenue = catchAsync(async (req, res) => {
+    const venue = await venueService.updateVenue(req.params.id, req.body);
+    res.status(HTTP_STATUS.OK).send(venue);
+});
+
+const deleteVenue = catchAsync(async (req, res) => {
+    await venueService.deleteVenue(req.params.id);
+    res.status(HTTP_STATUS.NO_CONTENT).send();
+});
+
+const createTool = catchAsync(async (req, res) => {
+    const tool = await toolService.createTool(req.body);
+    res.status(HTTP_STATUS.CREATED).send(tool);
+});
+
+const listAllTools = catchAsync(async (req, res) => {
+    const paginatedResult = await toolService.listAllTools(req.query);
+    res.status(HTTP_STATUS.OK).send(paginatedResult);
+});
+
+const updateTool = catchAsync(async (req, res) => {
+    const tool = await toolService.updateTool(req.params.id, req.body);
+    res.status(HTTP_STATUS.OK).send(tool);
+});
+
+const deleteTool = catchAsync(async (req, res) => {
+    await toolService.deleteTool(req.params.id);
+    res.status(HTTP_STATUS.NO_CONTENT).send();
+});
+
+const updateVenueTools = catchAsync(async (req, res) => {
+    const venue = await venueService.updateVenueTools(
+        req.params.venueId,
+        req.body
+    );
+    res.status(HTTP_STATUS.OK).send(venue);
+});
+
+const listAdminEvents = catchAsync(async (req, res) => {
+    const paginatedResult = await eventService.listAdminEvents(req.query);
+    res.status(HTTP_STATUS.OK).send(paginatedResult);
+});
+
+const setEventStatus = catchAsync(async (req, res) => {
+    const event = await eventService.setEventStatus(
+        req.params.eventId,
+        req.body.status,
+        req.user.id
+    );
+    res.status(HTTP_STATUS.OK).send(event);
+});
+
+/*const setEventStatus = catchAsync(async (req, res) => {
+
+    // -----------------------------------------------------------------
+    // TEMPORARY FIX: Provide a dummy ID when authentication is bypassed
+    // -----------------------------------------------------------------
+    const adminId = req.user?.id || 'a2dd4f4a-8bf3-43e1-bf12-96cd5c3588a7';
+
+    const event = await eventService.setEventStatus(
+        req.params.eventId,
+        req.body.status,
+        adminId // Use the safely retrieved or dummy ID
+    );
+    res.status(HTTP_STATUS.OK).send(event);
+});*/
+
+const createEventApproval = catchAsync(async (req, res) => {
+    const approval = await approvalService.createEventApproval(
+        req.params.eventId,
+        req.user.id,
+        req.body
+    );
+    res.status(HTTP_STATUS.CREATED).send(approval);
+});
+
+/*const createEventApproval = catchAsync(async (req, res) => {
+    const TEST_ADMIN_ID = 'd5b376ad-13ef-4b59-abaa-f601083f83c6'; // <-- Use a valid Admin UUID
+
+    const approval = await approvalService.createEventApproval(
+        req.params.eventId,
+        TEST_ADMIN_ID,
+        req.body
+    );
+    res.status(HTTP_STATUS.CREATED).send(approval);
+});
+*/
+const updateApproval = catchAsync(async (req, res) => {
+    const approval = await approvalService.updateApprovalStatus(
+        req.params.id,
+        req.user.id,
+        req.body
+    );
+    res.status(HTTP_STATUS.OK).send(approval);
+});
+// In approval.controller.js (or where updateApproval is defined)
+
+/*const updateApproval = catchAsync(async (req, res) => {
+
+    // -----------------------------------------------------------------
+    // TEMPORARY FIX: Provide a dummy ID when authentication is bypassed
+    // -----------------------------------------------------------------
+    // Assuming the user ID is needed in the updateApprovalStatus service call
+    const adminId = req.user?.id || 'd5b376ad-13ef-4b59-abaa-f601083f83c6';
+
+    const approval = await approvalService.updateApprovalStatus(
+        req.params.id, // Assuming the route is /:id, NOT /:approval_id (Based on prior fix recommendation)
+        adminId,      // Pass the Admin ID to the service
+        req.body
+    );
+    res.status(HTTP_STATUS.OK).send(approval);
+});
+*/
+const approveImmediateBooking = catchAsync(async (req, res) => {
+
+    const event = await approvalService.approveImmediateBooking(
+        req.params.eventId,
+        req.user.id,
+        req.body.reason
+    );
+    res.status(HTTP_STATUS.OK).send(event);
+});
+/*const approveImmediateBooking = catchAsync(async (req, res) => {
+    const adminId = req.user?.id || 'a2dd4f4a-8bf3-43e1-bf12-96cd5c3588a7';
+    const event = await approvalService.approveImmediateBooking(
+        req.params.eventId,
+        adminId,
+        req.body.reason
+    );
+    res.status(HTTP_STATUS.OK).send(event);
+});*/
+module.exports = {
+    listUsers,
+    getUser,
+    updateUser,
+    deleteUser,
+    listOrganizerProfiles,
+    verifyOrganizerProfile,
+    createVenue,
+    listAllVenues,
+    updateVenue,
+    deleteVenue,
+    createTool,
+    listAllTools,
+    updateTool,
+    deleteTool,
+    updateVenueTools,
+    listAdminEvents,
+    setEventStatus,
+    createEventApproval,
+    updateApproval,
+    approveImmediateBooking,
+};

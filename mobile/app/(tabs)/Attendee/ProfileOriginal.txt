@@ -1,0 +1,303 @@
+//Attendee
+import { MaterialIcons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as ImagePicker from 'expo-image-picker';
+import { useNavigation, useRouter } from "expo-router";
+import React, { useEffect, useState } from 'react';
+import {
+  Alert,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { useProfileData } from '../../hooks/Attendee/useprofileData';
+
+export default function App() {
+  const data = useProfileData();
+  const router = useRouter();
+  const navigation = useNavigation();
+
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [contact, setContact] = useState('');
+  const [image, setImage] = useState(null);
+  const [editing, setEditing] = useState(false);
+
+  useEffect(() => { navigation.setOptions({ headerShown: false }); }, []);
+
+  useEffect(() => {
+    if (data) {
+      setName(data.userInfo.find(i => i.label === 'Name')?.value || '');
+      setEmail(data.userInfo.find(i => i.label === 'Email')?.value || '');
+      setContact(data.userInfo.find(i => i.label === 'Contact')?.value || '');
+    }
+  }, [data]);
+
+  /* ---------- image handling ---------- */
+  const pickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (!permission.granted) {
+      Alert.alert('Permission required', 'Allow access to your photos.');
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
+    });
+    const imageUri = result.assets?.[0]?.uri || result.uri;
+    if (imageUri) setImage(imageUri);
+  };
+
+  const deleteProfilePic = () => {
+    Alert.alert('Delete Profile Picture', 'Are you sure you want to remove your profile picture?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Delete', style: 'destructive', onPress: () => setImage(null) },
+    ]);
+  };
+
+  /* ---------- South-African phone validator ---------- */
+  const validateContact = (c) => /^0[0-9]{9}$/.test(c) && c.length === 10;
+
+  const saveChanges = () => {
+    if (!validateContact(contact)) {
+      Alert.alert(
+        'Invalid Contact',
+        'Please enter a valid 10-digit South-African number (starting with 0).'
+      );
+      return;
+    }
+    setEditing(false);
+    Alert.alert('Profile Updated', 'Your profile has been successfully updated!');
+  };
+
+  /* ---------- logout ---------- */
+  const logout = async () => {
+    // This function will clear all necessary keys
+    const clearAllUserData = async () => {
+      try {
+        // --- START OF FIX ---
+        // 1. Clear all possible token keys from Auth.js
+        await AsyncStorage.removeItem('ORGANISER_JWT_TOKEN');
+        await AsyncStorage.removeItem('ADMIN_JWT_TOKEN');
+        await AsyncStorage.removeItem('authToken');
+
+        // 2. Clear the stored user object
+        await AsyncStorage.removeItem('user');
+
+        // 3. Clear your old key just in case
+        await AsyncStorage.removeItem("userSession");
+        // --- END OF FIX ---
+
+        // Navigate back to the login screen
+        router.replace("/AuthScreen");
+
+      } catch (error) {
+        console.error("Error during logout:", error);
+        Alert.alert("Logout Failed", "An error occurred while logging out.");
+      }
+    };
+
+    // Keep your Web/Native confirmation logic
+    if (Platform.OS === "web") {
+      const confirmed = window.confirm("Are you sure you want to logout?");
+      if (confirmed) {
+        await clearAllUserData();
+      }
+    } else {
+      Alert.alert("Logout", "Are you sure you want to logout?", [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Logout",
+          onPress: async () => {
+            await clearAllUserData();
+          },
+        },
+      ]);
+    }
+  };
+
+  const showAbout = () =>
+    Alert.alert(
+      'About',
+      'TUT Campus Connect is a mobile app designed to bridge the gap between students, lecturers, and the TUT community. Our app aims to enhance student life, improve communication, and provide access to important campus resources.'
+    );
+
+  const showContact = () =>
+    Alert.alert('Contact', 'Contact us at support@tut4life.ac.za');
+
+  if (!data) return <Text style={{ marginTop: 100 }}>Loading profile...</Text>;
+
+  /* ---------- UI ---------- */
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.replace('/(tabs)/Attendee/Home')}>
+          <MaterialIcons name="arrow-back" size={24} color="#37474f" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Profile</Text>
+        <View style={{ width: 24 }} />
+      </View>
+
+      {/* Profile Picture */}
+      <View style={styles.section}>
+        <Image
+          source={image ? { uri: image } : data.profileImage}
+          style={styles.profilePic}
+        />
+        <TouchableOpacity style={styles.smallButton} onPress={pickImage}>
+          <MaterialIcons name="photo-library" size={20} color="#4a4a4a" />
+          <Text style={styles.smallButtonText}>Change Photo</Text>
+        </TouchableOpacity>
+        {image && (
+          <TouchableOpacity
+            style={[styles.smallButton, { backgroundColor: '#f5e6e6' }]}
+            onPress={deleteProfilePic}
+          >
+            <MaterialIcons name="delete" size={20} color="#d32f2f" />
+            <Text style={[styles.smallButtonText, { color: '#d32f2f' }]}>Delete Photo</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Editable Section */}
+      <View style={styles.section}>
+        {editing ? (
+          <>
+
+            <View style={styles.inputGroup}>
+              <Text style={styles.label}>Contact:</Text>
+              <TextInput
+                style={styles.input}
+                value={contact}
+                onChangeText={(txt) => setContact(txt.replace(/[^0-9]/g, ''))}
+                keyboardType="phone-pad"
+                maxLength={10}
+              />
+            </View>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: '#000000ff' }]}
+              onPress={saveChanges}
+            >
+              <Text style={styles.buttonText}>Save Changes</Text>
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <View style={styles.nameRow}>
+              <Text style={styles.name}>{name}</Text>
+              <TouchableOpacity onPress={() => setEditing(true)} style={styles.penButton}>
+                <MaterialIcons name="edit" size={20} color="#607d8b" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.info}>Contact: {contact}</Text>
+          </>
+        )}
+      </View>
+
+      {/* Static Links */}
+      {!editing && (
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.linkRow} onPress={showAbout}>
+            <MaterialIcons name="info-outline" size={18} color="#0077B6" />
+            <Text style={styles.linkText}>About</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.linkRow} onPress={showContact}>
+            <MaterialIcons name="contact-mail" size={18} color="#0077B6" />
+            <Text style={styles.linkText}>Contact us</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* Logout */}
+      {!editing && (
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: '#000000ff' }]}
+            onPress={logout}
+          >
+            <Text style={styles.buttonText}>Logout</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+    </ScrollView>
+  );
+}
+
+/* ---------- Styles ---------- */
+const styles = StyleSheet.create({
+  container: {
+    flexGrow: 1,
+    alignItems: 'center',
+    paddingVertical: 30,
+    backgroundColor: '#f9f9f9',
+    paddingTop: 50,
+  },
+  header: {
+    width: '90%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 20,
+  },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#37474f' },
+  section: { width: '90%', alignItems: 'center', marginBottom: 25 },
+  profilePic: {
+    width: 130,
+    height: 130,
+    borderRadius: 65,
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: '#cfd8dc',
+  },
+  smallButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e0e0e0',
+    paddingVertical: 8,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    marginVertical: 5,
+  },
+  smallButtonText: { marginLeft: 5, color: '#4a4a4a', fontWeight: '500' },
+  inputGroup: { width: '100%', marginBottom: 15 },
+  label: { fontWeight: 'bold', marginBottom: 5, color: '#37474f' },
+  input: {
+    width: '100%',
+    borderColor: '#cfd8dc',
+    borderWidth: 1,
+    borderRadius: 10,
+    padding: 10,
+    backgroundColor: '#ffffff',
+    color: '#37474f',
+  },
+  nameRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
+  name: { fontSize: 22, fontWeight: 'bold', color: '#37474f' },
+  penButton: {
+    marginLeft: 8,
+    backgroundColor: '#e0e0e0',
+    padding: 4,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  info: { fontSize: 16, marginBottom: 5, color: '#607d8b', textAlign: 'center' },
+  linkRow: { flexDirection: 'row', alignItems: 'center', marginVertical: 5 },
+  linkText: { color: '#0077B6', marginLeft: 5, fontSize: 16 },
+  button: {
+    paddingVertical: 12,
+    paddingHorizontal: 25,
+    borderRadius: 12,
+    marginVertical: 5,
+    width: '70%',
+    alignItems: 'center',
+  },
+  buttonText: { fontWeight: 'bold', fontSize: 16, color: 'white' },
+});

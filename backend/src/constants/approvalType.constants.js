@@ -1,0 +1,10 @@
+const APPROVAL_TYPE = Object.freeze({
+    SAFETY: 'SAFETY',
+    LIQUOR: 'LIQUOR',
+    NOISE: 'NOISE',
+    GENERAL: 'GENERAL',
+    ORGANIZER_DOC: 'ORGANIZER_DOC',
+    ATTENDEE_DOC: 'ATTENDEE_DOC',
+});
+
+module.exports = APPROVAL_TYPE;
