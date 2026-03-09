@@ -75,6 +75,15 @@ const listApprovals = async (queryOptions) => {
         orderBy: { createdAt: 'asc' },
         include: {
             approver: { select: { id: true, name: true } },
+            event: {
+                select: {
+                    id: true,
+                    name: true,
+                    startDateTime: true,
+                    venue: { select: { name: true } },
+                    organizer: { select: { name: true } },
+                },
+            },
         },
     };
 
