@@ -92,23 +92,7 @@ export default function VenueCardGallery({
         <h2 className="section-title">Venue Selection</h2>
       </div>
 
-      <div className="form-group" style={{ marginBottom: '16px' }}>
-        <label className="form-label">Choose Venue</label>
-        <select
-          className="form-input"
-          value={selectedVenueId}
-          onChange={(e) => selectVenueById(e.target.value)}
-        >
-          <option value="">Select venue from list</option>
-          {allVenueOptions.map(({ venueId, venue }) => {
-            return (
-              <option key={venueId || venue.name} value={venueId}>
-                {venue.name} ({venue.type || 'N/A'})
-              </option>
-            );
-          })}
-        </select>
-      </div>
+      {/* venue select removed - users pick via cards */}
 
       <div className="venue-card-grid">
         {filteredVenues.length === 0 ? (
