@@ -126,13 +126,10 @@ const EventDetails = () => {
 
   const statsAvailable = event._count && typeof event._count.registrations !== "undefined";
 
-  // ✅ CORRECT IMAGE RESOLUTION: use imageUrl OR convert image bytes to data URL
-// Use the event-level image URL (uploaded banner)
-const bannerSrc = event?.Theme?.image
-  ? bytesToDataUrl(event.Theme.image, 'image/jpeg')
-  : DEFAULT_BANNER;
-
-  const bannerSrc = themeImageUrl || DEFAULT_BANNER;
+  // ✅ CORRECT IMAGE RESOLUTION: use uploaded theme image bytes when available
+  const bannerSrc = event?.Theme?.image
+    ? bytesToDataUrl(event.Theme.image, 'image/jpeg')
+    : DEFAULT_BANNER;
 
   // For demo/testing, always show upload section
   const canUpload = true;
