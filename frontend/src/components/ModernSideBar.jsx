@@ -118,7 +118,8 @@ const ModernSidebar = ({ role, links, storageKey }) => {
     // Show an on-screen modal with notification details instead of navigating
     setActiveNote(note);
     setShowNotifModal(true);
-    // keep the sidebar popup open state as-is (we close it when user dismisses)
+    // close the sidebar popup so the modal appears centered on the page
+    setShowNotifications(false);
   };
 
   const closeNotifModal = () => {
