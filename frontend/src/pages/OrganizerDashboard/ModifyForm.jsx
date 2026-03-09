@@ -20,6 +20,19 @@ const deconstructISOString = (isoString) => {
   return { date: d, time };
 };
 
+const bytesToDataUrl = (bytes, mimeType = 'image/jpeg') => {
+  if (!bytes) return null;
+  const byteArray = Array.isArray(bytes) ? bytes : Object.values(bytes);
+  try {
+    const uint8Array = new Uint8Array(byteArray);
+    const binary = String.fromCharCode(...uint8Array);
+    const base64 = btoa(binary);
+    return `data:${mimeType};base64,${base64}`;
+  } catch {
+    return null;
+  }
+};
+
 export default function ModifyForm() {
   const { id: eventId } = useParams();
   const navigate = useNavigate();
@@ -35,6 +48,8 @@ export default function ModifyForm() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const toastTimerRef = useRef(null);
+  const [themeImage, setThemeImage] = useState(null);
+  const [themePreview, setThemePreview] = useState('');
 
   useEffect(() => {
     const fetchEventForEditing = async () => {
@@ -53,10 +68,16 @@ export default function ModifyForm() {
           description: eventData.description,
           expectedAttend: eventData.expectedAttend || '',
           venueId: eventData.venueId,
+          themeId: eventData.themeId || null,
           campus: eventData.venue?.campus || '',
           venueType: eventData.venue?.type || '',
           requestedResourcesAndServices: eventData.requestedResourcesAndServices || {}
         });
+
+        const existingThemePreview = eventData?.Theme?.image
+          ? bytesToDataUrl(eventData.Theme.image, 'image/jpeg')
+          : (eventData?.Theme?.imageUrl || '');
+        setThemePreview(existingThemePreview);
 
         setDateParts({
           startDate: deconstructISOString(eventData.startDateTime).date,
@@ -99,6 +120,23 @@ export default function ModifyForm() {
     toastTimerRef.current = setTimeout(() => setShowToast(false), 5000);
   };
 
+  const handleThemeImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToastMessage('Please select a valid image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setThemeImage(reader.result);
+      setThemePreview(reader.result);
+    };
+    reader.onerror = () => showToastMessage('Failed to read selected image.');
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -126,6 +164,24 @@ export default function ModifyForm() {
     setLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
+      if (themeImage) {
+        const base64Image = themeImage.split(',')[1];
+        const imageType = themeImage.split(';')[0].split('/')[1];
+        const themeResponse = await axios.post(
+          `${API_BASE}/themes`,
+          {
+            name: `Theme for ${formData.name}`,
+            description: `Theme for event: ${formData.name}`,
+            image: base64Image,
+            filename: `theme-${Date.now()}.${imageType}`
+          },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        const createdTheme = themeResponse.data;
+        updatePayload.themeId = createdTheme.id || createdTheme.data?.id || null;
+      }
+
       await axios.patch(`${API_BASE}/events/${eventId}`, updatePayload, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -198,6 +254,22 @@ export default function ModifyForm() {
                 <div className="form-group">
                   <label className="form-label">Description</label>
                   <textarea name="description" value={formData.description} onChange={handleInputChange} rows="4" className="form-textarea" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Change Event Picture</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThemeImageChange}
+                    className="form-input"
+                  />
+                  {themePreview && (
+                    <img
+                      src={themePreview}
+                      alt="Event preview"
+                      style={{ marginTop: '10px', maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+                    />
+                  )}
                 </div>
               </section>
 
