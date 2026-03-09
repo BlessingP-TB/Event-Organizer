@@ -1,6 +1,6 @@
 // src/hooks/Admin/users.js
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
 // Add the import for the refresh helper
 // import { refreshToken } from '../../utils/auth'; // Adjust the path as needed
@@ -34,10 +34,9 @@ const useUsers = (initialPage = 1, initialLimit = 10) => {
         // Add Cache-Control: no-cache to bypass browser cache
         // This tells the browser to always ask the server for the latest data
         // and should prevent the 304 Not Modified response when data *has* changed.
-        return await axios.get(`http://localhost:3000/admin/users`, {
+        return await api.get(`/admin/users`, {
           headers: {
-            'Authorization': `Bearer ${token}`,
-            'Cache-Control': 'no-cache' // <-- Add this header
+            'Cache-Control': 'no-cache'
           },
           params: {
             page,
@@ -69,10 +68,9 @@ const useUsers = (initialPage = 1, initialLimit = 10) => {
                 // Create a *new* request function using the updated token
                 // Also include the no-cache header for the retry
                 const newRequestFn = async () => {
-                    return await axios.get(`http://localhost:3000/admin/users`, {
+                    return await api.get(`/admin/users`, {
                         headers: {
-                            'Authorization': `Bearer ${newToken}`, // Use the new token
-                            'Cache-Control': 'no-cache' // <-- Add this header to retry too
+                            'Cache-Control': 'no-cache'
                         },
                         params: {
                             page,
@@ -99,14 +97,6 @@ const useUsers = (initialPage = 1, initialLimit = 10) => {
               navigate('/login');
               throw refreshError; // Propagate the error
             }
-          } catch (refreshError) {
-            console.error("Token refresh failed:", refreshError);
-            // If refresh also fails, navigate to login
-            localStorage.removeItem('accessToken');
-            localStorage.removeItem('user');
-            navigate('/login');
-            throw refreshError; // Propagate the error
-          }
         }
         // If the initial response was not 304, return it as-is
         return response;
@@ -177,11 +167,7 @@ const useUsers = (initialPage = 1, initialLimit = 10) => {
       }
 
       // --- Make the actual API call ---
-      const response = await axios.post(`http://localhost:3000/admin/user`, userData, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.post(`/admin/user`, userData);
 
       const newUser = response.data; // Assuming the backend returns the created user object
 
@@ -218,11 +204,7 @@ const useUsers = (initialPage = 1, initialLimit = 10) => {
       }
 
       // --- Make the actual API call ---
-      const response = await axios.patch(`http://localhost:3000/admin/users/${userId}`, userData, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.patch(`/admin/users/${userId}`, userData);
 
       const updatedUser = response.data; // Assuming the backend returns the updated user object
 
@@ -257,11 +239,7 @@ const useUsers = (initialPage = 1, initialLimit = 10) => {
       }
 
       // --- Make the actual API call ---
-      await axios.delete(`http://localhost:3000/admin/users/${userId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      await api.delete(`/admin/users/${userId}`);
 
       // --- Update state optimistically or refetch ---
       // Option 1: Remove the user from the state (optimistic update)
@@ -297,11 +275,8 @@ const useUsers = (initialPage = 1, initialLimit = 10) => {
       // --- Make the actual API call ---
       // Assuming your backend has an endpoint for bulk deletion
       // e.g., DELETE /admin/users/bulk with { ids: userIds } in the request body
-      await axios.delete(`http://localhost:3000/admin/users/bulk`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        data: { ids: userIds } // Send the IDs in the request body
+      await api.delete(`/admin/users/bulk`, {
+        data: { ids: userIds }
       });
 
       // --- Update state optimistically or refetch ---

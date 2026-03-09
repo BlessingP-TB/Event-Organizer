@@ -22,7 +22,8 @@ const AnalyticsExportScreen = () => {
   if (!token) return alert("Please login first");
 
   try {
-    const res = await fetch("http://localhost:3000/reports/analytics", {
+    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+    const res = await fetch(`${API_BASE}/reports/analytics`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
