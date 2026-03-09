@@ -8,6 +8,18 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api
 
 const tabs = ["All", "PENDING", "APPROVED", "REJECTED"];
 
+const isRenderableApproval = (item) => {
+  if (!item?.eventId) return false;
+
+  const hasPlaceholderData =
+    item.title === "Event N/A" &&
+    item.venue === "Loading..." &&
+    item.organizer === "Loading..." &&
+    item.date === "Date not set";
+
+  return !hasPlaceholderData;
+};
+
 export default function ApprovalScreen() {
   const [approvals, setApprovals] = useState([]);
   const [filteredApprovals, setFilteredApprovals] = useState([]);
@@ -27,7 +39,7 @@ export default function ApprovalScreen() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/approvals`, {
+      const res = await fetch(`${API_BASE}/admin/approvals?page=1&pageSize=100&status=ALL`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Cache-Control": "no-cache",
@@ -57,19 +69,25 @@ export default function ApprovalScreen() {
       else approvalArray = [];
 
       // Normalize base data
-      const normalized = approvalArray.map(item => ({
-        id: String(item.id),
-        eventId: String(item.eventId || item.event?.id || ""),
-        title: item.event?.name || `Event ${item.eventId || "N/A"}`,
-        venue: item.event?.venue?.name || "Loading...",
-        organizer: item.event?.organizer?.name || "Loading...",
-        status: (item.status || "PENDING").toUpperCase(),
-        cost: Number(item.calculatedCost ?? 0),
-        totalPaid: Number(item.totalPaid ?? 0),
-        date: item.event?.startDateTime
-          ? new Date(item.event.startDateTime).toLocaleString()
-          : "Date not set",
-      }));
+      const normalized = approvalArray
+        .filter(item => {
+          const targetType = String(item.targetType || '').toLowerCase();
+          return !targetType || targetType === 'event';
+        })
+        .map(item => ({
+          id: String(item.id),
+          eventId: String(item.eventId || item.targetId || item.event?.id || ""),
+          title: item.event?.name || `Event ${item.eventId || item.targetId || "N/A"}`,
+          venue: item.event?.venue?.name || "Loading...",
+          organizer: item.event?.organizer?.name || "Loading...",
+          status: (item.status || "PENDING").toUpperCase(),
+          cost: Number(item.calculatedCost ?? 0),
+          totalPaid: Number(item.totalPaid ?? 0),
+          date: item.event?.startDateTime
+            ? new Date(item.event.startDateTime).toLocaleString()
+            : "Date not set",
+        }))
+        .filter(isRenderableApproval);
 
       setApprovals(normalized);
 
@@ -132,7 +150,7 @@ export default function ApprovalScreen() {
       })
     );
 
-    setApprovals(updated);
+    setApprovals(updated.filter(isRenderableApproval));
   };
 
   useEffect(() => {
