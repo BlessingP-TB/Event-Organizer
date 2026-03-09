@@ -39,6 +39,7 @@ const AdminTools = lazy(() => import("./pages/AdminDashboard/AdminTools"));
 const AdminEvents = lazy(() => import("./pages/AdminDashboard/AdminEvents"));
 
 /* ---------- Attendee Pages ---------- */
+const AttendeeDashboard = lazy(() => import('./pages/AttendeeDashBoard/Dashboard'));
 const Events = lazy(() => import('./pages/AttendeeDashBoard/Events'));
 const AttendeeEventRating = lazy(() => import('./pages/AttendeeDashBoard/EventRating'));
 const CheckInScreen = lazy(() => import('./pages/AttendeeDashBoard/CheckInScreen'));
@@ -143,7 +144,8 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Discover/>} />
+            <Route index element={<AttendeeDashboard/>} />
+            <Route path="discover" element={<Discover/>} />
             {/* <Route path="dashboard" element={<Events />} /> */}
             <Route path="qr-code" element={<CheckInScreen />} />
             <Route path="view-event/:id" element={<ViewEventDetails />} />

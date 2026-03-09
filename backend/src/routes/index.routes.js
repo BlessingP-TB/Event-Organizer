@@ -21,10 +21,12 @@ const notificationRoutes = require('./notification.routes');
 const toolRoutes = require('./tool.routes');
 const venueRoutes = require('./venue.routes');
 const publicRoutes = require('./public.routes');
+const attendeeRoutes = require('./attendee.routes');
 
 const router = express.Router();
 
 const appRoutes = [
+    { path: '/attendee', route: attendeeRoutes },
     { path: '/admin', route: adminRoutes },
     { path: '/auth', route: authRoutes },
     { path: '/events', route: eventRoutes },
