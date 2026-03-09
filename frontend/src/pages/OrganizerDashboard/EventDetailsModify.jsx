@@ -7,6 +7,19 @@ import "../../styles/pages/_eventdetails.scss";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 
+const bytesToDataUrl = (bytes, mimeType = "image/jpeg") => {
+  if (!bytes) return null;
+  const byteArray = Array.isArray(bytes) ? bytes : Object.values(bytes);
+  try {
+    const uint8Array = new Uint8Array(byteArray);
+    const binary = String.fromCharCode(...uint8Array);
+    const base64 = btoa(binary);
+    return `data:${mimeType};base64,${base64}`;
+  } catch {
+    return null;
+  }
+};
+
 const EventDetailsModify = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -38,10 +51,13 @@ const EventDetailsModify = () => {
       if (passedEvent) {
         setEvent(passedEvent);
         setLoading(false);
-        return;
       }
-      await fetchEventById(id);
-      setLoading(false);
+
+      try {
+        await fetchEventById(id);
+      } finally {
+        setLoading(false);
+      }
     };
     loadEventData();
   }, [id, location.state, fetchEventById]);
@@ -66,6 +82,10 @@ const EventDetailsModify = () => {
 
   const formatDate = (isoDate) => isoDate ? new Date(isoDate).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "N/A";
   const formatTime = (isoDate) => isoDate ? new Date(isoDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A";
+  const bannerImage =
+    bytesToDataUrl(event?.Theme?.image, "image/jpeg") ||
+    event?.Theme?.imageUrl ||
+    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80";
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
@@ -84,7 +104,7 @@ const EventDetailsModify = () => {
       </div>
 
       <div className="banner">
-        <img src={"https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80"} alt={event.name} />
+        <img src={bannerImage} alt={event.name} />
         <div className="banner-overlay">
           <h1>{event.name}</h1>
           <p className={`status-badge ${event.status ? event.status.toLowerCase() : ""}`}>{event.status}</p>

@@ -167,19 +167,34 @@ export default function ModifyForm() {
       if (themeImage) {
         const base64Image = themeImage.split(',')[1];
         const imageType = themeImage.split(';')[0].split('/')[1];
-        const themeResponse = await axios.post(
-          `${API_BASE}/themes`,
-          {
-            name: `Theme for ${formData.name}`,
-            description: `Theme for event: ${formData.name}`,
-            image: base64Image,
-            filename: `theme-${Date.now()}.${imageType}`
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const existingThemeId = formData.themeId;
 
-        const createdTheme = themeResponse.data;
-        updatePayload.themeId = createdTheme.id || createdTheme.data?.id || null;
+        if (existingThemeId) {
+          await axios.patch(
+            `${API_BASE}/themes/${existingThemeId}`,
+            {
+              description: `Theme for event: ${formData.name}`,
+              image: base64Image,
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          updatePayload.themeId = existingThemeId;
+        } else {
+          const themeResponse = await axios.post(
+            `${API_BASE}/themes`,
+            {
+              name: `Theme for ${formData.name} ${Date.now()}`,
+              description: `Theme for event: ${formData.name}`,
+              image: base64Image,
+              filename: `theme-${Date.now()}.${imageType}`
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          const createdTheme = themeResponse.data;
+          updatePayload.themeId = createdTheme.id || createdTheme.data?.id || null;
+        }
       }
 
       await axios.patch(`${API_BASE}/events/${eventId}`, updatePayload, {
@@ -263,13 +278,6 @@ export default function ModifyForm() {
                     onChange={handleThemeImageChange}
                     className="form-input"
                   />
-                  {themePreview && (
-                    <img
-                      src={themePreview}
-                      alt="Event preview"
-                      style={{ marginTop: '10px', maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
-                    />
-                  )}
                 </div>
               </section>
 

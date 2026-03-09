@@ -55,12 +55,14 @@ const EventDetails = () => {
       const passedEvent = location.state?.eventData;
       if (passedEvent) {
         setEvent(passedEvent);
-        setLoading(false);
-        return;
       }
 
       const token = localStorage.getItem("accessToken");
       if (!token) {
+        if (passedEvent) {
+          setLoading(false);
+          return;
+        }
         setError("You must be logged in to view event details.");
         setLoading(false);
         return;
@@ -128,13 +130,10 @@ const EventDetails = () => {
 
   const statsAvailable = event._count && typeof event._count.registrations !== "undefined";
 
-  // ✅ CORRECT IMAGE RESOLUTION: use imageUrl OR convert image bytes to data URL
-// Use the event-level image URL (uploaded banner)
-const bannerSrc = event?.Theme?.image
-  ? bytesToDataUrl(event.Theme.image, 'image/jpeg')
-  : DEFAULT_BANNER;
-
-  const bannerSrc = themeImageUrl || DEFAULT_BANNER;
+  const bannerSrc =
+    bytesToDataUrl(event?.Theme?.image, "image/jpeg") ||
+    event?.Theme?.imageUrl ||
+    DEFAULT_BANNER;
 
   // For demo/testing, always show upload section
   const canUpload = true;
@@ -175,19 +174,33 @@ const bannerSrc = event?.Theme?.image
     setUploadError("");
     try {
       const token = localStorage.getItem("accessToken");
-      const payload = {
-        name: `Theme for ${event.name}`,
-        description: `Uploaded by organizer for event ${event.name}`,
-        image: base64Image,
-        eventId: event.id,
+      const themeId = event?.Theme?.id || event?.themeId;
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       };
 
-      await axios.post(`${API_BASE}/themes`, payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      if (themeId) {
+        await axios.patch(
+          `${API_BASE}/themes/${themeId}`,
+          {
+            description: `Uploaded by organizer for event ${event.name}`,
+            image: base64Image,
+          },
+          { headers }
+        );
+      } else {
+        await axios.post(
+          `${API_BASE}/themes`,
+          {
+            name: `Theme for ${event.name} ${Date.now()}`,
+            description: `Uploaded by organizer for event ${event.name}`,
+            image: base64Image,
+            eventId: event.id,
+          },
+          { headers }
+        );
+      }
 
       const eventRes = await axios.get(`${API_BASE}/events/${event.id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -199,7 +212,9 @@ const bannerSrc = event?.Theme?.image
     } catch (err) {
       console.error("Theme upload failed:", err);
       setUploadError(
-        err.response?.data?.message || "Upload failed. Try again or check the file size/type."
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Upload failed. Try again or check the file size/type."
       );
     } finally {
       setUploading(false);
