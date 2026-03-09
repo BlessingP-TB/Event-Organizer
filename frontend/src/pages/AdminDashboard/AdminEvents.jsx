@@ -1,26 +1,28 @@
 import React, { useEffect, useState } from "react";
-import axios from "axios";
+import api from "../../utils/api";
 
 const AdminEvents = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const organizerId = localStorage.getItem("userId"); // <--- IMPORTANT
-
   const fetchOrganizerEvents = async () => {
     try {
-      const token = localStorage.getItem("accessToken");
+      const res = await api.get("/admin/events", {
+        headers: { "Cache-Control": "no-cache" }
+      });
 
-      const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/events/organizer/${organizerId}`,
-        {
-          headers: { Authorization: `Bearer ${token}` }
-        }
-      );
+      const payload = res.data;
+      const items = Array.isArray(payload)
+        ? payload
+        : Array.isArray(payload?.data)
+          ? payload.data
+          : Array.isArray(payload?.items)
+            ? payload.items
+            : [];
 
-      setEvents(res.data);
+      setEvents(items);
     } catch (error) {
-      console.error("Failed to fetch organizer events", error);
+      console.error("Failed to fetch admin events", error);
     } finally {
       setLoading(false);
     }
@@ -34,10 +36,10 @@ const AdminEvents = () => {
 
   return (
     <div className="admin-events-container">
-      <h1 className="admin-title">My Created Events</h1>
+      <h1 className="admin-title">All Events</h1>
 
       {events.length === 0 ? (
-        <p style={{ textAlign: "center" }}>You have not created any events yet.</p>
+        <p style={{ textAlign: "center" }}>No events found.</p>
       ) : (
         <table className="admin-events-table">
           <thead>
@@ -54,7 +56,7 @@ const AdminEvents = () => {
               <tr key={event.id}>
                 <td>{index + 1}</td>
                 <td>{event.name}</td>
-                <td>{event.category}</td>
+                <td>{event.Theme?.name || "General"}</td>
                 <td>{new Date(event.startDateTime).toLocaleDateString()}</td>
                 <td>{event.venue?.name || "N/A"}</td>
               </tr>
