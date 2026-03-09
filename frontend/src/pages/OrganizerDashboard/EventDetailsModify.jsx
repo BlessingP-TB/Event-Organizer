@@ -1,8 +1,8 @@
 // EventDetailsModify.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import { Trash2 } from "lucide-react";
 import api from "../../utils/api";
+import { Trash2 } from "lucide-react";
 import "../../styles/pages/_eventdetails.scss";
 
 const EventDetailsModify = () => {
