@@ -9,15 +9,15 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api
 const tabs = ["All", "PENDING", "APPROVED", "REJECTED"];
 
 const isRenderableApproval = (item) => {
-  if (!item?.eventId) return false;
+  // Render if we have an eventId or any non-placeholder detail
+  const hasEventId = Boolean(item?.eventId);
+  const hasMeaningfulField =
+    (item?.title && item.title !== `Event N/A`) ||
+    (item?.venue && item.venue !== 'Loading...') ||
+    (item?.organizer && item.organizer !== 'Loading...') ||
+    (item?.date && item.date !== 'Date not set');
 
-  const hasPlaceholderData =
-    item.title === "Event N/A" &&
-    item.venue === "Loading..." &&
-    item.organizer === "Loading..." &&
-    item.date === "Date not set";
-
-  return !hasPlaceholderData;
+  return hasEventId || hasMeaningfulField;
 };
 
 export default function ApprovalScreen() {
