@@ -61,7 +61,7 @@ const getAvailableTimeSlots = (calendarData, venueId, date) => {
   if (!calendarData || !venueId || !date) return [];
   const selectedDateStr = getDateStr(date);
   return calendarData
-    .filter(slot => slotMatchesVenue(slot, venueId) && getSlotDateStr(slot.date) === selectedDateStr)
+    .filter(slot => slotMatchesVenue(slot, venueId) && getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr)
     .map(slot => ({
       startTime: slot.startTime,
       endTime: slot.endTime
@@ -278,15 +278,23 @@ export default function CreateEvent() {
     toastTimerRef.current = setTimeout(() => setShowToast(false), 5000);
   };
 
+  const venueHasCalendarAvailability = selectedVenue && calendarData.some((slot) => {
+    return slotMatchesVenue(slot, selectedVenue.id);
+  });
+
   const filterDate = (date) => {
     if (!selectedVenue) return true;
 
-    if (!Array.isArray(calendarData) || calendarData.length === 0) {
+    const venueSlots = Array.isArray(calendarData)
+      ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
+      : [];
+
+    if (venueSlots.length === 0) {
       return true;
     }
 
     const selectedDateStr = getDateStr(date);
-    return calendarData.some(slot => slotMatchesVenue(slot, selectedVenue.id) && getSlotDateStr(slot.date) === selectedDateStr);
+    return venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
   };
 
   const validateForm = () => {
@@ -303,7 +311,7 @@ export default function CreateEvent() {
     if (selectedEventTypes.length === 0) newErrors.eventType = 'Please select at least one type of function';
     if (selectedGuestTypes.length === 0) newErrors.guestType = 'Please select at least one type of guest';
 
-    if (selectedVenue && dateParts.startDate) {
+    if (selectedVenue && dateParts.startDate && venueHasCalendarAvailability) {
       const selectedDateStr = getDateStr(dateParts.startDate);
 
       const venueSlots = Array.isArray(calendarData)
@@ -311,14 +319,14 @@ export default function CreateEvent() {
         : [];
 
       const hasVenueAvailabilityData = venueSlots.length > 0;
-      const isAvailable = venueSlots.some(slot => getSlotDateStr(slot.date) === selectedDateStr);
+      const isAvailable = venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
 
       if (hasVenueAvailabilityData && !isAvailable) {
         newErrors.startDate = 'Selected date is not available for this venue';
       }
     }
 
-    if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime) {
+    if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime && venueHasCalendarAvailability) {
       const availableSlots = getAvailableTimeSlots(calendarData, selectedVenue.id, dateParts.startDate);
       const match = availableSlots.some(slot =>
         slot.startTime === dateParts.startTime && slot.endTime === dateParts.endTime
@@ -627,12 +635,16 @@ const finalPayload = {
                       filterDate={(date) => {
                         if (!selectedVenue) return true;
 
-                        if (!Array.isArray(calendarData) || calendarData.length === 0) {
+                        const venueSlots = Array.isArray(calendarData)
+                          ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
+                          : [];
+
+                        if (venueSlots.length === 0) {
                           return true;
                         }
 
                         const selectedDateStr = getDateStr(date);
-                        return calendarData.some(slot => slotMatchesVenue(slot, selectedVenue.id) && getSlotDateStr(slot.date) === selectedDateStr);
+                        return venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
                       }}
                       minDate={dateParts.startDate || new Date()}
                       dateFormat="yyyy-MM-dd"

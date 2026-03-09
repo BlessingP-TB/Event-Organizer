@@ -20,11 +20,19 @@ export default function VenueCardGallery({
   const fetchVenues = async () => {
     try {
       setLoading(true);
+      setError("");
       const response = await api.get("/venues");
-      // Handle both array response and paginated response
-      const venuesArray = Array.isArray(response.data)
-        ? response.data
-        : response.data.data || [];
+      const payload = response?.data;
+      const candidates = [
+        payload,
+        payload?.data,
+        payload?.items,
+        payload?.results,
+        payload?.data?.data,
+        payload?.data?.items,
+        payload?.results?.data,
+      ];
+      const venuesArray = candidates.find(Array.isArray) || [];
       setVenues(venuesArray);
       setLoading(false);
     } catch (err) {
@@ -38,17 +46,31 @@ export default function VenueCardGallery({
     fetchVenues();
   }, []);
 
+  const normalizedCampusFilter = String(campusFilter || "").trim();
+  const normalizedVenueTypeFilter = String(venueTypeFilter || "").trim();
+  const normalizedMinCapacity = Number(minCapacity);
+
+  const hasCampusFilter = normalizedCampusFilter.length > 0;
+  const hasVenueTypeFilter = normalizedVenueTypeFilter.length > 0;
+  const hasCapacityFilter =
+    Number.isFinite(normalizedMinCapacity) && normalizedMinCapacity > 0;
+
   const filteredVenues = venues.filter((venue) => {
+    const venueCampusLocation = `${venue.campus || ""} ${venue.location || ""}`.toLowerCase();
+    const venueType = String(venue.type || "").toLowerCase();
+
     const campusMatch =
-      !campusFilter ||
-      venue.location?.toLowerCase().includes(campusFilter.toLowerCase());
+      !hasCampusFilter ||
+      venueCampusLocation.includes(normalizedCampusFilter.toLowerCase());
     const typeMatch =
-      !venueTypeFilter ||
-      venue.type?.toLowerCase().includes(venueTypeFilter.toLowerCase());
+      !hasVenueTypeFilter ||
+      venueType.includes(normalizedVenueTypeFilter.toLowerCase());
     const capacityMatch =
-      !minCapacity || Number(venue.capacity) >= Number(minCapacity);
+      !hasCapacityFilter || Number(venue.capacity) >= normalizedMinCapacity;
     return campusMatch && typeMatch && capacityMatch;
   });
+
+  const isFilterActive = hasCampusFilter || hasVenueTypeFilter || hasCapacityFilter;
 
   if (loading) return <p className="loading">Loading venues...</p>;
   if (error) return <p className="error">{error}</p>;
@@ -61,7 +83,11 @@ export default function VenueCardGallery({
 
       <div className="venue-card-grid">
         {filteredVenues.length === 0 ? (
-          <p className="no-venues">No venues available that match your filters.</p>
+          <p className="no-venues">
+            {isFilterActive
+              ? "No venues available that match your filters."
+              : "No venues available right now."}
+          </p>
         ) : (
           filteredVenues.map((venue) => (
             <div
@@ -69,7 +95,9 @@ export default function VenueCardGallery({
               className={`venue-card ${selectedVenue?.id === venue.id ? "selected" : ""}`}
               onClick={() => {
                 setSelectedVenue(venue);
-                setFormData(prev => ({ ...prev, venueId: venue.id }));
+                if (typeof setFormData === "function") {
+                  setFormData(prev => ({ ...prev, venueId: venue.id }));
+                }
               }}
             >
               {/* Venue Image */}
