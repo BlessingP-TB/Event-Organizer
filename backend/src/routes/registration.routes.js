@@ -37,7 +37,6 @@ router.get(
 router.get(
     '/my',
     authorize([ROLES.ADMIN, ROLES.ORGANIZER, ROLES.ATTENDEE]),
-    enforceEmailVerification,
     registrationController.listMyRegistrations
 );
 
