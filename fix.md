@@ -160,3 +160,10 @@ Nearly all 404 errors shared the same root cause: frontend files were making API
 - **Solution**: Removed `enforceEmailVerification` middleware from `/my` route
   - Users can now view their registrations without email verification
   - Other registration actions (create, decide) still require verified email
+
+#### 15. `/api/v1/registrations/total` - 403 Forbidden
+- **Status**: ✅ FIXED
+- **Issue**: OrganizerDashboard calls `/registrations/total` which was blocked by `enforceEmailVerification`
+- **Location**: `backend/src/routes/registration.routes.js` line 30-34
+- **Solution**: Removed `enforceEmailVerification` middleware from `/total` route
+  - Organizers can now view registration totals without email verification
