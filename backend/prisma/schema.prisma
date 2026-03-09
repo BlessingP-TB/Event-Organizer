@@ -1,0 +1,557 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "./generate/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  ORGANIZER
+  ATTENDEE
+}
+
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum AttendanceStatus {
+  CHECKED_IN
+  CHECKED_OUT
+  ATTENDED
+  NO_SHOW
+}
+
+enum ApprovalType {
+  SAFETY
+  LIQUOR
+  NOISE
+  GENERAL
+  ORGANIZER_DOC
+  ATTENDEE_DOC
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum TokenType {
+  REFRESH
+  RESET_PASSWORD
+  VERIFY_EMAIL
+}
+
+enum DocType {
+  ID
+  PROOF_OF_EMPLOYMENT
+  ORGANIZER_CERT
+  INVOICE
+  OTHER
+}
+
+enum DocStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum PurchaseStatus {
+  INITIATED
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  EFT
+  CASH
+}
+
+enum RateType {
+  PER_HOUR
+  PER_DAY
+  OTHER
+}
+
+enum InvoiceStatus {
+  PENDING
+  PAID
+  CANCELLED
+  OVERDUE
+}
+
+enum VenueType {
+  AUDITORIUM
+  CLASSROOM
+  HALL
+  OTHER
+}
+
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  ALLOCATED
+  CANCELLED
+}
+
+enum BookingStatus {
+  PENDING_DEPOSIT
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+}
+
+model User {
+  id               String    @id @default(uuid()) @db.VarChar(36)
+  email            String    @unique @db.VarChar(255)
+  name             String    @db.VarChar(255)
+  role             Role
+  address          String?   @db.Text
+  cellphone_number String?   @db.VarChar(20)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  deletedAt        DateTime?
+  active           Boolean   @default(true)
+
+  account                   Account?
+  organizerProfile          OrganizerProfile?
+  organizedEvents           Event[]            @relation("OrganizerEvents")
+  registrations             Registration[]
+  attendance                Attendance[]
+  tickets                   Ticket[]
+  documents                 Document[]
+  verifiedOrganizerProfiles OrganizerProfile[] @relation("AdminVerifications")
+  purchases                 Purchase[]
+  approvals                 Approval[]         @relation("Approver")
+  reports                   Report[]
+  bookings                  Booking[]
+  calendarsCreated          Calendar[]         @relation("UserCreatedCalendars")
+}
+
+model Account {
+  id                  String    @id @default(uuid()) @db.VarChar(36)
+  userId              String    @unique @db.VarChar(36)
+  passwordHash        String    @db.VarChar(255)
+  emailVerified       Boolean   @default(false)
+  failedLoginAttempts Int       @default(0)
+  lockedAt            DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user     User        @relation(fields: [userId], references: [id])
+  sessions Session[]
+  tokens   AuthToken[]
+}
+
+model Session {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  accountId String   @db.VarChar(36)
+  ipAddress String?  @db.VarChar(45)
+  userAgent String?  @db.Text
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+
+  account Account @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+}
+
+model AuthToken {
+  id        String    @id @default(uuid()) @db.VarChar(36)
+  accountId String    @db.VarChar(36)
+  type      TokenType
+  token     String    @unique @db.VarChar(512)
+  createdAt DateTime  @default(now())
+  expiresAt DateTime
+  ipAddress String?   @db.VarChar(45)
+  userAgent String?   @db.Text
+
+  account Account @relation(fields: [accountId], references: [id])
+
+  @@index([accountId])
+}
+
+model OrganizerProfile {
+  id                String    @id @default(uuid()) @db.VarChar(36)
+  userId            String    @unique @db.VarChar(36)
+  isInternal        Boolean   @default(false)
+  verified          Boolean   @default(false)
+  verifiedByAdminId String?   @db.VarChar(36)
+  verifiedAt        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  user            User       @relation(fields: [userId], references: [id])
+  uploadedDocs    Document[]
+  approvals       Approval[] @relation("OrganizerApprovals")
+  verifiedByAdmin User?      @relation("AdminVerifications", fields: [verifiedByAdminId], references: [id])
+
+  @@index([verifiedByAdminId])
+}
+
+model Document {
+  id          String    @id @default(uuid()) @db.VarChar(36)
+  userId      String    @db.VarChar(36)
+  eventId     String?   @db.VarChar(36)
+  purchaseId  String?   @db.VarChar(36)
+  bookingId   String?   @db.VarChar(36)
+  type        DocType   @default(ID)
+  filename    String    @db.VarChar(255)
+  mimetype    String?   @db.VarChar(100)
+  url         String?   @db.Text
+  content     Bytes?    @db.LongBlob
+  size        Int?
+  eventName   String?   @db.VarChar(255)
+  status      DocStatus @default(PENDING)
+  submittedAt DateTime  @default(now())
+  reviewedAt  DateTime?
+  reviewedBy  String?   @db.VarChar(36)
+  deletedAt   DateTime?
+
+  user               User              @relation(fields: [userId], references: [id])
+  event              Event?            @relation(fields: [eventId], references: [id])
+  purchase           Purchase?         @relation(fields: [purchaseId], references: [id])
+  booking            Booking?          @relation(fields: [bookingId], references: [id])
+  organizerProfileId String?           @db.VarChar(36)
+  organizerProfile   OrganizerProfile? @relation(fields: [organizerProfileId], references: [id])
+
+  @@index([purchaseId, type])
+  @@index([bookingId, type])
+  @@index([userId])
+  @@index([eventId])
+  @@index([organizerProfileId])
+}
+
+model Venue {
+  id       String @id @default(uuid()) @db.VarChar(36)
+  name     String @unique @db.VarChar(255)
+  location String @db.Text
+  capacity Int
+
+  type         VenueType @default(HALL)
+  typeOther    String?   @db.VarChar(255)
+  rateType     RateType  @default(PER_DAY)
+  price        Decimal   @db.Decimal(10, 2)
+  depositValue Decimal?  @db.Decimal(10, 2)
+  rating       Int?      @default(0)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  imageUrls Json?     // Was String[] in PostgreSQL — store as JSON array e.g. ["url1","url2"]
+  events    Event[]
+  tools     Tool[]
+  bookings  Booking[]
+}
+
+model Purchase {
+  id                  String         @id @default(uuid()) @db.VarChar(36)
+  userId              String         @db.VarChar(36)
+  eventId             String         @db.VarChar(36)
+  amount              Decimal        @db.Decimal(10, 2)
+  currency            String         @default("ZAR") @db.VarChar(10)
+  status              PurchaseStatus @default(INITIATED)
+  paymentMethod       PaymentMethod?
+  providerTransaction String?        @db.VarChar(255)
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
+  deletedAt           DateTime?
+
+  user      User       @relation(fields: [userId], references: [id])
+  event     Event      @relation(fields: [eventId], references: [id])
+  tickets   Ticket[]
+  documents Document[]
+  invoice   Invoice?
+
+  ticketDefinitionId String @db.VarChar(36)
+
+  @@index([userId])
+  @@index([eventId])
+}
+
+model Booking {
+  id              String        @id @default(uuid()) @db.VarChar(36)
+  eventId         String        @unique @db.VarChar(36)
+  organizerId     String        @db.VarChar(36)
+  venueId         String        @db.VarChar(36)
+  calculatedCost  Decimal       @db.Decimal(10, 2)
+  depositRequired Decimal?      @db.Decimal(10, 2)
+  depositPaid     Boolean       @default(false)
+  totalPaid       Decimal       @default(0.0) @db.Decimal(10, 2)
+  status          BookingStatus @default(PENDING_PAYMENT)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  calendarId      String?       @db.VarChar(36)
+
+  event     Event      @relation(fields: [eventId], references: [id])
+  organizer User       @relation(fields: [organizerId], references: [id])
+  venue     Venue      @relation(fields: [venueId], references: [id])
+  invoice   Invoice?
+  documents Document[]
+  calendar  Calendar?  @relation("CalendarBookings", fields: [calendarId], references: [id])
+
+  @@index([organizerId])
+  @@index([venueId])
+  @@index([calendarId])
+}
+
+model Invoice {
+  id            String        @id @default(uuid()) @db.VarChar(36)
+  purchaseId    String?       @unique @db.VarChar(36)
+  bookingId     String?       @unique @db.VarChar(36)
+  invoiceNo     String        @unique @db.VarChar(50)
+  amount        Decimal       @db.Decimal(10, 2)
+  currency      String        @default("ZAR") @db.VarChar(10)
+  issuedAt      DateTime      @default(now())
+  status        InvoiceStatus @default(PENDING)
+  venueIssuerId String        @db.VarChar(36)
+
+  venueIssuer VenueIssuer @relation(fields: [venueIssuerId], references: [id])
+  purchase    Purchase?   @relation(fields: [purchaseId], references: [id])
+  booking     Booking?    @relation(fields: [bookingId], references: [id])
+
+  @@index([venueIssuerId])
+}
+
+model VenueIssuer {
+  id                 String  @id @default(uuid()) @db.VarChar(36)
+  institutionName    String  @db.VarChar(255)
+  institutionAddress Json    // Was String[] in PostgreSQL — store as JSON array
+  institutionLogoUrl String? @db.Text
+  institutionLogo    Bytes?  @db.LongBlob
+  otherDetails       Json    // Was String[] in PostgreSQL — store as JSON array
+
+  Invoice Invoice[]
+}
+
+model Tool {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  name      String   @unique @db.VarChar(255)
+  quantity  Int      @default(1)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  venues Venue[]
+}
+
+model Event {
+  id                    String      @id @default(uuid()) @db.VarChar(36)
+  name                  String      @db.VarChar(255)
+  description           String      @db.Text
+  startDateTime         DateTime
+  endDateTime           DateTime
+  status                EventStatus @default(DRAFT)
+  expectedAttend        Int?
+  totalTickets          Int?
+  isFree                Boolean     @default(true)
+  ticketRequired        Boolean     @default(true)
+  autoDistribute        Boolean     @default(true)
+  allowAttendeePurchase Boolean     @default(false)
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
+  deletedAt             DateTime?
+
+  venueId     String  @db.VarChar(36)
+  organizerId String  @db.VarChar(36)
+  themeId     String? @db.VarChar(36)
+
+  // Stores the resources and services requested by the organizer
+  // Example structure: { "Chair": 50, "Table": 10, "Liquor": true, "Extra Security Guard": false, "Microphone": 2 }
+  requestedResourcesAndServices Json? // Use Json? to make it optional
+
+  // --- Existing Relations ---
+  venue             Venue              @relation(fields: [venueId], references: [id])
+  organizer         User               @relation("OrganizerEvents", fields: [organizerId], references: [id])
+  registrations     Registration[]
+  attendance        Attendance[]
+  approvals         Approval[]         @relation("EventApprovals")
+  reports           Report[]
+  tickets           Ticket[]
+  liquorRequests    LiquorRequest[]
+  documents         Document[]
+  purchases         Purchase[]
+  Theme             Theme?             @relation(fields: [themeId], references: [id])
+  ticketDefinitions TicketDefinition[]
+  booking           Booking?
+
+  @@index([venueId])
+  @@index([organizerId])
+  @@index([themeId])
+}
+
+model TicketDefinition {
+  id        String    @id @default(uuid()) @db.VarChar(36)
+  eventId   String    @db.VarChar(36)
+  name      String    @db.VarChar(255)
+  price     Decimal   @db.Decimal(10, 2)
+  quantity  Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  event   Event    @relation(fields: [eventId], references: [id])
+  tickets Ticket[]
+
+  @@unique([eventId, name])
+}
+
+model Registration {
+  id              String             @id @default(uuid()) @db.VarChar(36)
+  userId          String             @db.VarChar(36)
+  eventId         String             @db.VarChar(36)
+  createdAt       DateTime           @default(now())
+  source          String?            @db.VarChar(255)
+  requestedTicket Boolean            @default(true)
+  status          RegistrationStatus @default(PENDING)
+
+  user   User    @relation(fields: [userId], references: [id])
+  event  Event   @relation(fields: [eventId], references: [id])
+  ticket Ticket?
+
+  @@unique([userId, eventId])
+}
+
+model Attendance {
+  id        String           @id @default(uuid()) @db.VarChar(36)
+  userId    String           @db.VarChar(36)
+  eventId   String           @db.VarChar(36)
+  status    AttendanceStatus
+  checkedAt DateTime         @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  event Event @relation(fields: [eventId], references: [id])
+
+  @@unique([userId, eventId])
+}
+
+model Ticket {
+  id                 String    @id @default(uuid()) @db.VarChar(36)
+  eventId            String    @db.VarChar(36)
+  userId             String?   @db.VarChar(36)
+  registrationId     String?   @unique @db.VarChar(36)
+  purchaseId         String?   @db.VarChar(36)
+  ticketDefinitionId String    @db.VarChar(36)
+  type               String    @db.VarChar(100)
+  price              Decimal   @db.Decimal(10, 2)
+  qrcodeORurl        Json      // Was String[] in PostgreSQL — store as JSON array
+  issuedAt           DateTime  @default(now())
+  redeemed           Boolean   @default(false)
+  redeemedAt         DateTime?
+  deletedAt          DateTime?
+
+  event            Event            @relation(fields: [eventId], references: [id])
+  user             User?            @relation(fields: [userId], references: [id])
+  registration     Registration?    @relation(fields: [registrationId], references: [id])
+  purchase         Purchase?        @relation(fields: [purchaseId], references: [id])
+  ticketDefinition TicketDefinition @relation(fields: [ticketDefinitionId], references: [id])
+
+  @@index([eventId])
+  @@index([userId])
+  @@index([purchaseId])
+  @@index([ticketDefinitionId])
+}
+
+model LiquorRequest {
+  id           String   @id @default(uuid()) @db.VarChar(36)
+  eventId      String   @db.VarChar(36)
+  startTime    DateTime
+  endTime      DateTime
+  policyAgreed Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  event      Event     @relation(fields: [eventId], references: [id])
+  approvalId String?   @unique @db.VarChar(36)
+  approval   Approval? @relation(fields: [approvalId], references: [id])
+
+  @@index([eventId])
+}
+
+model Approval {
+  id         String         @id @default(uuid()) @db.VarChar(36)
+  targetType String         @db.VarChar(100)
+  targetId   String         @db.VarChar(36)
+  type       ApprovalType
+  status     ApprovalStatus @default(PENDING)
+  approverId String?        @db.VarChar(36)
+  notes      String?        @db.Text
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+
+  approver           User?             @relation("Approver", fields: [approverId], references: [id])
+  organizerProfileId String?           @db.VarChar(36)
+  organizerProfile   OrganizerProfile? @relation("OrganizerApprovals", fields: [organizerProfileId], references: [id])
+  eventId            String?           @db.VarChar(36)
+  event              Event?            @relation("EventApprovals", fields: [eventId], references: [id])
+  liquorRequest      LiquorRequest?
+
+  @@index([approverId])
+  @@index([organizerProfileId])
+  @@index([eventId])
+}
+
+model Report {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  eventId   String   @db.VarChar(36)
+  authorId  String?  @db.VarChar(36)
+  content   String   @db.Text
+  createdAt DateTime @default(now())
+
+  event  Event @relation(fields: [eventId], references: [id])
+  author User? @relation(fields: [authorId], references: [id])
+
+  @@index([eventId])
+  @@index([authorId])
+}
+
+model Theme {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  name        String   @unique @db.VarChar(255)
+  description String?  @db.Text
+  imageUrl    String?  @db.Text
+  image       Bytes?   @db.LongBlob
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  events Event[]
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  key         String   @unique @db.VarChar(255)
+  value       String   @db.Text
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Calendar {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  date        DateTime @db.Date
+  startTime   String   @db.VarChar(10)
+  endTime     String   @db.VarChar(10)
+  venueIds    Json     // Was String[] in PostgreSQL — store as JSON array of UUID strings
+  createdById String?  @db.VarChar(36)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy User?     @relation("UserCreatedCalendars", fields: [createdById], references: [id])
+  bookings  Booking[] @relation("CalendarBookings")
+
+  @@unique([date, startTime, endTime])
+  @@index([createdById])
+}

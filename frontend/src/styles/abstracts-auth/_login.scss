@@ -1,0 +1,118 @@
+// src/styles/abstracts-auth/_login.scss
+@use './_variable' as *;
+@use './_globals' as *;
+@use 'sass:color';
+
+.login-page {
+  min-height: 100vh; // Ensures full-screen height
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem; // Responsive padding
+  width: 100%;
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+  }
+
+  @media (max-width: 480px) {
+    padding: 1rem;
+  }
+
+  .login-form {
+    background-color: #f8f3f3;
+    color: #000;
+    padding: 2rem 2.5rem;
+    border-radius: 12px;
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+    text-align: left;
+    margin-top: 0;
+
+    .error {
+      background-color: #f8d7da;
+      color: #842029;
+      padding: 0.75rem 1rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      font-weight: 600;
+      text-align: center;
+      border: 1px solid #f5c2c7;
+    }
+
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      text-align: center;
+    }
+
+    p {
+      font-size: 1rem;
+      margin-bottom: 1.5rem;
+      color: #555;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      margin-top: 1rem;
+    }
+
+    input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      margin-bottom: 0.5rem;
+      font-size: 1rem;
+
+      &:focus {
+        border-color: $primary-color;
+        outline: none;
+      }
+    }
+
+    button {
+      width: 100%;
+      background-color: $primary-color;
+      color: #fff;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 1rem;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background-color: color.adjust($primary-color, $lightness: -10%);
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+
+    .login-links {
+      margin-top: 1.5rem;
+      text-align: center;
+      font-size: 0.9rem;
+
+      span {
+        color: $primary-color;
+        cursor: pointer;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+
+      p {
+        margin: 0.5rem 0;
+      }
+    }
+  }
+}

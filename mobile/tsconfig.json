@@ -1,0 +1,17 @@
+{
+  "$schema": "./tsconfig.schema.json",
+  "extends": "./expo/tsconfig.base.json",
+  "compilerOptions": {
+    "strict": true,
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.jsx"
+  ]
+}

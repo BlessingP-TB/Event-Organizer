@@ -1,0 +1,12 @@
+{
+  "typescript.tsdk": "mobile/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "json.schemas": [
+    {
+      "fileMatch": [
+        "/mobile/tsconfig.json"
+      ],
+      "url": "./mobile/tsconfig.schema.json"
+    }
+  ]
+}

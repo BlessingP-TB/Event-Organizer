@@ -1,0 +1,25 @@
+// Ocean Blue Serenity Theme Colors
+$blue-darkest:   #03045e;
+$blue-darker:    #023e8a;
+$blue-medium:    #0077b6;
+$blue-light:     #0096c7;
+$blue-bright:    #00b4d8;
+$blue-softer:    #48cae4;
+$blue-lightest:  #90e0ef;
+$blue-pale:      #ade8f4;
+$blue-faint:     #caf0f8;
+
+// Theme colors
+$primary-color:      $blue-medium;
+$primary-hover:      $blue-light;
+$secondary-color:    $blue-softer;
+$secondary-hover:    $blue-bright;
+$text-primary:       $blue-darkest;
+$text-secondary:     $blue-darker;
+$border-color:       $blue-lightest;
+$bg-light:           $blue-faint;
+$danger-color:       #ef4444;
+
+// Theme tokens
+$border-radius:      8px;
+$box-shadow:         0 10px 15px -3px rgba(0, 0, 0, 0.1);

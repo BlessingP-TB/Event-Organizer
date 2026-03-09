@@ -1,0 +1,599 @@
+// data/Organiser/myEvents.js
+/*import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
+const EVENTS_KEY = 'organiser_events';
+
+// 👇 YOUR 5 SAMPLE EVENTS (from your original static file)
+const SAMPLE_EVENTS = [
+  {
+    id: 1,
+    title: "Annual Tech Summit",
+    date: "Saturday, 19 October at 09:00 AM",
+    displayDate: "November 15, 2025",
+    time: "09:00 AM - 05:00 PM",
+    duration: "8 hours",
+    location: "San Francisco Convention Center",
+    capacity: "500 attendees",
+    price: "Free",
+    organizer: "Tech Innovators Inc.",
+    contact: "info@techsummit.com",
+    category: "Technology",
+    tags: ["AI", "Startup", "Networking"],
+    description: "Join industry leaders for a full day of talks, workshops, and networking around the latest in AI, cloud computing, and startup innovation.",
+    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80",
+    status: "Upcoming",
+    approval: "Waiting for Approval"
+  },
+  {
+    id: 2,
+    title: "Marketing Strategy Workshop",
+    date: "Sunday, 27 October at 14:00 PM",
+    displayDate: "2025-10-28",
+    time: "10:00 AM - 01:00 PM",
+    duration: "3 hours",
+    location: "Online (Zoom)",
+    capacity: "100 attendees",
+    price: "$25",
+    organizer: "GrowthLab Academy",
+    contact: "hello@growthlab.co",
+    category: "Marketing",
+    tags: ["Digital", "Strategy", "Workshop"],
+    description: "Learn actionable frameworks to build a winning marketing strategy in 2026. Perfect for founders and marketing managers.",
+    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80",
+    status: "Upcoming",
+    approval: "Approved"
+  },
+  {
+    id: 3,
+    title: "Product Launch Event",
+    date: "Friday, 25 October at 18:30 PM",
+    displayDate: "2025-09-01",
+    time: "02:00 PM - 05:00 PM",
+    duration: "3 hours",
+    location: "Innovation Campus, Hall B",
+    capacity: "200 attendees",
+    price: "Free",
+    organizer: "ProductLabs",
+    contact: "events@productlabs.com",
+    category: "Sport",
+    tags: ["Launch", "Demo", "Networking"],
+    description: "Be the first to see our groundbreaking new product suite.",
+    image: "https://images.unsplash.com/photo-1559223607-ca4c3a29500d?w=800&q=80",
+    status: "Past",
+    approval: "Approved"
+  },
+  {
+    id: 4,
+    title: "Team Building Retreat",
+    date: "Saturday, 02 November at 19:00 PM",
+    displayDate: "August 20, 2025",
+    time: "All Day",
+    duration: "1 day",
+    location: "Mountain View Resort",
+    capacity: "50 attendees",
+    price: "Company Sponsored",
+    organizer: "HR Department",
+    contact: "hr@company.com",
+    category: "Arts & Culture",
+    tags: ["Team", "Wellness", "Fun"],
+    description: "A day of outdoor activities, bonding, and relaxation.",
+    image: "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800&q=80",
+    status: "Past",
+    approval: "Declined"
+  },
+  {
+    id: 5,
+    title: "Quarterly Review Meeting",
+    date: "Wednesday, 30 October at 10:00 AM",
+    displayDate: "July 5, 2025",
+    time: "10:00 AM - 12:00 PM",
+    duration: "2 hours",
+    location: "Main Conference Room",
+    capacity: "30 attendees",
+    price: "N/A",
+    organizer: "Leadership Team",
+    contact: "leadership@company.com",
+    category: "Academic",
+    tags: ["Meeting", "Review", "Strategy"],
+    description: "Quarterly performance and strategy review.",
+    image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&q=80",
+    status: "Cancelled",
+    approval: "Declined"
+  }
+];
+
+// Save a new event
+export const saveEvent = async (newEvent) => {
+  try {
+    const existing = await getEvents();
+    const updated = [...existing, newEvent];
+    await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(updated));
+
+    console.log('✅ Event saved. Sending admin notification...');
+
+    await addAdminNotification({
+      title: 'New Event Submitted',
+      message: `"${newEvent.title}" needs approval.`,
+    });
+
+    console.log('✅ Admin notification sent');
+  } catch (e) {
+    console.error('❌ Failed to save event or notify admin:', e);
+    throw e;
+  }
+};
+
+// Get all events — with sample fallback on first launch
+export const getEvents = async () => {
+  try {
+    const json = await AsyncStorage.getItem(EVENTS_KEY);
+    if (json) {
+      return JSON.parse(json);
+    } else {
+      // First time: save and return sample events
+      await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(SAMPLE_EVENTS));
+      return SAMPLE_EVENTS;
+    }
+  } catch (e) {
+    console.error('Failed to load events', e);
+    return [];
+  }
+};
+
+export const deleteEvent = async (eventId) => {
+  try {
+    const existing = await getEvents();
+    const filtered = existing.filter(
+      (event) => event.id !== parseInt(eventId)
+    );
+    await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(filtered));
+    return true;
+  } catch (e) {
+    console.error('Failed to delete event', e);
+    return false;
+  }
+};
+
+export const updateEvent = async (updatedEvent) => {
+  try {
+    const existing = await getEvents();
+    const updatedList = existing.map(event =>
+      event.id === updatedEvent.id ? updatedEvent : event
+    );
+    await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(updatedList));
+
+    // Optional: Send notification to admin that event was updated
+    await addAdminNotification({
+      title: 'Event Updated',
+      message: `"${updatedEvent.title}" has been updated and needs re-approval.`,
+    });
+  } catch (e) {
+    console.error('❌ Failed to update event:', e);
+    throw e;
+  }
+};
+
+*/
+import { addAdminNotification } from '../Admin/adminDash';
+// data/Organiser/myEvents.js
+import AsyncStorage from '@react-native-async-storage/async-storage';
+// import { addAdminNotification } from '../Admin/adminDash'; // KEEP if needed for other parts, but remove from new updateEvent
+
+// --- API CONFIGURATION (Placeholders) ---
+//const BASE_URL = 'http://localhost:3000'; // Replace with your actual base URL
+// NOTE: In a real app, the token must be securely retrieved from state/storage.
+const getAuthToken = async () => {
+  // Replace with your actual logic to get the Admin's JWT token
+  const token = await AsyncStorage.getItem('ADMIN_JWT_TOKEN'); // Assuming you store it here
+  if (!token) {
+    console.error("Authentication token not found. Admin login required.");
+    // In a real app, you would redirect to login
+  }
+  return token || 'DUMMY_TOKEN_IF_MISSING'; // Fallback for development testing
+};
+// ----------------------------------------
+
+const EVENTS_KEY = 'organiser_events';
+// SAMPLE_EVENTS, saveEvent, and deleteEvent can largely be kept for legacy/other organiser screens, 
+// but getEvents and updateEvent must be modified for the Admin's view.
+
+/**
+ * Maps backend event status to frontend approval display text.
+ * NOTE: Adjust these values to match your actual backend API status/approval keys.
+ */
+
+/* * Maps backend ApprovalStatus enum values to frontend approval display text.
+ * @param {object} event - The event object returned from the API.
+ */
+/*const mapStatusToApproval = (event) => {
+  // Determine the final approval status based on the backend enum values.
+  // Assuming the API provides the final status as 'approvalStatus' 
+  // or checks the associated 'approvals' record.
+
+  // Find the primary status field in the event object, defaulting to PENDING if not found.
+  const approvalStatus =
+
+    //event.approvalStatus?.toUpperCase() ||
+    (event.approvals?.[0] && event.approvals[0].status?.toUpperCase()) ||
+    event.status?.toUpperCase();
+
+  switch (approvalStatus) {
+    //case "PUBLISHED": // If 'PUBLISHED' means waiting for final approval
+    case "APPROVED":
+      return "Approved";
+    case "REJECTED":
+      return "Declined";
+    case "PENDING":
+
+    default:
+      return "Waiting for Approval";
+  }
+};
+*/
+/*const mapStatusToApproval = (event) => {
+  // 1. Prioritize finding a final decision (APPROVED or REJECTED)
+  const finalApproval = event.approvals?.find(
+    (app) => app.status === "APPROVED" || app.status === "REJECTED"
+  );
+
+  if (finalApproval) {
+    switch (finalApproval.status.toUpperCase()) {
+      case "APPROVED":
+        return "Approved"; // Matches frontend tab
+      case "REJECTED":
+        return "Declined"; // Matches frontend tab
+    }
+  }
+
+  // 2. If no final decision exists, check for a PENDING approval.
+  const pendingApproval = event.approvals?.find(
+    (app) => app.status === "PENDING"
+  );
+
+  // 3. Fallback: If there is no final decision, but the event exists, it is awaiting review.
+  if (pendingApproval || event.status === "PUBLISHED" || event.status === "PENDING") {
+    return "Waiting for Approval"; // Matches frontend tab
+  }
+
+  // Default fallback (e.g., if event is a DRAFT or status is unknown, though usually invisible to Admin)
+  return "Waiting for Approval";
+};*/
+
+/*const mapStatusToApproval = (event) => {
+  // Requires 'createdAt' to be included in the API response's approval objects
+  const sortedApprovals = event.approvals
+    ?.slice() // Shallow copy for safe sorting
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  const currentApproval = sortedApprovals?.[0];
+
+  if (currentApproval) {
+    switch (currentApproval.status.toUpperCase()) {
+      case "APPROVED":
+        return "Approved";
+      case "REJECTED":
+        return "Declined";
+      case "PENDING":
+        return "Waiting for Approval";
+    }
+  }
+
+  // Fallback if no specific approval record exists (e.g., initial PUBLISHED state)
+  const primaryStatus = event.status?.toUpperCase();
+  if (primaryStatus === "PUBLISHED" || primaryStatus === "PENDING") {
+    return "Waiting for Approval";
+  }
+
+  return "Waiting for Approval";
+};*/
+// In myEvents.js
+
+const mapStatusToApproval = (event) => {
+  // 1. Sort approvals by creation date descending (newest first)
+  //    Requires 'createdAt' to be included in the API response's approval objects
+  const sortedApprovals = event.approvals
+    ?.slice() // Create a shallow copy before sorting
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  // 2. Check the MOST RECENT approval for a definitive decision
+  const currentApproval = sortedApprovals?.[0];
+
+  if (currentApproval) {
+    switch (currentApproval.status.toUpperCase()) {
+      case "APPROVED":
+        return "Approved"; // Matches frontend tab
+      case "REJECTED":
+        return "Declined"; // Matches frontend tab
+      case "PENDING":
+        return "Waiting for Approval";
+    }
+  }
+
+  // 3. Fallback: If no approval records are found, use the primary event status
+  const primaryStatus = event.status?.toUpperCase();
+  if (primaryStatus === "PUBLISHED" || primaryStatus === "PENDING") {
+    return "Waiting for Approval"; // Matches frontend tab
+  }
+
+  return "Waiting for Approval";
+};
+// 1. New implementation for getEvents (Admin view)
+// In myEvents.js, replace the existing getEvents function entirely
+
+// Helper function to format ISO date to FE 'displayDate' (e.g., "November 15, 2025")
+const formatDisplayDate = (isoString) => {
+  if (!isoString) return 'N/A';
+  // Use Intl.DateTimeFormat for robust date formatting
+  return new Date(isoString).toLocaleDateString(undefined, {
+    year: 'numeric', month: 'long', day: 'numeric'
+  });
+};
+
+// Helper function to format ISO date to FE 'time' (e.g., "09:00 AM - 05:00 PM")
+const formatTimeRange = (startIso, endIso) => {
+  if (!startIso || !endIso) return 'N/A';
+  const startTime = new Date(startIso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const endTime = new Date(endIso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  return `${startTime} - ${endTime}`;
+};
+
+// Helper function to calculate duration (e.g., "8 hours")
+const calculateDuration = (startIso, endIso) => {
+  if (!startIso || !endIso) return 'N/A';
+  const diffMs = new Date(endIso).getTime() - new Date(startIso).getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+  if (diffHours >= 24) return `${Math.floor(diffHours / 24)} days`;
+  return `${Math.round(diffHours * 10) / 10} hours`;
+};
+
+
+export const getEvents = async () => {
+  try {
+    const token = await getAuthToken();
+    const response = await fetch(`${BASE_URL}/admin/events`, {
+      method: 'GET',
+      headers: { /* ... */ },
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch events: ${response.status} ${response.statusText}`);
+    }
+
+    const result = await response.json();
+    let events = result.data;
+
+    if (!Array.isArray(events)) {
+      console.error('API response data is not an array. Check API key extraction.');
+      // This will ensure the code doesn't crash:
+      events = [];
+    }
+
+    return events.map(event => ({
+      // 1. Mandatory FE Fields (Title, Status, ID)
+      title: event.name || event.title, // Map 'name' from DB to 'title' for FE
+      approval: mapStatusToApproval(event), // FIX: PASS FULL OBJECT
+      id: event.id || event.uuid,
+
+      // 2. Calculated Date/Time Mapping (Required by details view)
+      displayDate: formatDisplayDate(event.startDateTime),
+      time: formatTimeRange(event.startDateTime, event.endDateTime),
+      duration: calculateDuration(event.startDateTime, event.endDateTime),
+
+      // 3. Directly Mapped Fields (Required by details view)
+      description: event.description,
+      // Assuming your backend populates 'expectedAttend' and 'venue/organizer' relations
+      capacity: event.expectedAttend,
+      location: event.venue?.name || 'Venue Name Missing',
+      organizer: event.organizer?.name || 'Organizer Missing',
+      price: event.isFree ? 'Free' : 'TBD',
+      contact: event.organizer?.contactEmail || 'N/A',
+      category: 'TBD', // Placeholder, map from Theme or Category field if available
+      // 5. Spread remaining fields:
+      ...event,
+    }));
+  } catch (e) {
+    console.error('❌ Failed to load events from API', e);
+    return [];
+  }
+};
+
+// 2. New implementation for updateEvent (Used by handleApprove/handleReject)
+export const updateEvent = async (updatedEvent) => {
+  try {
+    const token = await getAuthToken();
+
+    let newStatus;
+    if (updatedEvent.approval === "Approved") {
+      newStatus = "APPROVED"; // Will be used as APPROVAL_STATUS
+    } else if (updatedEvent.approval === "Declined") {
+      newStatus = "REJECTED"; // Will be used as APPROVAL_STATUS
+    } else {
+      newStatus = "PENDING";
+    }
+
+    // --- CRITICAL FIX: Target the Approval Creation Route ---
+    // Endpoint: POST /admin/events/:eventId/approvals
+    const response = await fetch(
+      `${BASE_URL}/admin/events/${updatedEvent.id}/approvals`,
+      {
+        method: 'POST', // Changed from PATCH to POST
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          // Send the status, type, and optionally notes to create the approval record
+          status: newStatus,
+          type: "GENERAL", // Assuming "GENERAL" approval type based on Postman context
+          notes: `Action taken by admin via frontend: ${updatedEvent.approval}`
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      // Log the full error message from the backend if available
+      let errorDetails = 'No details provided.';
+      try {
+        const errorBody = await response.json();
+        errorDetails = errorBody.message || JSON.stringify(errorBody);
+      } catch (e) {
+        errorDetails = await response.text();
+      }
+
+      console.error(`❌ API Failed (${response.status} ${response.statusText}):`, errorDetails);
+      throw new Error(`Event update failed: ${response.status} - ${errorDetails}`);
+    }
+
+    // Handle successful creation (201 Created) or empty response (204)
+    if (response.status === 204 || response.status === 201) {
+      return updatedEvent;
+    }
+
+    return await response.json();
+  } catch (e) {
+    console.error('❌ Failed to update event status via API:', e);
+    throw e;
+  }
+};
+
+// ... keep SAMPLE_EVENTS, saveEvent, and deleteEvent below this line if still needed for organiser role
+
+// The other functions that rely on AsyncStorage (SAMPLE_EVENTS, saveEvent, deleteEvent)
+// Save a new event
+export const saveEvent = async (newEvent) => {
+  try {
+    const existing = await getEvents();
+    const updated = [...existing, newEvent];
+    await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(updated));
+
+    console.log('✅ Event saved. Sending admin notification...');
+
+    await addAdminNotification({
+      title: 'New Event Submitted',
+      message: `"${newEvent.title}" needs approval.`,
+    });
+
+    console.log('✅ Admin notification sent');
+  } catch (e) {
+    console.error('❌ Failed to save event or notify admin:', e);
+    throw e;
+  }
+};
+
+export const deleteEvent = async (eventId) => {
+  try {
+    const existing = await getEvents();
+    const filtered = existing.filter(
+      (event) => event.id !== parseInt(eventId)
+    );
+    await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(filtered));
+    return true;
+  } catch (e) {
+    console.error('Failed to delete event', e);
+    return false;
+  }
+};
+
+const SAMPLE_EVENTS = [
+  {
+    id: 1,
+    title: "Annual Tech Summit",
+    date: "Saturday, 19 October at 09:00 AM",
+    displayDate: "November 15, 2025",
+    time: "09:00 AM - 05:00 PM",
+    duration: "8 hours",
+    location: "San Francisco Convention Center",
+    capacity: "500 attendees",
+    price: "Free",
+    organizer: "Tech Innovators Inc.",
+    contact: "info@techsummit.com",
+    category: "Technology",
+    tags: ["AI", "Startup", "Networking"],
+    description: "Join industry leaders for a full day of talks, workshops, and networking around the latest in AI, cloud computing, and startup innovation.",
+    image: "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80",
+    status: "Upcoming",
+    approval: "Waiting for Approval"
+  },
+  {
+    id: 2,
+    title: "Marketing Strategy Workshop",
+    date: "Sunday, 27 October at 14:00 PM",
+    displayDate: "2025-10-28",
+    time: "10:00 AM - 01:00 PM",
+    duration: "3 hours",
+    location: "Online (Zoom)",
+    capacity: "100 attendees",
+    price: "$25",
+    organizer: "GrowthLab Academy",
+    contact: "hello@growthlab.co",
+    category: "Marketing",
+    tags: ["Digital", "Strategy", "Workshop"],
+    description: "Learn actionable frameworks to build a winning marketing strategy in 2026. Perfect for founders and marketing managers.",
+    image: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80",
+    status: "Upcoming",
+    approval: "Approved"
+  },
+  {
+    id: 3,
+    title: "Product Launch Event",
+    date: "Friday, 25 October at 18:30 PM",
+    displayDate: "2025-09-01",
+    time: "02:00 PM - 05:00 PM",
+    duration: "3 hours",
+    location: "Innovation Campus, Hall B",
+    capacity: "200 attendees",
+    price: "Free",
+    organizer: "ProductLabs",
+    contact: "events@productlabs.com",
+    category: "Sport",
+    tags: ["Launch", "Demo", "Networking"],
+    description: "Be the first to see our groundbreaking new product suite.",
+    image: "https://images.unsplash.com/photo-1559223607-ca4c3a29500d?w=800&q=80",
+    status: "Past",
+    approval: "Approved"
+  },
+  {
+    id: 4,
+    title: "Team Building Retreat",
+    date: "Saturday, 02 November at 19:00 PM",
+    displayDate: "August 20, 2025",
+    time: "All Day",
+    duration: "1 day",
+    location: "Mountain View Resort",
+    capacity: "50 attendees",
+    price: "Company Sponsored",
+    organizer: "HR Department",
+    contact: "hr@company.com",
+    category: "Arts & Culture",
+    tags: ["Team", "Wellness", "Fun"],
+    description: "A day of outdoor activities, bonding, and relaxation.",
+    image: "https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800&q=80",
+    status: "Past",
+    approval: "Declined"
+  },
+  {
+    id: 5,
+    title: "Quarterly Review Meeting",
+    date: "Wednesday, 30 October at 10:00 AM",
+    displayDate: "July 5, 2025",
+    time: "10:00 AM - 12:00 PM",
+    duration: "2 hours",
+    location: "Main Conference Room",
+    capacity: "30 attendees",
+    price: "N/A",
+    organizer: "Leadership Team",
+    contact: "leadership@company.com",
+    category: "Academic",
+    tags: ["Meeting", "Review", "Strategy"],
+    description: "Quarterly performance and strategy review.",
+    image: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&q=80",
+    status: "Cancelled",
+    approval: "Declined"
+  }
+];
+
+
+// should be carefully managed if the Admin view is intended to completely replace the Organizer's view.
+// For the Admin flow in eventDetails.jsx, only the new getEvents and updateEvent are strictly necessary.
+

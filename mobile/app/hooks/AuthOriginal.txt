@@ -1,0 +1,21 @@
+// app/hooks/Auth.js
+export async function handleSignup(name, surname, email, phone, password, role, API_URL) {
+  try {
+    const response = await fetch(`${API_URL}/api/signup`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name, surname, email, phone, password, role }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      Alert.alert("Success", "Signup successful! Please log in.");
+    } else {
+      Alert.alert("Error", data.message || "Signup failed.");
+    }
+  } catch (error) {
+    console.error(error);
+    Alert.alert("Error", "Unable to connect to the server.");
+  }
+}

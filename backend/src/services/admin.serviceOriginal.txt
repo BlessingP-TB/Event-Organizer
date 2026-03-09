@@ -1,0 +1,122 @@
+const {
+    prisma,
+    ApiError,
+    getPagination,
+    createPaginatedResponse,
+} = require('../utils/index.util');
+const { HTTP_STATUS, ERROR_MESSAGES } = require('../constants/index.constants');
+
+const listUsers = async (queryOptions) => {
+    const { skip, take, page, pageSize } = getPagination(queryOptions);
+
+    const { query: searchString, role } = queryOptions;
+
+    const where = {
+        deletedAt: null, // Your base condition
+    };
+
+    if (role) {
+        // Add role filter if provided
+        where.role = role;
+    }
+
+    if (searchString) {
+        // Add name/email search if provided
+        where.OR = [
+            { name: { contains: searchString, mode: 'insensitive' } },
+            { email: { contains: searchString, mode: 'insensitive' } },
+        ];
+    }
+
+    const query = {
+        skip,
+        take,
+        where: where,
+        orderBy: { createdAt: 'desc' },
+        select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            active: true,
+            createdAt: true,
+            account: { select: { emailVerified: true } },
+        },
+    };
+
+    const [users, totalItems] = await prisma.$transaction([
+        prisma.user.findMany(query),
+        prisma.user.count({ where: query.where }),
+    ]);
+
+    return createPaginatedResponse(users, totalItems, page, pageSize);
+};
+
+const getUserById = async (userId) => {
+    const user = await prisma.user.findFirst({
+        where: { id: userId, deletedAt: null },
+        include: {
+            account: true,
+            organizerProfile: true,
+            documents: true,
+        },
+    });
+
+    if (!user) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'User not found.');
+    }
+    return user;
+};
+
+const updateUser = async (userId, updateBody) => {
+    const { email, name, role, active } = updateBody;
+    try {
+        return await prisma.user.update({
+            where: { id: userId },
+            data: { email, name, role, active },
+        });
+    } catch (error) {
+        if (error.code === 'P2025') {
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, 'User not found.');
+        }
+        if (error.code === 'P2002' && error.meta?.target?.includes('email')) {
+            throw new ApiError(
+                HTTP_STATUS.CONFLICT,
+                'A user with this email already exists.',
+                'EMAIL_CONFLICT'
+            );
+        }
+        throw error;
+    }
+};
+
+const deleteUser = async (userId, adminId) => {
+    if (userId === adminId) {
+        throw new ApiError(
+            HTTP_STATUS.BAD_REQUEST,
+            ERROR_MESSAGES.CANNOT_DELETE_SELF
+        );
+    }
+    try {
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                deletedAt: new Date(),
+                active: false,
+                email: `deleted_${Date.now()}_${userId}@domain.com`,
+            },
+        });
+    } catch (error) {
+        if (error.code === 'P2025') {
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, 'User not found.');
+        }
+        throw error;
+    }
+};
+
+module.exports = {
+    listUsers,
+    getUserById,
+    updateUser,
+    deleteUser,
+};

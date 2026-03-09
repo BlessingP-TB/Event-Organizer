@@ -1,0 +1,234 @@
+import { Ionicons } from "@expo/vector-icons";
+import AntDesign from '@expo/vector-icons/AntDesign';
+import { useNavigation, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEvents } from '../../hooks/organiser/useMyEvents';
+const filters = [
+  { label: "All", key: "all" },
+  { label: "Pending", key: "Waiting for Approval" },
+  { label: "Approved", key: "Approved" },
+  { label: "Declined", key: "Declined" }
+];
+
+const notifications = [
+  { id: '1', title: 'Event Registration Approved', message: 'Your registration to attend "Campus Fest" has been approved.', time: '2 min ago' },
+  { id: '2', title: 'New Event', message: 'Register for new event.', time: '1 hour ago' },
+  { id: '3', title: 'Event Registration Approved', message: 'Your registration to attend "Career Day" has been approved.', time: '3 hours ago' }
+];
+
+export default function Events() {
+  const { events } = useEvents();
+  const navigation = useNavigation();
+  const [selectedFilter, setSelectedFilter] = useState("all");
+  const [filteredEvents, setFilteredEvents] = useState(events);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    setFilteredEvents(
+      selectedFilter === "all"
+        ? events
+        : events.filter((event) => event.approval === selectedFilter)
+    );
+  }, [selectedFilter, events]);
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, []);
+
+  return (
+    <View style={styles.container}>
+      {isNotificationOpen && (
+        <View style={[styles.notificationDropdown, { top: Platform.OS === "ios" ? 60 : 40 }]}>
+          <View style={styles.notificationHeader}>
+            <Text style={styles.notificationTitle}>Notifications</Text>
+            <TouchableOpacity onPress={() => setIsNotificationOpen(false)}>
+              <AntDesign name="close" size={16} color="#999" />
+            </TouchableOpacity>
+          </View>
+          {notifications.length === 0 ? (
+            <Text style={styles.emptyText2}>No new notifications</Text>
+          ) : (
+            <ScrollView style={styles.notificationList}>
+              {notifications.map((item) => (
+                <View key={item.id} style={styles.notificationItem}>
+                  <View style={styles.notificationIcon}>
+                    <Ionicons name="information-circle-outline" size={20} color="#0077B6" />
+                  </View>
+                  <View style={styles.notificationContent}>
+                    <Text style={styles.notificationItemTitle}>{item.title}</Text>
+                    <Text style={styles.notificationItemMessage} numberOfLines={2}>
+                      {item.message}
+                    </Text>
+                    <Text style={styles.notificationTime}>{item.time}</Text>
+                  </View>
+                </View>
+              ))}
+            </ScrollView>
+          )}
+        </View>
+      )}
+
+      <View style={styles.headerRow}>
+        <Text style={styles.headerTitle}>My Events</Text>
+        <TouchableOpacity onPress={() => setIsNotificationOpen(!isNotificationOpen)}>
+          <Ionicons name="notifications-outline" size={26} color="black" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.filterBar}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.filterContent}
+        >
+          {filters.map(({ label, key }) => (
+            <TouchableOpacity
+              key={key}
+              style={[
+                styles.filterButton,
+                selectedFilter === key && styles.activeFilterButton
+              ]}
+              onPress={() => setSelectedFilter(key)}
+            >
+              <Text style={[
+                styles.filterText,
+                selectedFilter === key && styles.activeFilterText
+              ]}>
+                {label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <View style={styles.sortByContainer}>
+          <TouchableOpacity style={styles.sortByButton}>
+            <Ionicons name="filter" size={20} color="#333" />
+            <Text style={styles.sortByText}>Sort By</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <Text style={styles.sectionTitle}>Your Events</Text>
+      <FlatList
+        data={filteredEvents}
+        keyExtractor={item => item.id.toString()}
+        contentContainerStyle={{ paddingBottom: 30 }}
+        style={styles.list}
+        renderItem={({ item }) => (
+          <Pressable
+            style={styles.eventRow}
+            onPress={() => router.push(`./myEventdetails/${item.id}`)} // or your desired route
+          >
+            <View style={styles.card}>
+              <View style={styles.eventIconContainer}>
+                <Ionicons name="calendar-outline" size={32} color="#0077B6" />
+              </View>
+              <View style={styles.eventDetails}>
+                <Text style={styles.eventTitle}>{item.title}</Text>
+                <Text style={styles.eventDate}>{item.date}</Text>
+                {item.approval === "Waiting for Approval" && (
+                  <Text style={{ color: "#b1adbc", fontWeight: "600", fontSize: 14, marginTop: 2 }}>
+                    {item.approval || ""}
+                  </Text>
+                )}
+                {item.approval === "Approved" && (
+                  <Text style={styles.eventStatusPast}>Approved</Text>
+                )}
+                {item.approval === "Declined" && (
+                  <Text style={styles.eventStatusCancelled}>Declined</Text>
+                )}
+              </View>
+              {item.approval === "Waiting for Approval" && (
+                <TouchableOpacity style={styles.modifyBtn} onPress={() => router.push(`./myEventdetails/${item.id}`)}>
+                  <Text style={styles.modifyBtnText}>Modify</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          </Pressable>
+        )}
+        ListEmptyComponent={
+          <View style={styles.emptyBox}>
+            <Text>No events found in this category.</Text>
+          </View>
+        }
+      />
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: "#fafafc" },
+  notificationDropdown: {
+    position: 'absolute', right: 12, width: 300, maxHeight: 320, backgroundColor: '#fff',
+    borderRadius: 12, borderWidth: 1, borderColor: '#eee',
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.12,
+    shadowRadius: 8, elevation: 5, zIndex: 1000, padding: 12,
+  },
+  notificationHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  notificationTitle: { fontSize: 16, fontWeight: '600', color: '#333' },
+  emptyText2: { color: '#999', textAlign: 'center', fontStyle: 'italic', paddingVertical: 20 },
+  notificationItem: { flexDirection: 'row', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  notificationIcon: { marginRight: 12, marginTop: 4 },
+  notificationContent: { flex: 1 },
+  notificationItemTitle: { fontWeight: '600', fontSize: 14, color: '#333' },
+  notificationItemMessage: { fontSize: 13, color: '#666', marginVertical: 4 },
+  notificationTime: { fontSize: 11, color: '#999' },
+
+  headerRow: {
+    flexDirection: "row", alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 21,
+    paddingTop: Platform.OS === 'ios' ? 54 : 28,
+    paddingBottom: 11,
+    backgroundColor: "#fff",
+    zIndex: 10
+  },
+  headerTitle: { fontSize: 25, fontWeight: "700", color: "#191823" },
+
+  filterBar: {
+    flexDirection: "row", alignItems: "center", backgroundColor: "#fff",
+    paddingHorizontal: 10, paddingTop: 12, paddingBottom: 7, borderBottomWidth: 1, borderBottomColor: "#efefef"
+  },
+  filterContent: { flexDirection: "row", alignItems: "center", paddingLeft: 2, paddingRight: 6 },
+  filterButton: {
+    flexDirection: 'row', alignItems: 'center', marginRight: 11, marginBottom: 3,
+    borderRadius: 20, backgroundColor: "#f5f5f5", paddingVertical: 9, paddingHorizontal: 22
+  },
+  activeFilterButton: { backgroundColor: "#0077B6" },
+  filterText: { fontSize: 15, color: "#191823", fontWeight: "700" },
+  activeFilterText: { color: "#fff" },
+  sortByContainer: { flexDirection: "row", marginLeft: "auto" },
+  sortByButton: { flexDirection: "row", alignItems: "center", paddingVertical: 5, marginLeft: 8 },
+  sortByText: { color: "#34313f", fontWeight: "600", fontSize: 15, marginLeft: 6 },
+
+  sectionTitle: {
+    fontSize: 19, fontWeight: "700",
+    color: "#31303a",
+    paddingLeft: 21, marginBottom: 8,
+    letterSpacing: 0.15
+  },
+  list: { flex: 1, paddingHorizontal: 0 },
+  card: {
+    flexDirection: "row", alignItems: "center", backgroundColor: "#fff", borderRadius: 10,
+    paddingVertical: 14, paddingHorizontal: 17,
+    marginHorizontal: 15, marginBottom: 17,
+    borderWidth: 1, borderColor: "#ececec", elevation: 1
+  },
+  eventIconContainer: {
+    backgroundColor: "#f5f5f5", borderRadius: 11, padding: 10, marginRight: 14
+  },
+  eventDetails: { flex: 1 },
+  eventTitle: { fontSize: 15.7, fontWeight: "700", color: "#0077B6" },
+  eventDate: { fontSize: 13.7, color: "#0077B6", marginTop: 2 },
+  eventStatusPast: { color: "#b1adbc", fontWeight: "600", fontSize: 14, marginTop: 2 },
+  eventStatusCancelled: { color: "#b62b45", fontWeight: "700", fontSize: 14, marginTop: 2 },
+
+  modifyBtn: {
+    backgroundColor: "#0077B6", borderRadius: 13, paddingHorizontal: 16, paddingVertical: 7,
+    marginLeft: 12
+  },
+  modifyBtnText: { color: "#fff", fontWeight: "700", fontSize: 14.2 },
+
+  emptyBox: { padding: 25, alignItems: "center" }
+});

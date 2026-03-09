@@ -1,0 +1,548 @@
+// app/eventDetails.jsx
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+  Linking,
+} from 'react-native';
+import { useLocalSearchParams } from 'expo-router';
+import { useNavigation } from "expo-router";
+import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEvents } from '../../../hooks/Attendee/useEvents';
+import { useRouter } from "expo-router";
+
+export default function EventDetails() {
+  const navigation = useNavigation();
+  const { id } = useLocalSearchParams();
+  const { getEventById } = useEvents();
+  const event = getEventById(id);
+
+  const [formData, setFormData] = useState({
+    fullName: '',
+    email: '',
+    phoneNumber: '',
+    studentNumber: '',
+  });
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [subscribeUpdates, setSubscribeUpdates] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [isAlreadyRegistered, setIsAlreadyRegistered] = useState(false);
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: false });
+    checkRegistrationStatus();
+  }, [id]);
+
+  const checkRegistrationStatus = async () => {
+    try {
+      const registrations = await AsyncStorage.getItem(`registrations_${id}`);
+      if (registrations) {
+        const registrationList = JSON.parse(registrations);
+        // For now, check if any registration exists (in future, check by user)
+        setIsAlreadyRegistered(registrationList.length > 0);
+      }
+    } catch (error) {
+      console.error('Error checking registration status:', error);
+    }
+  };
+
+  if (!event) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={{ textAlign: 'center', marginTop: 50, fontSize: 18 }}>
+          Event not found
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+
+
+  const handleInputChange = (field, value) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const validateForm = () => {
+    if (!acceptedTerms) {
+      Alert.alert('Terms Required', 'Please accept the terms and conditions to continue');
+      return false;
+    }
+    return true;
+  };
+
+  const handleRegister = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const registrationData = {
+        ...formData,
+        subscribeUpdates,
+        registeredAt: new Date(),
+      };
+      console.log('Registration data:', registrationData);
+
+      // Store registration data in AsyncStorage
+      const existingRegistrations = await AsyncStorage.getItem(`registrations_${id}`);
+      const registrationList = existingRegistrations ? JSON.parse(existingRegistrations) : [];
+      registrationList.push(registrationData);
+      await AsyncStorage.setItem(`registrations_${id}`, JSON.stringify(registrationList));
+
+      // Update registration status
+      setIsAlreadyRegistered(true);
+
+      Alert.alert(
+        'Registration Successful!',
+        `Thank you ${formData.fullName}! You have successfully secured your spot. ${subscribeUpdates ? 'You will receive event updates.' : ''}`,
+        [{
+          text: 'OK', onPress: () => {
+            setAcceptedTerms(false);
+            setSubscribeUpdates(true);
+            navigation.goBack();
+          }
+        }]
+      );
+    } catch (error) {
+      Alert.alert('Registration Failed', 'There was an error processing your registration. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    // Basic share functionality
+    alert(`Share ${event.title} with friends!`);
+  };
+
+  const handleContact = () => {
+    Linking.openURL(`mailto:${event.contact}`);
+  };
+
+  const handleLocation = () => {
+    // This would typically open maps with the location
+    alert(`Opening location: ${event.location}`);
+  };
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    >
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.container2}>
+        {/* Header Image */}
+        <Image
+          source={{ uri: event.image }}
+          style={styles.eventImage}
+        />
+
+        {/* Back Button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+
+        {/* Event Content */}
+        <View style={styles.content}>
+          {/* Title and Category */}
+          <View style={styles.header}>
+            <Text style={styles.title}>{event.title}</Text>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>{event.category}</Text>
+            </View>
+          </View>
+
+          {/* Event Details */}
+          <View style={styles.detailsSection}>
+            <View style={styles.detailRow}>
+              <Ionicons name="calendar-outline" size={20} color="#0077B6" />
+              <Text style={styles.detailText}>{event.date}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Ionicons name="location-outline" size={20} color="#0077B6" />
+              <Text style={styles.detailText}>{event.location}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Ionicons name="time-outline" size={20} color="#0077B6" />
+              <Text style={styles.detailText}>{event.duration}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Ionicons name="people-outline" size={20} color="#0077B6" />
+              <Text style={styles.detailText}>{event.capacity}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Ionicons name="business-outline" size={20} color="#0077B6" />
+              <Text style={styles.detailText}>Organized by: {event.organizer}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Ionicons name="pricetag-outline" size={20} color="#0077B6" />
+              <Text style={styles.detailText}>Price: {event.price}</Text>
+            </View>
+          </View>
+
+          {/* Description */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>About this Event</Text>
+            <Text style={styles.description}>{event.description}</Text>
+          </View>
+
+          {/* Tags */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tags</Text>
+            <View style={styles.tagsContainer}>
+              {event.tags.map((tag, index) => (
+                <View key={index} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Contact Info */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Contact Information</Text>
+            <TouchableOpacity style={styles.contactRow} onPress={handleContact}>
+              <Ionicons name="mail-outline" size={20} color="#0077B6" />
+              <Text style={styles.contactText}>{event.contact}</Text>
+            </TouchableOpacity>
+          </View>
+
+
+
+
+          {/* Terms and Conditions - Only show if not already registered */}
+          {!isAlreadyRegistered && (
+            <View style={styles.section}>
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setAcceptedTerms(!acceptedTerms)}
+              >
+                <View style={[styles.checkbox, acceptedTerms && styles.checkboxSelected]}>
+                  {acceptedTerms && <Ionicons name="checkmark" size={16} color="#fff" />}
+                </View>
+                <View style={styles.checkboxTextContainer}>
+                  <Text style={styles.checkboxText}>
+                    I agree to the{' '}
+                    <Text style={styles.linkText}>Terms and Conditions</Text> and{' '}
+                    <Text style={styles.linkText}>Privacy Policy</Text> *
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.checkboxContainer}
+                onPress={() => setSubscribeUpdates(!subscribeUpdates)}
+              >
+                <View style={[styles.checkbox, subscribeUpdates && styles.checkboxSelected]}>
+                  {subscribeUpdates && <Ionicons name="checkmark" size={16} color="#fff" />}
+                </View>
+                <View style={styles.checkboxTextContainer}>
+                  <Text style={styles.checkboxText}>
+                    Subscribe to event updates and notifications
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Additional Info */}
+          <View style={styles.infoSection}>
+            <Ionicons name="information-circle-outline" size={20} color="#0077B6" />
+            <Text style={styles.infoText}>
+              You will receive a confirmation email with event details. Please bring your student ID to the event.
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Register Button */}
+      <View style={styles.footer}>
+        {isAlreadyRegistered ? (
+          <View style={styles.alreadyRegisteredContainer}>
+            <Ionicons name="checkmark-circle" size={24} color="#f3ef07ff" />
+            <Text style={styles.alreadyRegisteredText}>Registered</Text>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[styles.registerButton, (!acceptedTerms || loading) && styles.registerButtonDisabled]}
+            onPress={handleRegister}
+            disabled={!acceptedTerms || loading}
+          >
+            {loading ? (
+              <Text style={styles.registerButtonText}>Processing...</Text>
+            ) : (
+              <>
+                <Text style={styles.registerButtonText}>Register Now</Text>
+                <Ionicons name="lock-closed-outline" size={20} color="#0077B6" />
+              </>
+            )}
+          </TouchableOpacity>
+        )}
+      </View>
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#f8f9fa' },
+  container2: {
+    marginTop: -50,
+  },
+  eventImage: {
+    width: '100%',
+    height: 250,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 10,
+  },
+  content: {
+    padding: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#191823',
+    flex: 1,
+    marginRight: 10,
+  },
+  categoryBadge: {
+    backgroundColor: '#EFEFEF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0077B6',
+  },
+  detailsSection: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  detailText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
+  },
+  section: {
+    backgroundColor: 'white',
+    marginHorizontal: 0,
+    marginTop: 15,
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8,
+  },
+  sectionDescription: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+    marginBottom: 20,
+  },
+  description: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#666',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  tag: {
+    backgroundColor: '#EFEFEF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tagText: {
+    fontSize: 14,
+    color: '#0077B6',
+    fontWeight: '500',
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+  },
+  contactText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#0077B6',
+  },
+  headingContainer: {
+    alignItems: 'center',
+    paddingVertical: 10,
+  },
+  mainHeading: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+    textAlign: 'center',
+    marginTop: 15,
+    marginBottom: 10,
+    lineHeight: 32,
+  },
+  subHeading: {
+    fontSize: 16,
+    color: '#666',
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#333',
+    marginBottom: 8,
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderRadius: 8,
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: '#333',
+    backgroundColor: '#f8f9fa',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 15,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 4,
+    borderWidth: 2,
+    borderColor: '#ccc',
+    marginRight: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: '#0077B6',
+    borderColor: '#0077B6',
+  },
+  checkboxTextContainer: {
+    flex: 1,
+  },
+  checkboxText: {
+    fontSize: 14,
+    color: '#333',
+    lineHeight: 20,
+  },
+  linkText: {
+    color: '#0077B6',
+    fontWeight: '600',
+  },
+  infoSection: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    backgroundColor: '#e3f2fd',
+    marginHorizontal: 0,
+    marginTop: 15,
+    padding: 15,
+    borderRadius: 12,
+    borderLeftWidth: 4,
+    borderLeftColor: '#2196F3',
+  },
+  infoText: {
+    fontSize: 14,
+    color: '#1976d2',
+    marginLeft: 10,
+    flex: 1,
+    lineHeight: 18,
+  },
+  footer: {
+    padding: 15,
+    backgroundColor: 'white',
+    borderTopWidth: 1,
+    borderTopColor: '#e0e0e0',
+  },
+  registerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0077B6',
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  registerButtonDisabled: {
+    backgroundColor: '#ccc',
+  },
+  registerButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginRight: 8,
+  },
+  alreadyRegisteredContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#0077B6',
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  alreadyRegisteredText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
+  },
+});

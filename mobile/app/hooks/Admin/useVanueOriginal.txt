@@ -1,0 +1,61 @@
+// hooks/Admin/useAdminVenue.js
+import { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
+import {
+  getVenues,
+  addVenues,        // ✅ exists
+  updateVenue,      // ✅ exists
+  deleteVenue,      // ✅ exists
+  clearVenues,
+} from '../../data/Admin/vanue';
+
+export const useAdminVenue = () => {
+  const [venues, setVenues] = useState([]);
+
+  const loadVenues = async () => {
+    const data = await getVenues();
+    setVenues(data);
+  };
+
+  useEffect(() => {
+    loadVenues();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadVenues();
+    }, [])
+  );
+
+  // ✅ Add one venue (wrap in array for addVenues)
+  const addNewVenue = async (venueData) => {
+    const updated = await addVenues([venueData]); // ✅ use addVenues
+    setVenues(updated);
+  };
+
+  // ✅ Update
+  const updateExistingVenue = async (venueData) => {
+    const updated = await updateVenue(venueData);
+    setVenues(updated);
+  };
+
+  // ✅ Delete
+  const deleteExistingVenue = async (id) => {
+    const updated = await deleteVenue(id);
+    setVenues(updated);
+  };
+
+  const clearAllVenues = async () => {
+    const cleared = await clearVenues();
+    setVenues(cleared);
+  };
+
+  return {
+    venues,
+    addNewVenue,              // ✅ singular
+    updateExistingVenue,
+    deleteExistingVenue,
+    clearAllVenues,
+    reload: loadVenues,
+  };
+};

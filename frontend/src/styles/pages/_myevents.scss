@@ -1,0 +1,300 @@
+@import '../abstracts-auth/_variable';
+
+$primary-color: #0b4f78; 
+$text-color: #333;
+$card-bg: #ffffff;
+$radius: 8px;
+
+.my-events-page {
+  padding: 2rem;
+  background-color: #ffffff;
+  height: 100vh;
+  
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+
+    h2 {
+      font-size: 2rem;
+      color: $primary-color;
+    }
+
+    .filter-sort {
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+
+      .filters {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+
+        button {
+          background-color: white;
+          border: 2px solid $primary-color;
+          border-radius: 25px;
+          padding: 0.5rem 1.2rem;
+          color: $primary-color;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 0.875rem;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+
+          &.active {
+            background-color: $primary-color;
+            color: white;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+          }
+
+          &:hover {
+            background-color: rgba(11, 79, 120, 0.1);
+            transform: translateY(-2px);
+          }
+        }
+      }
+
+      .sort-dropdown {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+
+        label {
+          font-weight: 600;
+          color: $primary-color;
+        }
+
+        select {
+          padding: 0.5rem 0.8rem;
+          border-radius: 12px;
+          border: 1px solid $primary-color;
+          color: $text-color;
+          background: white;
+          cursor: pointer;
+          font-weight: 600;
+          transition: all 0.3s ease;
+          font-size: 0.875rem;
+          box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+
+          &:hover {
+            border-color: darken($primary-color, 10%);
+          }
+
+          &:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba($primary-color, 0.2);
+          }
+        }
+      }
+    }
+  }
+
+  .event-list {
+    margin-top: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    .event-card {
+      background: $card-bg;
+      border-radius: $radius;
+      padding: 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.3s ease;
+      box-shadow: 0 10px 20px rgba(9, 71, 95, 0.22);
+
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+      }
+
+      .event-info {
+        flex: 1;
+
+        h4 {
+          font-size: 1.2rem;
+          color: $primary-color;
+          margin: 0 0 0.5rem 0;
+        }
+
+        .section-title {
+          color: $primary-color;
+          font-weight: 600;
+          margin-bottom: 0.5rem;
+        }
+
+        .date {
+          color: gray;
+          margin-top: 0.25rem;
+          font-size: 0.9rem;
+        }
+
+        .status {
+          margin-top: 0.5rem;
+          font-weight: bold;
+          padding: 0.25rem 0.75rem;
+          border-radius: 20px;
+          display: inline-block;
+          font-size: 0.85rem;
+
+          &.draft { background-color: #e0e0e0; color: #333; }      
+          &.pending { background-color: #cce5ff; color: #0b4f78; } 
+          &.approved { background-color: #b3e6ff; color: #0b4f78; } 
+          &.cancelled { background-color: #f8d7da; color: #ff4d4f; } 
+          &.ongoing { background-color: #fff3cd; color: #856404; } 
+          &.completed { background-color: #d1e7dd; color: #155724; } 
+          &.unknown { background-color: #e2e3e5; color: #6c757d; } 
+          &.published { background-color: #d4edda; color: #155724;}
+        }
+      }
+
+      .event-action {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-end;
+        flex-shrink: 0;
+
+        button {
+          padding: 0.5rem 1rem;
+          border-radius: 25px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          font-size: 0.875rem;
+          text-align: center;
+          white-space: nowrap;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+
+          &.modify-btn {
+            background-color: $primary-color;
+            color: white;
+            border: 2px solid $primary-color;
+
+            &:hover {
+              background-color: darken($primary-color, 10%);
+              transform: translateY(-2px);
+              box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+            }
+          }
+
+          &.upload-pop-btn {
+            background-color: #f0f0f0;
+            color: #333;
+            border: 2px solid #ddd;
+
+            &:hover {
+              background-color: #e0e0e0;
+              transform: translateY(-2px);
+              box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            }
+          }
+
+          &.download-pop-btn {
+            background-color: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+
+            &:hover {
+              background-color: #c3e6cb;
+              transform: translateY(-2px);
+              box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 2rem;
+    background: $card-bg;
+    border-radius: $radius;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.22);
+
+    p {
+      margin: 0.5rem 0;
+      color: $text-color;
+
+      &:first-child {
+        font-weight: 600;
+      }
+
+      a {
+        color: $primary-color;
+        text-decoration: none;
+        font-weight: 600;
+
+        &:hover {
+          text-decoration: underline;
+        }
+      }
+    }
+  }
+}
+
+.loading-message,
+.error-message {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1rem;
+  color: $text-color;
+}
+
+.error-message {
+  color: #e74c3c;
+  background-color: #fdeded;
+  border: 1px solid #f5c6cb;
+  border-radius: 8px;
+  margin: 1rem 0;
+}
+
+@media (max-width: 768px) {
+  .my-events-page {
+    padding: 1rem;
+    
+
+    .header {
+      flex-direction: column;
+      align-items: stretch;
+
+      .filter-sort {
+        flex-direction: column;
+        align-items: stretch;
+
+        .filters {
+          justify-content: center;
+        }
+      }
+    }
+
+    .event-list {
+      .event-card {
+        flex-direction: row;
+        align-items: flex-start;
+        gap: 1rem;
+
+        .event-info {
+          flex: 1;
+        }
+
+        .event-action {
+          flex-direction: column;
+          align-items: flex-end;
+          gap: 0.5rem;
+
+          button {
+            width: auto;
+          }
+        }
+      }
+    }
+  }
+}

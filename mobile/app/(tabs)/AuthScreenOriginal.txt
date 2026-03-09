@@ -1,0 +1,381 @@
+// app/(tabs)/AuthScreen.js
+import { handleSignin, handleSignup } from "@/app/hooks/Auth";
+import API_URL from "@/config";
+import { useNavigation, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import { Alert, Image, Pressable, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
+
+export default function AuthScreen() {
+  const [isSignUp, setIsSignUp] = useState(false);
+
+  // Sign In State
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
+
+  // Sign Up State
+  const [name, setName] = useState("");
+  const [surname, setSurname] = useState("");
+  const [phone, setPhone] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [agreeToTc, setAgreeToTc] = useState(false);
+  const [role, setRole] = useState("student"); // Default role
+
+  const navigation = useNavigation();
+  const router = useRouter();
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, []);
+
+  // Validate Sign Up Inputs
+  const validateInputs = () => {
+    if (!name || !surname || !email || !phone || !password || !confirmPassword) {
+      Alert.alert("Error", "All fields are required.");
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert("Error", "Invalid email address.");
+      return false;
+    }
+    if (password !== confirmPassword) {
+      Alert.alert("Error", "Passwords do not match.");
+      return false;
+    }
+    if (!agreeToTc) {
+      Alert.alert("Error", "You must agree to T&C and Privacy Policy.");
+      return false;
+    }
+    return true;
+  };
+
+  return (
+    <View style={styles.container}>
+      {/* Fixed Header - Does NOT Scroll */}
+      <View style={styles.header}>
+        <Image source={require('@/assets/images/TUT-Logo1.jpg')} style={styles.logo} />
+        <View style={styles.tabs}>
+          <Pressable onPress={() => setIsSignUp(false)}>
+            <Text style={[styles.tabText, !isSignUp && styles.activeTab]}>Sign in</Text>
+          </Pressable>
+          <Pressable onPress={() => setIsSignUp(true)}>
+            <Text style={[styles.tabText, isSignUp && styles.activeTab]}>Sign up</Text>
+          </Pressable>
+        </View>
+        <View style={styles.lineContainer}>
+          <View style={[styles.line, !isSignUp && styles.activeLine]} />
+          <View style={[styles.line, isSignUp && styles.activeLine]} />
+        </View>
+      </View>
+
+      {/* Scrollable Content Below Header */}
+      <KeyboardAwareScrollView
+        style={styles.content}
+        resetScrollToCoords={{ x: 0, y: 0 }}
+        contentContainerStyle={{ flexGrow: 1 }}
+        enableOnAndroid={true}
+        extraHeight={100}
+        keyboardOpeningTime={250}
+      >
+        {isSignUp ? (
+          <>
+            <View style={styles.fieldset}>
+              <Text style={styles.legend}>Name</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Enter your name"
+                placeholderTextColor={"#999"}
+                value={name}
+                onChangeText={setName} 
+              />
+            </View>
+
+            <View style={styles.fieldset}>
+              <Text style={styles.legend}>Surname</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Enter your surname" 
+                placeholderTextColor={"#999"}
+                value={surname}
+                onChangeText={setSurname}
+              />
+            </View>
+
+            <View style={styles.fieldset}>
+              <Text style={styles.legend}>Email</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Enter your email" 
+                placeholderTextColor={"#999"}
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
+
+            <View style={styles.fieldset}>
+              <Text style={styles.legend}>Phone</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Enter your phone number" 
+                placeholderTextColor={"#999"}
+                value={phone}
+                onChangeText={setPhone}
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={styles.fieldset}>
+              <Text style={styles.legend}>Password</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Password"
+                placeholderTextColor={"#999"} 
+                secureTextEntry 
+                value={password}
+                onChangeText={setPassword}
+              />
+            </View>
+            
+            <View style={styles.fieldset}>
+              <Text style={styles.legend}>Confirm Password</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Confirm Password"
+                placeholderTextColor={"#999"} 
+                secureTextEntry 
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
+            </View>
+
+            {/* 👇 Improved Role Selection - Segmented Control */}
+            <View style={styles.fieldset}>
+              <Text style={styles.legend}>Role</Text>
+              <View style={styles.roleRow}>
+                <Pressable
+                  style={[styles.roleOption, role === 'student' && styles.roleOptionActive]}
+                  onPress={() => setRole('student')}
+                >
+                  <Text style={[styles.roleOptionText, role === 'student' && styles.roleOptionTextActive]}>
+                    Student
+                  </Text>
+                </Pressable>
+                
+                <Pressable
+                  style={[styles.roleOption, role === 'organiser' && styles.roleOptionActive]}
+                  onPress={() => setRole('organiser')}
+                >
+                  <Text style={[styles.roleOptionText, role === 'organiser' && styles.roleOptionTextActive]}>
+                    Organiser
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            <View style={styles.agree}>
+              <Switch
+                trackColor={{ false: "#ccc", true: "#0062beff" }}
+                thumbColor={agreeToTc ? "#0077B6" : "#f4f3f4"} // Fixed typo
+                onValueChange={setAgreeToTc}
+                value={agreeToTc}
+              />
+              <Text style={styles.agreeText}>
+                I agree to the <Text style={styles.agreeText2}>T&C</Text> & <Text style={styles.agreeText2}>Privacy Policy</Text>
+              </Text>
+            </View>
+
+            <Pressable 
+              style={styles.button} 
+              onPress={() => {
+                if (validateInputs()) {
+                  handleSignup(name, surname, email, phone, password, role, API_URL);
+                }
+              }}
+            >
+              <Text style={styles.buttonText}>Sign up</Text>
+            </Pressable>
+          </>
+        ) : (
+          <>
+            <View style={styles.fieldset}>
+              <Text style={styles.legend}>Email</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Enter your email" 
+                placeholderTextColor={"#999"}
+                value={email}
+                onChangeText={setEmail}
+              />
+            </View>
+
+            <View style={styles.fieldset}>
+              <Text style={styles.legend}>Password</Text>
+              <TextInput 
+                style={styles.input} 
+                placeholder="Password"
+                placeholderTextColor={"#999"} 
+                secureTextEntry 
+                value={password}
+                onChangeText={setPassword}
+              />
+            </View>
+
+            <View style={styles.agree}>
+              <Switch
+                trackColor={{ false: "#ccc", true: "#0077B6" }}
+                thumbColor={rememberMe ? "#0077B6" : "#f4f3f4"}
+                onValueChange={setRememberMe}
+                value={rememberMe}
+              />
+              <Text style={styles.agreeText}>Remember Me</Text>
+            </View>
+
+            <Pressable style={styles.button} onPress={() => handleSignin(rememberMe, email, password, API_URL, router)}>
+              <Text style={styles.buttonText}>Sign in</Text>
+            </Pressable>
+            <Pressable style={styles.link} onPress={() => router.replace("/(tabs)/forgotPassword")}>
+              <Text style={styles.forgotPassword}>Forgot Password?</Text>
+            </Pressable>
+          </>
+        )}
+      </KeyboardAwareScrollView>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+  },
+  header: {
+    paddingTop: 50,
+    paddingBottom: 20,
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    elevation: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  logo: {
+    width: 100,
+    height: 100,
+    marginBottom: 20,
+  },
+  tabs: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    width: '100%',
+    paddingHorizontal: 20,
+  },
+  tabText: {
+    fontSize: 20,
+    color: '#333',
+  },
+  activeTab: {
+    color: '#0055b6ff',
+    fontWeight: 'bold',
+  },
+  lineContainer: {
+    flexDirection: 'row',
+    width: '100%',
+    marginTop: 10,
+    paddingHorizontal: 20,
+  },
+  line: {
+    height: 5,
+    width: '50%',
+    backgroundColor: '#f2f2f2',
+  },
+  activeLine: {
+    backgroundColor: '#0077B6',
+  },
+  content: {
+    flex: 1,
+  },
+  fieldset: {
+    margin: 20,
+    marginBottom: 5,
+    padding: 6,
+    borderWidth: 1,
+    borderColor: "#ccc",
+    borderRadius: 6,
+    position: "relative",
+  },
+  legend: {
+    position: "absolute",
+    top: -12,
+    left: 12,
+    backgroundColor: "#fff",
+    paddingHorizontal: 6,
+    fontSize: 14,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  input: {
+    color: '#000', 
+    padding: 8,
+  },
+  // ✅ New Role Selection Styles
+  roleRow: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  roleOption: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 6,
+    marginHorizontal: 2,
+  },
+  roleOptionActive: {
+    backgroundColor: '#0077B6',
+  },
+  roleOptionText: {
+    color: '#333',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  roleOptionTextActive: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  // End Role Styles
+  button: { 
+    marginTop: 20,
+    backgroundColor: '#1C1C1C',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginLeft: 20,
+    marginRight: 20,
+  },
+  buttonText: {
+    color: '#f2f2f2',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  agree: {
+    flexDirection: 'row',
+    gap: 5,
+    marginLeft: 20,
+    marginTop: 10,
+  },
+  agreeText: {
+    color: '#333',
+    marginTop: -2,
+  },
+  agreeText2: {
+    color: '#0077B6',
+  },
+  forgotPassword: {
+    color: '#0077B6',
+    textAlign: 'center',
+    marginTop: 20,
+  },
+});

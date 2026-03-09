@@ -1,0 +1,179 @@
+.upload-pop-page {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; // Align to top
+  min-height: 100vh;
+  padding: 40px 20px;
+  background-color: #f0f2f5; // Light background
+
+  .upload-pop-container {
+    width: 100%;
+    max-width: 600px;
+    background-color: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 30px;
+    text-align: center; // Center content
+  }
+
+  .upload-pop-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+
+    .back-button {
+      background: none;
+      border: none;
+      padding: 8px;
+      cursor: pointer;
+      color: #333;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      transition: background-color 0.2s ease;
+
+      &:hover {
+        background-color: #eee;
+      }
+
+      svg {
+        stroke-width: 2.5;
+      }
+    }
+
+    h1 {
+      flex-grow: 1;
+      font-size: 1.8rem;
+      color: #2c3e50;
+      margin: 0;
+      text-align: center;
+      transform: translateX(-15px); // Counteract back button space for perfect centering
+    }
+  }
+
+  .upload-pop-card {
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 30px;
+    background-color: #fdfdfd;
+
+    .upload-pop-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      align-items: center;
+
+      p {
+        font-size: 1rem;
+        color: #555;
+        margin: 0;
+
+        &.note {
+          font-size: 0.9rem;
+          color: #777;
+        }
+        &.selected-file {
+          font-weight: 500;
+          color: #3498db;
+        }
+      }
+
+      .file-input {
+        width: 100%;
+        padding: 12px;
+        border: 2px dashed #a0d4ff; // Dashed border for file input
+        border-radius: 8px;
+        background-color: #eaf6ff;
+        cursor: pointer;
+        font-size: 1rem;
+        color: #3498db;
+        transition: border-color 0.3s ease;
+
+        &:hover {
+          border-color: #3498db;
+        }
+        &:focus {
+          outline: none;
+          box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+        }
+      }
+
+      .btn-upload {
+        background-color: #28a745; // Green for success/upload
+        color: white;
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: background-color 0.3s ease, transform 0.1s ease;
+        width: 100%;
+        max-width: 300px; // Limit button width
+
+        &:hover:not(:disabled) {
+          background-color: #218838;
+          transform: translateY(-2px);
+        }
+        &:disabled {
+          background-color: #cccccc;
+          cursor: not-allowed;
+        }
+      }
+    }
+  }
+
+  // Toast Notification Styling (can be shared with other components)
+  .bottom-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: white;
+    padding: 15px 25px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    opacity: 1;
+    transition: opacity 0.3s ease-in-out;
+    min-width: 280px;
+    text-align: center;
+
+    &.error {
+      background-color: #dc3545; // Red for error toasts
+    }
+
+    .bottom-toast-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+
+      span {
+        flex-grow: 1;
+        margin-right: 15px;
+      }
+
+      button {
+        background: none;
+        border: none;
+        color: white;
+        font-size: 1.2rem;
+        cursor: pointer;
+        padding: 0 5px;
+
+        &:hover {
+          opacity: 0.8;
+        }
+      }
+    }
+  }
+}
+
+.error-message {
+  color: #dc3545;
+  font-weight: bold;
+  text-align: center;
+  margin-top: 20px;
+  font-size: 1.1rem;
+}

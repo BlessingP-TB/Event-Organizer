@@ -1,0 +1,431 @@
+// app/(tabs)/Organiser/myEventdetails/[id].jsx
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useNavigation } from 'expo-router';
+import React from 'react';
+import {
+  ActivityIndicator // 👈 Added
+  ,
+
+  Alert,
+  Image,
+  Linking,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+// 👇 --- 1. IMPORT THE NEW HOOK ---
+import { useEventDetails } from '../../../hooks/organiser/useEventDetails';
+// (You no longer need useEvents here)
+import { useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+// ❗️We must import deleteEvent from the source file
+import { deleteEvent } from '../../../data/Organiser/myEvents';
+
+export default function EventDetails() {
+
+  const navigation = useNavigation();
+  const { id } = useLocalSearchParams();
+  const router = useRouter();
+
+  // 👇 --- 2. USE THE NEW HOOK ---
+  const { event, loading, reload } = useEventDetails(id);
+
+  // (Local state is no longer needed, we get 'event' from the hook)
+  const [modifyMode, setModifyMode] = useState(false);
+
+  const handleCancel = () => {
+    Alert.alert(
+      "Cancel Changes?",
+      "Are you sure you want to cancel this Event Request?",
+      [
+        {
+          text: "No",
+          style: "cancel",
+        },
+        {
+          text: "Yes",
+          style: "destructive",
+          onPress: async () => {
+            // We use the imported deleteEvent function
+            await deleteEvent(event.id);
+            // We can't 'reload' from the useEvents hook anymore,
+            // so we just go back.
+            Alert.alert("Event Deleted", "Your event has been successfully cancelled.");
+            router.push("../Events");
+          },
+        },
+      ]
+    );
+  };
+
+  // Calculate button state
+  const button = event?.approval === "Pending"
+    ? "Modify"
+    : event?.approval === "Approved"
+      ? "Event Approved"
+      : "Event Declined";
+
+  const handelButtonPress = () => {
+    if (event?.approval === "Pending") {
+      router.push({
+        pathname: "../Create",
+        params: { eventId: event.id }
+      });
+    } else {
+      router.push("../Events");
+    }
+  };
+
+  useEffect(() => {
+    navigation.setOptions({ headerShown: false });
+  }, []);
+
+  // Update modifyMode when the event data loads
+  useEffect(() => {
+    if (event) {
+      setModifyMode(event.approval === "Pending");
+    }
+  }, [event]); // 👈 Run when 'event' loads
+
+  // 👇 --- 3. ADD A LOADING STATE ---
+  if (loading) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color="#0077B6" />
+      </SafeAreaView>
+    );
+  }
+
+  // 👇 --- 4. ADD A NOT FOUND STATE ---
+  if (!event) {
+    return (
+      <SafeAreaView style={[styles.container, styles.center]}>
+        <Text style={styles.notFoundText}>
+          Event not found
+        </Text>
+      </SafeAreaView>
+    );
+  }
+
+  const handleContact = () => {
+    Linking.openURL(`mailto:${event.contact}`);
+  };
+  const formatDateTime = (isoString) => {
+    if (!isoString) return 'Date not specified';
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return isoString;
+    }
+  };
+  const formatDateOnly = (isoString) => {
+    if (!isoString) return 'Date not specified';
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Invalid Date';
+    }
+  };
+
+  const formatTimeOnly = (isoString) => {
+    if (!isoString) return 'Time not specified';
+    try {
+      const date = new Date(isoString);
+      return date.toLocaleString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } catch (error) {
+      console.error('Error formatting time:', error);
+      return 'Invalid Time';
+    }
+  };
+  // 👇 --- 5. YOUR SCREEN IS NOW SAFE TO RENDER ---
+  return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false} style={styles.container2}>
+        {/* Header Image */}
+        <Image
+          source={{ uri: event.image }}
+          style={styles.eventImage}
+        />
+
+        {/* Back Button */}
+        <TouchableOpacity
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#fff" />
+        </TouchableOpacity>
+
+        {/* Event Content */}
+        <View style={styles.content}>
+          {/* Title and Category */}
+          <View style={styles.header}>
+            <Text style={styles.title}>{event.title}</Text>
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryText}>{event.category}</Text>
+            </View>
+          </View>
+
+          {/* Event Details */}
+          <View style={styles.detailsSection}>
+            <View style={styles.detailRow}>
+              <Ionicons name="calendar-outline" size={20} color="#0077B6" />
+              {/* FIX: Use your formatter on the startDateTime field */}
+              <Text style={styles.detailText}>{formatDateOnly(event.startDateTime)}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Ionicons name="location-outline" size={20} color="#0077B6" />
+              {/* FIX: 'location' is correct as it's mapped in myEvents.js */}
+              <Text style={styles.detailText}>{event.location}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Ionicons name="time-outline" size={20} color="#0077B6" />
+              {/* FIX: Use your formatter on the startDateTime field */}
+              <Text style={styles.detailText}>{formatTimeOnly(event.startDateTime)}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Ionicons name="people-outline" size={20} color="#0077B6" />
+              {/* FIX: 'capacity' is correct as it's mapped in myEvents.js */}
+              <Text style={styles.detailText}>{event.capacity}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Ionicons name="business-outline" size={20} color="#0077B6'" />
+              {/* FIX: 'organizer' is a string, not an object. Remove ?.name */}
+              <Text style={styles.detailText}>Organized by: {event.organizer}</Text>
+            </View>
+
+            <View style={styles.detailRow}>
+              <Ionicons name="pricetag-outline" size={20} color="#0077B6" />
+              <Text style={styles.detailText}>Price: {event.price}</Text>
+            </View>
+          </View>
+
+          {/* Description */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>About this Event</Text>
+            <Text style={styles.description}>{event.description}</Text>
+          </View>
+
+          {/* Tags */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Tags</Text>
+            <View style={styles.tagsContainer}>
+              {/* 👇 --- 6. SAFELY MAPPING 'tags' --- */}
+              {Array.isArray(event.tags) && event.tags.map((tag, index) => (
+                <View key={index} style={styles.tag}>
+                  <Text style={styles.tagText}>{tag}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+
+          {/* Contact Info */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Contact Information</Text>
+            <TouchableOpacity style={styles.contactRow} onPress={handleContact}>
+              <Ionicons name="mail-outline" size={20} color="#0077B6" />
+              <Text style={styles.contactText}>{event.contact}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </ScrollView>
+
+      {/* Action Buttons */}
+      <View style={styles.actionBar}>
+        {modifyMode &&
+          <TouchableOpacity style={styles.secondaryButton} onPress={handleCancel}>
+            <Text style={styles.secondaryButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        }
+
+        <TouchableOpacity style={styles.primaryButton} onPress={handelButtonPress}>
+          <Text style={styles.primaryButtonText}>{button}</Text>
+        </TouchableOpacity>
+      </View>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  // ... (all your existing styles)
+  container2: {
+    marginTop: -50,
+  },
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
+  // 👇 Added for loading/not found
+  center: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  notFoundText: {
+    textAlign: 'center',
+    fontSize: 18,
+    color: '#666',
+  },
+  // ... (rest of styles)
+  eventImage: {
+    width: '100%',
+    height: 250,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    borderRadius: 20,
+    padding: 8,
+    zIndex: 10,
+  },
+  content: {
+    padding: 20,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#191823',
+    flex: 1,
+    marginRight: 10,
+  },
+  categoryBadge: {
+    backgroundColor: '#EFEFEF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  categoryText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#0077B6',
+  },
+  detailsSection: {
+    backgroundColor: '#f8f8f8',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+  },
+  detailRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  detailText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#333',
+    flex: 1,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#191823',
+    marginBottom: 12,
+  },
+  description: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#666',
+  },
+  tagsContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  tag: {
+    backgroundColor: '#EFEFEF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tagText: {
+    fontSize: 14,
+    color: '#0077B6',
+    fontWeight: '500',
+  },
+  contactRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 8,
+  },
+  contactText: {
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#0077B6',
+  },
+  actionBar: {
+    flexDirection: 'row',
+    padding: 15,
+    backgroundColor: '#fff',
+    borderTopWidth: 1,
+    borderTopColor: '#eee',
+    gap: 12,
+    paddingBottom: -50,
+    marginBottom: -20
+  },
+  primaryButton: {
+    flex: 2,
+    backgroundColor: '#0077B6',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  secondaryButton: {
+    flex: 1,
+    flexDirection: 'row',
+
+    justifyContent: 'center',
+    backgroundColor: '#EFEFEF',
+    paddingVertical: 16,
+    borderRadius: 12,
+    gap: 8,
+
+  },
+  secondaryButtonText: {
+    color: '#0077B6',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+});

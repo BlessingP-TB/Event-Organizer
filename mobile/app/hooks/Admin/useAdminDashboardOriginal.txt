@@ -1,0 +1,89 @@
+// hooks/useAdminDashboard.js
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useCallback, useEffect, useState } from 'react';
+import { getDashboardData, resetDashboardData, saveDashboardData } from '../../data/Admin/adminDash';
+
+const DASHBOARD_STORAGE_KEY = 'admin_dashboard_data';
+
+export const useAdminDashboard = () => {
+  const [dashboard, setDashboard] = useState(null);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // ✅ Define loadDashboard in the hook's scope (not inside useEffect)
+  const loadDashboard = useCallback(async () => {
+    try {
+      const json = await AsyncStorage.getItem(DASHBOARD_STORAGE_KEY);
+      if (json) {
+        setDashboard(JSON.parse(json));
+      } else {
+        const data = await getDashboardData();
+        setDashboard(data);
+      }
+    } catch (error) {
+      console.error('❌ Error loading dashboard data:', error);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  // --- Load data on mount ---
+  useEffect(() => {
+    loadDashboard();
+  }, [loadDashboard]);
+
+  // --- Update dashboard data ---
+  const updateDashboard = async (newData) => {
+    try {
+      const updated = { ...dashboard, ...newData };
+      setDashboard(updated);
+      await saveDashboardData(updated);
+    } catch (error) {
+      console.error('❌ Error updating dashboard data:', error);
+    }
+  };
+
+  // ✅ Now reload can use loadDashboard
+  const reload = useCallback(() => {
+    setIsLoaded(false); // Optional: show loading state
+    loadDashboard();
+  }, [loadDashboard]);
+
+  // --- Reset to sample data ---
+  const restoreDefaults = async () => {
+    try {
+      const data = await resetDashboardData();
+      setDashboard(data);
+      setIsLoaded(true);
+    } catch (error) {
+      console.error('❌ Error resetting dashboard data:', error);
+    }
+  };
+
+  // --- Helper methods (optional) ---
+  const addNotification = async (notification) => {
+    const updatedNotifications = [notification, ...(dashboard?.notifications || [])];
+    await updateDashboard({ notifications: updatedNotifications });
+  };
+
+  const deleteNotification = async (id) => {
+    const updatedNotifications = dashboard?.notifications?.filter((n) => n.id !== id) || [];
+    await updateDashboard({ notifications: updatedNotifications });
+  };
+
+  const markAllNotificationsAsRead = async () => {
+    if (!dashboard?.notifications) return;
+
+    const updatedNotifications = dashboard.notifications.map(n => ({ ...n, read: true }));
+    await updateDashboard({ notifications: updatedNotifications });
+  };
+
+  return {
+    dashboard,
+    isLoaded,
+    reload, // ✅ Now properly defined
+
+    restoreDefaults,
+
+    markAllNotificationsAsRead
+  };
+};

@@ -1,0 +1,3101 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-a7b8-c9d0-e1f2a3b4c5d6",
+    "name": "Event Handler API Test Collection",
+    "description": "Complete API collection for Event Handler backend. Includes global test scripts for automated variable setting.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "1. Authentication",
+      "description": "User registration, login, and session management.",
+      "item": [
+        {
+          "name": "Register Attendee",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{attendee_email}}\",\n  \"password\": \"{{test_password}}\",\n  \"verify_password\": \"{{test_password}}\",\n  \"name\": \"Test Attendee\",\n  \"role\": \"ATTENDEE\",\n  \"cellphone_number\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Organizer",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{organizer_email}}\",\n  \"password\": \"{{test_password}}\",\n  \"verify_password\": \"{{test_password}}\",\n  \"name\": \"Test Organizer\",\n  \"role\": \"ORGANIZER\",\n  \"cellphone_number\": \"+9876543210\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register Admin (Setup)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{test_password}}\",\n  \"verify_password\": \"{{test_password}}\",\n  \"name\": \"Test Admin\",\n  \"role\": \"ADMIN\",\n  \"cellphone_number\": \"+1111111111\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login (Attendee)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{attendee_email}}\",\n  \"password\": \"{{test_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login (Organizer)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{organizer_email}}\",\n  \"password\": \"{{test_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Login (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{test_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "refresh"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"{{current_password}}\",\n  \"newPassword\": \"{{new_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/change-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "change-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Logout All",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/logout-all",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "logout-all"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Verify Email",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{verification_token_from_email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/verify-email",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "verify-email"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Resend Verification",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{attendee_email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/resend-verification",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "resend-verification"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{attendee_email}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "forgot-password"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Reset Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{reset_token_from_email}}\",\n  \"newPassword\": \"{{new_password}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/reset-password",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "reset-password"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "2. Public Endpoints",
+      "description": "Endpoints accessible to anyone without authentication.",
+      "item": [
+        {
+          "name": "List Public Events",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/events?page=1&pageSize=10&name=test",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "events"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "name",
+                  "value": "test"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Public Event",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "events",
+                "{{event_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Ticket Definitions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/tickets",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "events",
+                "{{event_id}}",
+                "tickets"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Public Venues",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/venues?page=1&pageSize=10&location=main&tools={{tool_id}}&toolsMode=ANY",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "venues"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                },
+                {
+                  "key": "location",
+                  "value": "main"
+                },
+                {
+                  "key": "tools",
+                  "value": "{{tool_id}}"
+                },
+                {
+                  "key": "toolsMode",
+                  "value": "ANY"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Venue Details",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/venues/{{venue_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "venues",
+                "{{venue_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Venue Booked Slots",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/venues/{{venue_id}}/booked-slots?from=2025-01-01&to=2025-12-31",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "venues",
+                "{{venue_id}}",
+                "booked-slots"
+              ],
+              "query": [
+                {
+                  "key": "from",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "to",
+                  "value": "2025-12-31"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Public Themes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/themes",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "themes"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List Public Tools",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tools",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tools"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Tool",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/tools/{{tool_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tools",
+                "{{tool_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "3. Shared User (Authenticated)",
+      "description": "Endpoints for all authenticated users (Attendee, Organizer, Admin). Uses {{access_token}}.",
+      "item": [
+        {
+          "name": "Get My Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update My Profile",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"cellphone_number\": \"+1234567899\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Sessions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/me/sessions",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "sessions"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Session",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/users/me/sessions/{{session_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "sessions",
+                "{{session_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List My Documents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/me/documents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me",
+                "documents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Upload My Document (Base64)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"ID\",\n  \"filename\": \"my_id.pdf\",\n  \"size\": 16,\n  \"content\": \"SGVsbG8gV29ybGQh\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/me/documents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me",
+                "documents"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Download My Document",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/documents/{{document_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "{{document_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete My Document",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/documents/{{document_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "documents",
+                "{{document_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List My Purchases",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/me/purchases",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me",
+                "purchases"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Purchase Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/purchases/{{purchase_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "purchases",
+                "{{purchase_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Purchase Invoice",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/purchases/{{purchase_id}}/invoice",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "purchases",
+                "{{purchase_id}}",
+                "invoice"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Fulfill Purchase (Payment Callback)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reference\": \"{{payment_reference}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/purchases/{{purchase_id}}/fulfill",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "purchases",
+                "{{purchase_id}}",
+                "fulfill"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List My Tickets",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/me/tickets",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me",
+                "tickets"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Ticket",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/tickets/{{ticket_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "tickets",
+                "{{ticket_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "List My Registrations",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/me/registrations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me",
+                "registrations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get My Registration for Event",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/registrations/me",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "events",
+                "{{event_id}}",
+                "registrations",
+                "me"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "4. Attendee Role",
+      "description": "Role-specific endpoints for ATTENDEE. Uses {{access_token}}.",
+      "item": [
+        {
+          "name": "Create Purchase (Buy Ticket)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "{{$guid}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"ticketDefinitionId\": \"{{ticket_definition_id}}\",\n  \"paymentMethod\": \"CARD\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/purchases",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "events",
+                "{{event_id}}",
+                "purchases"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Register for Free Event",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/events/{{event_id}}/registrations",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "events",
+                "{{event_id}}",
+                "registrations"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Request Organizer Upgrade",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"companyName\": \"Test Events Co\",\n  \"website\": \"https://test.com\",\n  \"notes\": \"Requesting organizer access\",\n  \"cellphone_number\": \"+1234567890\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/users/me/request-organizer-upgrade",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "me",
+                "request-organizer-upgrade"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "5. Organizer Role",
+      "description": "Endpoints for ORGANIZER users. (Use {{organizer_token}})",
+      "item": [
+        {
+          "name": "Profile",
+          "item": [
+            {
+              "name": "Get My Organizer Profile",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/organizer/profile",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "organizer",
+                    "profile"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create/Update My Profile",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"companyName\": \"Updated Events Co\",\n  \"website\": \"https://updated.com\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/organizer/profile",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "organizer",
+                    "profile"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Upload Organizer Document (Base64)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"ORGANIZER_CERT\",\n  \"filename\": \"business_cert.pdf\",\n  \"size\": 16,\n  \"content\": \"SGVsbG8gV29ybGQh\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/organizer/profile/documents",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "organizer",
+                    "profile",
+                    "documents"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "User Search",
+          "item": [
+            {
+              "name": "Search for Attendee Users",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/organizer/users/search?email=test",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "organizer",
+                    "users",
+                    "search"
+                  ],
+                  "query": [
+                    {
+                      "key": "email",
+                      "value": "test"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Event Management (Owner)",
+          "item": [
+            {
+              "name": "Create Event",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"My New Test Event\",\n  \"description\": \"This is a test event created by an organizer\",\n  \"startDateTime\": \"2025-12-01T18:00:00Z\",\n  \"endDateTime\": \"2025-12-01T22:00:00Z\",\n  \"venueId\": \"{{venue_id}}\",\n  \"isFree\": false,\n  \"ticketRequired\": true,\n  \"allowAttendeePurchase\": true,\n  \"ticketDefinitions\": [\n    {\n      \"name\": \"General Admission\",\n      \"price\": 25.00,\n      \"quantity\": 100\n    },\n    {\n      \"name\": \"VIP\",\n      \"price\": 75.00,\n      \"quantity\": 20\n    }\n  ]\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/events",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List My Events (Organizer)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/organizer/events",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "organizer",
+                    "events"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Event",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Updated Event Name\",\n  \"description\": \"Updated description\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Publish Event",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}/publish",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}",
+                    "publish"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Event (Draft Only)",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Ticket & Attendance (Owner)",
+          "item": [
+            {
+              "name": "Issue Ticket (Manual/Cash)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "{{$guid}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{user_id}}\",\n  \"ticketDefinitionId\": \"{{ticket_definition_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}/tickets",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}",
+                    "tickets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List Event Tickets",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}/tickets",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}",
+                    "tickets"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Redeem Ticket",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "{{$guid}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}/tickets/{{ticket_id}}/redeem",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}",
+                    "tickets",
+                    "{{ticket_id}}",
+                    "redeem"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Check-In (Non-Ticketed)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "{{$guid}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{user_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}/attendance/check-in",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}",
+                    "attendance",
+                    "check-in"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Check-Out (Non-Ticketed)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "{{$guid}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"userId\": \"{{user_id}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}/attendance/check-out",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}",
+                    "attendance",
+                    "check-out"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Registration (Owner)",
+          "item": [
+            {
+              "name": "Decide on Registration",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"APPROVED\",\n  \"notes\": \"Approved by organizer.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/registrations/{{registration_id}}/decision",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "registrations",
+                    "{{registration_id}}",
+                    "decision"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Liquor Request (Owner)",
+          "item": [
+            {
+              "name": "Create Liquor Request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"startTime\": \"2025-12-01T19:00:00Z\",\n  \"endTime\": \"2025-12-01T21:00:00Z\",\n  \"policyAgreed\": true\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}/liquor-request",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}",
+                    "liquor-request"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Liquor Request for Event",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}/liquor-request",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}",
+                    "liquor-request"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Liquor Request by ID",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/liquor-requests/{{liquor_request_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "liquor-requests",
+                    "{{liquor_request_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Liquor Request",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"startTime\": \"2025-12-01T18:30:00Z\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/liquor-requests/{{liquor_request_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "liquor-requests",
+                    "{{liquor_request_id}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Reports (Owner)",
+          "item": [
+            {
+              "name": "Create Report",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"content\": \"This is an event report submitted by the organizer.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}/reports",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}",
+                    "reports"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List Event Reports",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/events/{{event_id}}/reports",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "events",
+                    "{{event_id}}",
+                    "reports"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Report",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/reports/{{report_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "reports",
+                    "{{report_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Report",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"content\": \"This is the updated report content.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/reports/{{report_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "reports",
+                    "{{report_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Report",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/reports/{{report_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "reports",
+                    "{{report_id}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "B2B Booking & Invoicing",
+          "item": [
+            {
+              "name": "List My Bookings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/me/bookings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "me",
+                    "bookings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Booking",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/bookings/{{booking_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "{{booking_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Pay Booking Invoice",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Idempotency-Key",
+                    "value": "{{$guid}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reference\": \"{{payment_reference}}\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/bookings/{{booking_id}}/pay",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "{{booking_id}}",
+                    "pay"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Cancel Booking",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{organizer_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/bookings/{{booking_id}}/cancel",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "bookings",
+                    "{{booking_id}}",
+                    "cancel"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6. Admin Role",
+      "description": "Endpoints for ADMIN users. (Use {{admin_token}})",
+      "item": [
+        {
+          "name": "User Management",
+          "item": [
+            {
+              "name": "List Users",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/users?page=1&pageSize=20",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "pageSize",
+                      "value": "20"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get User Details",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/users/{{user_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users",
+                    "{{user_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update User",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"User Updated By Admin\",\n  \"role\": \"ORGANIZER\",\n  \"active\": true\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/users/{{user_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users",
+                    "{{user_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete User",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/users/{{user_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "users",
+                    "{{user_id}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Organizer Management",
+          "item": [
+            {
+              "name": "List Organizer Profiles",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/organizers",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "organizers"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Verify Organizer Profile",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"verified\": true,\n  \"promoteUser\": true\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/organizers/{{organizer_profile_id}}/verify",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "organizers",
+                    "{{organizer_profile_id}}",
+                    "verify"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Venue Management",
+          "item": [
+            {
+              "name": "Create Venue",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Main Conference Hall\",\n  \"location\": \"123 Convention St\",\n  \"capacity\": 500,\n  \"type\": \"HALL\",\n  \"rateType\": \"PER_DAY\",\n  \"price\": 5000.00,\n  \"depositValue\": 1000.00\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/venues",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "venues"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List All Venues",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/venues",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "venues"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Venue",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"capacity\": 550,\n  \"price\": 5200.00\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/venues/{{venue_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "venues",
+                    "{{venue_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Venue",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/venues/{{venue_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "venues",
+                    "{{venue_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Add/Remove Tools from Venue",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"add\": [\"{{tool_id}}\"],\n  \"remove\": []\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/venues/{{venue_id}}/tools",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "venues",
+                    "{{venue_id}}",
+                    "tools"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Tool Management",
+          "item": [
+            {
+              "name": "Create Tool",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"4K Projector\",\n  \"quantity\": 10\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/tools",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "tools"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List All Tools",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/tools",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "tools"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Tool",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"4K Projector (Laser)\",\n  \"quantity\": 12,\n  \"active\": true\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/tools/{{tool_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "tools",
+                    "{{tool_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Tool",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/tools/{{tool_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "tools",
+                    "{{tool_id}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Theme Management",
+          "item": [
+            {
+              "name": "Create Theme",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Technology\",\n  \"description\": \"Events related to tech.\",\n  \"image\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/themes",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "themes"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Theme",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"name\": \"Tech & Innovation\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/themes/{{theme_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "themes",
+                    "{{theme_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Theme",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/themes/{{theme_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "themes",
+                    "{{theme_id}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Event & Approval Management",
+          "item": [
+            {
+              "name": "List All Events (Admin)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/events",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "events"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Set Event Status (Publish)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"PUBLISHED\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/events/{{event_id}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "events",
+                    "{{event_id}}",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Approve Immediate Booking",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"reason\": \"Executive override for important event.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/events/{{event_id}}/approve-immediate",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "events",
+                    "{{event_id}}",
+                    "approve-immediate"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create Event Approval",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"GENERAL\",\n  \"status\": \"APPROVED\",\n  \"notes\": \"Manually approved by admin.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/events/{{event_id}}/approvals",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "events",
+                    "{{event_id}}",
+                    "approvals"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List Approvals (Pending)",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/approvals?status=PENDING",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "approvals"
+                  ],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "PENDING"
+                    }
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Approval",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/approvals/{{approval_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "approvals",
+                    "{{approval_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Approval (Approve)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"APPROVED\",\n  \"notes\": \"Approved by admin.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/approvals/{{approval_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "approvals",
+                    "{{approval_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Document Status (Approve)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  },
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"status\": \"APPROVED\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/documents/{{document_id}}/status",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "documents",
+                    "{{document_id}}",
+                    "status"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        },
+        {
+          "name": "Invoicing & System Config",
+          "item": [
+            {
+              "name": "Create Venue Issuer",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"institutionName\": \"Main Events Inc.\",\n  \"institutionAddress\": [\n    \"123 Main St\",\n    \"Cityville, 12345\"\n  ],\n  \"otherDetails\": [\n    \"VAT: 123456789\",\n    \"contact@mainevents.com\"\n  ],\n  \"institutionLogo\": \"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/venue-issuers",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "venue-issuers"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "List Venue Issuers",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/venue-issuers",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "venue-issuers"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get Venue Issuer",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/venue-issuers/{{venue_issuer_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "venue-issuers",
+                    "{{venue_issuer_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Update Venue Issuer",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"institutionName\": \"Main Events (Updated)\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/venue-issuers/{{venue_issuer_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "venue-issuers",
+                    "{{venue_issuer_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete Venue Issuer",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/venue-issuers/{{venue_issuer_id}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "venue-issuers",
+                    "{{venue_issuer_id}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get System Settings",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/system-settings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "system-settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Create/Update System Setting",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"key\": \"DEPOSIT_THRESHOLD\",\n  \"value\": \"5000.00\",\n  \"description\": \"Minimum booking cost to require a deposit.\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/admin/system-settings",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "system-settings"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Get System Setting by Key",
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/system-settings/{{system_setting_key}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "system-settings",
+                    "{{system_setting_key}}"
+                  ]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "Delete System Setting",
+              "request": {
+                "method": "DELETE",
+                "header": [
+                  {
+                    "key": "Authorization",
+                    "value": "Bearer {{admin_token}}"
+                  }
+                ],
+                "url": {
+                  "raw": "{{base_url}}/admin/system-settings/{{system_setting_key}}",
+                  "host": [
+                    "{{base_url}}"
+                  ],
+                  "path": [
+                    "admin",
+                    "system-settings",
+                    "{{system_setting_key}}"
+                  ]
+                }
+              },
+              "response": []
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "File Upload (Blob Storage)",
+      "description": "Endpoints for uploading files to blob storage. Behavior depends on BLOB_HANDLER (aws/azure).",
+      "item": [
+        {
+          "name": "Upload File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{access_token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"filename\": \"example.pdf\",\n  \"content\": \"<base64-content>\",\n  \"mimetype\": \"application/pdf\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/me/documents",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "me",
+                "documents"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [
+          ""
+        ],
+        "type": "text/javascript"
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "exec": [
+          "// Global test: Check for 2xx status codes on success",
+          "if (pm.response.code >= 200 && pm.response.code < 300) {",
+          "    pm.test(\"Status code is 2xx\", function () {",
+          "        pm.expect(pm.response.code).to.be.oneOf([200, 201, 204]);",
+          "    });",
+          "}",
+          "",
+          "try {",
+          "    const response = pm.response.json();",
+          "",
+          "    // Handle Login/Refresh: Set tokens based on role",
+          "    if (pm.request.url.path.includes('/auth/login') || pm.request.url.path.includes('/auth/refresh')) {",
+          "        if (pm.response.code === 200 && response.accessToken) {",
+          "            const requestBody = pm.request.body ? JSON.parse(pm.request.body.raw || '{}') : {};",
+          "            if (requestBody.email && requestBody.email.includes('admin')) {",
+          "                pm.environment.set(\"admin_token\", response.accessToken);",
+          "            } else if (requestBody.email && requestBody.email.includes('organizer')) {",
+          "                pm.environment.set(\"organizer_token\", response.accessToken);",
+          "            } else {",
+          "                pm.environment.set(\"access_token\", response.accessToken);",
+          "            }",
+          "        }",
+          "        if (pm.response.code === 200 && response.user && response.user.id) {",
+          "             pm.environment.set(\"user_id\", response.user.id);",
+          "        }",
+          "    }",
+          "",
+          "    // Handle 201 CREATED: Capture IDs",
+          "    if (pm.response.code === 201) {",
+          "        if (response.id) {",
+          "            const url = pm.request.url.path.join('/');",
+          "            ",
+          "            if (url.endsWith('/events')) {",
+          "                pm.environment.set(\"event_id\", response.id);",
+          "                if (response.booking && response.booking.id) {",
+          "                    pm.environment.set(\"booking_id\", response.booking.id);",
+          "                }",
+          "                if (response.ticketDefinitions && response.ticketDefinitions.length > 0) {",
+          "                    pm.environment.set(\"ticket_definition_id\", response.ticketDefinitions[0].id);",
+          "                }",
+          "            } else if (url.endsWith('/admin/venues')) {",
+          "                pm.environment.set(\"venue_id\", response.id);",
+          "            } else if (url.endsWith('/admin/tools')) {",
+          "                pm.environment.set(\"tool_id\", response.id);",
+          "            } else if (url.endsWith('/admin/themes')) {",
+          "                pm.environment.set(\"theme_id\", response.id);",
+          "            } else if (url.endsWith('/events/purchases')) {",
+          "                pm.environment.set(\"purchase_id\", response.id);",
+          "            } else if (url.includes('/events/tickets')) {",
+          "                pm.environment.set(\"ticket_id\", response.id);",
+          "            } else if (url.endsWith('/me/documents') || url.endsWith('/organizer/profile/documents')) {",
+          "                pm.environment.set(\"document_id\", response.id);",
+          "            } else if (url.includes('/reports')) {",
+          "                pm.environment.set(\"report_id\", response.id);",
+          "            } else if (url.includes('/liquor-request')) {",
+          "                pm.environment.set(\"liquor_request_id\", response.id);",
+          "                if(response.approvalId) {",
+          "                    pm.environment.set(\"approval_id\", response.approvalId);",
+          "                }",
+          "            } else if (url.includes('/registrations')) {",
+          "                pm.environment.set(\"registration_id\", response.id);",
+          "            } else if (url.endsWith('/admin/venue-issuers')) {",
+          "                pm.environment.set(\"venue_issuer_id\", response.id);",
+          "            } else if (url.endsWith('/users/me/request-organizer-upgrade')) {",
+          "                pm.environment.set(\"organizer_profile_id\", response.id);",
+          "            }",
+          "        }",
+          "    }",
+          "",
+          "    // Capture other IDs from GET/POST responses",
+          "    if (response.key && pm.request.url.path.includes('/admin/system-settings')) {",
+          "        pm.environment.set(\"system_setting_key\", response.key);",
+          "    }",
+          "    if (response.data && Array.isArray(response.data) && response.data.length > 0) {",
+          "        const item = response.data[0];",
+          "        if (item.id && pm.request.url.path.includes('/me/sessions')) {",
+          "            pm.environment.set(\"session_id\", item.id);",
+          "        }",
+          "    }",
+          "",
+          "} catch (e) {",
+          "    // Response was not JSON, which is fine (e.g., 204 No Content, file download)",
+          "}"
+        ],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    }
+  ]
+}

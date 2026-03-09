@@ -1,0 +1,30 @@
+// src/styles/abstracts-auth/_variable.scss
+// Color Palette
+$color-1: #292bb9bb;  // Dark navy blue
+$color-2: #023e8a;  // Deep blue
+$color-3: #0077b6;  // Strong blue
+$color-4: #0096c7;  // Lighter blue
+$color-5: #00b4d8;  // Bright aqua
+$color-6: #48cae4;  // Soft aqua
+$color-7: #90e0ef;  // Light sky blue
+$color-8: #ade8f4;  // Pale blue
+$color-9: #caf0f8;
+
+
+$primary-color: $color-2; 
+$secondary-color: #000428;
+$accent-color: #ffce00;
+$accent-hover: #e6b800;
+$text-color: #ffffff;
+$background-gradient: linear-gradient(to right, #caf0f8, #0077b6);
+$background-gradient_2: linear-gradient(to right, #c3dde2, #abcbd4);
+
+//Ndivho
+$font-stack: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+$primary-color: #0077B6; /* A vibrant mid-blue for primary elements */
+$primary-hover: #0096C7; /* A slightly lighter blue for hover states */
+$bg-color: #27a0d8; /* The lightest blue for the background */
+$text-color: #03045E; /* The darkest blue for text, ensuring contrast */
+$card-bg: #fff; 
+$shadow: 0 1px 4px rgba(0, 0, 0, 0.1); /* Unchanged */
+$radius: 12px; /* Unchanged */
