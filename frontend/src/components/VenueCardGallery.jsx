@@ -40,6 +40,17 @@ export default function VenueCardGallery({
     fetchVenues();
   }, []);
 
+  // Reload venues when other tabs/windows notify that venues were updated
+  useEffect(() => {
+    const onStorage = (e) => {
+      if (e.key === 'venues_updated') {
+        fetchVenues();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, []);
+
   const filteredVenues = venues.filter((venue) => {
     const campusMatch =
       !campusFilter ||
