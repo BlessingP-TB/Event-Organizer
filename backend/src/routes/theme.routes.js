@@ -5,7 +5,6 @@ const {
     validate,
     authenticate,
     authorize,
-    enforceEmailVerification,
 } = require('../middlewares/index.middleware');
 const { ROLES } = require('../constants/index.constants');
 
@@ -19,8 +18,7 @@ router.get(
 
 router.use(
     authenticate,
-    authorize([ROLES.ADMIN, ROLES.ORGANIZER]),
-    enforceEmailVerification
+    authorize([ROLES.ADMIN, ROLES.ORGANIZER])
 );
 
 router.post('/',
