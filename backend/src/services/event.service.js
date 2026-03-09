@@ -225,9 +225,9 @@ const listPublicEvents = async (queryOptions) => {
 
 const listOrganizerEvents = async (organizerId, queryOptions) => {
     const { skip, take, page, pageSize } = getPagination(queryOptions);
+    // Include all events (including soft-deleted) so frontend can filter by status
     const whereClause = {
         organizerId,
-        deletedAt: null,
     };
 
     const query = {

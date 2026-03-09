@@ -122,9 +122,23 @@ const MyEvents = () => {
   }, [token, popDocuments]);
 
   // --- FILTERING AND SORTING ---
+  // Helper to get effective status (soft-deleted events treated as DELETED)
+  const getEffectiveStatus = (event) => {
+    if (event.deletedAt) return "DELETED";
+    return event.status;
+  };
+
   const filteredEvents = useMemo(() => {
     return events
-      .filter(event => filter === "All" || event.status === filter)
+      .filter(event => {
+        const effectiveStatus = getEffectiveStatus(event);
+        if (filter === "All") return true;
+        // Show DELETED events under CANCELLED filter as well
+        if (filter === "CANCELLED") {
+          return effectiveStatus === "CANCELLED" || effectiveStatus === "DELETED";
+        }
+        return effectiveStatus === filter;
+      })
       .sort((a, b) => {
         let aValue, bValue;
 
@@ -200,6 +214,7 @@ const MyEvents = () => {
           filteredEvents.map(event => {
             const formattedStartDate = new Date(event.startDateTime).toLocaleDateString();
             const hasDocument = !!popDocuments[event.id]; // Check if a document ID exists for this event
+            const displayStatus = event.deletedAt ? 'DELETED' : (event.status || 'NO STATUS');
 
             return (
               <div
@@ -211,7 +226,7 @@ const MyEvents = () => {
                 <div className="event-info">
                   <h4>{event.name}</h4>
                   <p className="date">Starts: {formattedStartDate}</p>
-                  <p className={`status ${event.status ? event.status.toLowerCase() : 'unknown'}`}>{event.status || 'NO STATUS'}</p>
+                  <p className={`status ${displayStatus.toLowerCase()}`}>{displayStatus}</p>
                 </div>
                 <div className="event-action">
                   {/* Modify Button */}

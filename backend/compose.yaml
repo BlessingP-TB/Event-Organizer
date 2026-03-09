@@ -1,4 +1,4 @@
-services:
+git switch -c MRNMTgit switch -c MRNMTservices:
   api:
     build:
       context: .

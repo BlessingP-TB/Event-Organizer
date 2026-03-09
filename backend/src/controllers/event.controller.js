@@ -48,7 +48,7 @@ const listOrganizerEvents = catchAsync(async (req, res) => {
     res.status(HTTP_STATUS.OK).send(paginatedResult);
 });*/
 const getEvent = catchAsync(async (req, res) => {
-    const event = await eventService.getEventById(req.params.id);
+    const event = await eventService.getEventById(req.params.eventId);
     res.status(HTTP_STATUS.OK).send(event);
 });
 
