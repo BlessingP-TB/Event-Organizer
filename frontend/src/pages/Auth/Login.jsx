@@ -24,10 +24,15 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-     console.log("Submitting form:", form);
+    const payload = {
+      email: form.email.trim(),
+      password: form.password,
+    };
+
+    console.log("Submitting form:", payload);
 
     try {
-      const res = await api.post('/auth/login', form);
+      const res = await api.post('/auth/login', payload);
       const { user, accessToken } = res.data;
 
       if (!user?.role) throw new Error('Invalid user data.');
@@ -44,7 +49,9 @@ export default function Login() {
       };
       navigate(routes[user.role.toUpperCase()] || '/');
     } catch (err) {
+      const firstDetail = err.response?.data?.details?.[0]?.message;
       const msg =
+        firstDetail ||
         err.response?.data?.message ||
         err.message ||
         'Login failed. Please check your credentials.';
