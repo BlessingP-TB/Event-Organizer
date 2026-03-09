@@ -36,6 +36,25 @@ const ModernSidebar = ({ role, links, storageKey }) => {
 
     window.addEventListener(`${storageKey}Updated`, handleUpdate);
     window.addEventListener(`${storageKey}CountUpdated`, handleCountUpdate);
+
+    // Attempt to fetch from server on mount to populate notifications
+    (async () => {
+      try {
+        const res = await api.get('/notifications');
+        const serverNotes = res.data?.data || [];
+        if (serverNotes && serverNotes.length > 0) {
+          setNotifications(serverNotes);
+          localStorage.setItem(storageKey, JSON.stringify(serverNotes));
+          const derived = serverNotes.filter((n) => !n.read).length;
+          localStorage.setItem(`${storageKey}:unreadCount`, String(derived));
+          window.dispatchEvent(new Event(`${storageKey}Updated`));
+          window.dispatchEvent(new Event(`${storageKey}CountUpdated`));
+        }
+      } catch (err) {
+        console.debug('Initial notification fetch failed (may be offline):', err?.message || err);
+      }
+    })();
+
     return () => {
       window.removeEventListener(`${storageKey}Updated`, handleUpdate);
       window.removeEventListener(`${storageKey}CountUpdated`, handleCountUpdate);
@@ -59,12 +78,13 @@ const ModernSidebar = ({ role, links, storageKey }) => {
         try {
           await api.patch('/notifications/mark-read', {});
         } catch (err) {
-          console.warn('Failed to bulk-mark notifications read on server', err);
+          console.warn('Failed to bulk-mark notifications read on server', err?.message || err);
         }
 
         try {
           const res = await api.get('/notifications');
           const serverNotes = res.data?.data || [];
+          console.debug('Fetched notifications on open:', serverNotes.length);
           setNotifications(serverNotes);
           localStorage.setItem(storageKey, JSON.stringify(serverNotes));
           // also update unread count stored by poller; if unavailable, derive
@@ -73,6 +93,7 @@ const ModernSidebar = ({ role, links, storageKey }) => {
           window.dispatchEvent(new Event(`${storageKey}Updated`));
           window.dispatchEvent(new Event(`${storageKey}CountUpdated`));
         } catch (err) {
+          console.warn('Failed to fetch notifications from server on open:', err?.message || err);
           // fallback: mark locally
           const updated = notifications.map((n) => ({ ...n, read: true }));
           setNotifications(updated);
