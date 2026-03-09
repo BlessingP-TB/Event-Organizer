@@ -32,7 +32,7 @@ const sendEmail = async (to, subject, text, html) => {
             logger.debug('Email Text Body:', text);
             logger.debug('Email HTML Body:', html);
         }
-        return;
+        return false;
     }
 
     try {
@@ -47,8 +47,10 @@ const sendEmail = async (to, subject, text, html) => {
             messageId: info.messageId,
             recipient: to,
         });
+        return true;
     } catch (error) {
         logger.error('Error sending email.', { error, recipient: to });
+        return false;
     }
 };
 
@@ -58,7 +60,7 @@ const sendVerificationEmail = async (to, token) => {
     const text = `Please verify your email by clicking the following link: ${verificationUrl}`;
     const html = `<p>Please verify your email by clicking <a href="${verificationUrl}">here</a>.</p>`;
 
-    await sendEmail(to, subject, text, html);
+    return sendEmail(to, subject, text, html);
 };
 
 const sendResetPasswordEmail = async (to, token) => {
@@ -67,7 +69,7 @@ const sendResetPasswordEmail = async (to, token) => {
     const text = `To reset your password, click the following link: ${resetUrl}`;
     const html = `<p>To reset your password, click <a href="${resetUrl}">here</a>.</p>`;
 
-    await sendEmail(to, subject, text, html);
+    return sendEmail(to, subject, text, html);
 };
 
 module.exports = {

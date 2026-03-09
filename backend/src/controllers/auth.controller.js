@@ -83,10 +83,24 @@ const resendVerification = catchAsync(async (req, res) => {
 });
 
 const forgotPassword = catchAsync(async (req, res) => {
-    await authService.forgotPassword(req.body.email);
-    res.status(HTTP_STATUS.OK).send({
+    const forgotPasswordResult = await authService.forgotPassword(req.body.email);
+
+    const payload = {
         message: SUCCESS_MESSAGES.PASSWORD_RESET_SENT,
-    });
+    };
+
+    if (
+        env.env === 'development'
+        && forgotPasswordResult
+        && forgotPasswordResult.emailSent === false
+        && forgotPasswordResult.resetToken
+    ) {
+        payload.resetToken = forgotPasswordResult.resetToken;
+        payload.resetUrl = `${env.clientUrl}/reset-password?token=${encodeURIComponent(forgotPasswordResult.resetToken)}`;
+        payload.note = 'Email is disabled in development. Use resetUrl to continue password reset.';
+    }
+
+    res.status(HTTP_STATUS.OK).send(payload);
 });
 
 const resetPassword = catchAsync(async (req, res) => {

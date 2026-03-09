@@ -412,7 +412,12 @@ const forgotPassword = async (email) => {
         TOKEN_TYPE.RESET_PASSWORD,
         jwtConfig.resetPasswordExpirationMinutes
     );
-    await emailService.sendResetPasswordEmail(user.email, resetToken);
+    const emailSent = await emailService.sendResetPasswordEmail(user.email, resetToken);
+
+    return {
+        emailSent,
+        resetToken,
+    };
 };
 
 const resetPassword = async (token, newPassword) => {
