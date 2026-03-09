@@ -203,25 +203,28 @@ const Events = () => {
     fetchAttendeeData();
   }, [user]);
 
-  // Fetch notifications
+  // Load local attendee notifications (backend endpoint not implemented)
   useEffect(() => {
-    const fetchNotifications = async () => {
+    const loadNotifications = () => {
       setLoadingNotifications(true);
-      if (!user?.id) {
-        setLoadingNotifications(false);
-        return;
-      }
       try {
-        const res = await api.get(`/notifications?userId=${user.id}`);
-        setNotifications(res.data);
-      } catch (err) {
-        //console.error("Error fetching notifications:", err);
-        //toast.error("Failed to load notifications.", { id: 'fetch-notifications-error' });
+        const stored = JSON.parse(localStorage.getItem('attendeeNotifications') || '[]');
+        setNotifications(Array.isArray(stored) ? stored : []);
+      } catch {
+        setNotifications([]);
       } finally {
         setLoadingNotifications(false);
       }
     };
-    fetchNotifications();
+
+    const handleNotificationsUpdated = () => loadNotifications();
+
+    loadNotifications();
+    window.addEventListener('attendeeNotificationsUpdated', handleNotificationsUpdated);
+
+    return () => {
+      window.removeEventListener('attendeeNotificationsUpdated', handleNotificationsUpdated);
+    };
   }, [user]);
 
   // Apply filters to events

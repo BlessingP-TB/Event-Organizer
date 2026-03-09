@@ -234,7 +234,22 @@ export default function CreateEvent() {
       const slots = getAvailableTimeSlots(calendarData, selectedVenue.id, value);
       setAvailableTimeSlots(slots);
       setIsLoadingTimeSlots(false);
-      setDateParts(prev => ({ ...prev, startTime: '', endTime: '' }));
+      setDateParts(prev => {
+        const normalizedStartDate = value ? new Date(value) : null;
+        const currentEndDate = prev.endDate ? new Date(prev.endDate) : null;
+
+        // Same-day events are common; default end date to start date if missing/invalid.
+        const shouldDefaultEndDate =
+          !!normalizedStartDate &&
+          (!currentEndDate || currentEndDate < normalizedStartDate);
+
+        return {
+          ...prev,
+          startTime: '',
+          endTime: '',
+          endDate: shouldDefaultEndDate ? normalizedStartDate : prev.endDate,
+        };
+      });
     }
   }, [calendarData, selectedVenue, errors]);
 
@@ -374,7 +389,7 @@ guestTypes.forEach(type => {
 const finalPayload = {
   ...formData,
   startDateTime: combineDateTime(dateParts.startDate, dateParts.startTime),
-  endDateTime: combineDateTime(dateParts.endDate, dateParts.endTime),
+  endDateTime: combineDateTime(dateParts.endDate || dateParts.startDate, dateParts.endTime),
   expectedAttend: Number(formData.expectedAttend),
   resources: numericResourcesArray,
   services: enhancedServices, // ✅ Now all values are booleans
@@ -588,6 +603,7 @@ const finalPayload = {
                               onClick={() => {
                                 setDateParts(prev => ({
                                   ...prev,
+                                  endDate: prev.endDate || prev.startDate,
                                   startTime: slot.startTime,
                                   endTime: slot.endTime
                                 }));
@@ -650,7 +666,7 @@ const finalPayload = {
                       value={dateParts.endTime}
                       onChange={(e) => handleDateTimeChange('endTime', e.target.value)}
                       className={`form-input ${errors.endTime ? 'error' : ''}`}
-                      disabled={!dateParts.endDate}
+                      disabled={!dateParts.startDate}
                     />
                     {errors.endTime && <p className="error-message">{errors.endTime}</p>}
                   </div>
