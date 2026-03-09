@@ -1,6 +1,39 @@
 const PDFDocument = require('pdfkit');
 const logger = require('./logger.util');
 
+const normalizeLines = (value) => {
+    if (Array.isArray(value)) {
+        return value.map((item) => String(item).trim()).filter(Boolean);
+    }
+
+    if (value === null || value === undefined) {
+        return [];
+    }
+
+    if (typeof value === 'string') {
+        const trimmed = value.trim();
+        if (!trimmed) {
+            return [];
+        }
+
+        try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+                return parsed.map((item) => String(item).trim()).filter(Boolean);
+            }
+        } catch (_) {
+        }
+
+        return trimmed.split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    }
+
+    if (typeof value === 'object') {
+        return Object.values(value).map((item) => String(item).trim()).filter(Boolean);
+    }
+
+    return [String(value).trim()].filter(Boolean);
+};
+
 const generatePdfBuffer = (doc, onEnd) => {
     return new Promise((resolve, reject) => {
         const buffers = [];
@@ -29,6 +62,9 @@ const addHeader = (doc, issuer, logoBuffer) => {
     const headerY = 45;
     const headerX = doc.page.margins.left;
     const contentWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+    const issuerName = issuer?.institutionName || 'Institution';
+    const issuerAddressLines = normalizeLines(issuer?.institutionAddress);
+    const issuerDetailLines = normalizeLines(issuer?.otherDetails);
 
     doc.save();
 
@@ -39,12 +75,12 @@ const addHeader = (doc, issuer, logoBuffer) => {
             logger.warn('Failed to parse PDF logo image buffer', e);
             doc.fontSize(20)
                 .font('Helvetica-Bold')
-                .text(issuer.institutionName, headerX, headerY + 15);
+                .text(issuerName, headerX, headerY + 15);
         }
     } else {
         doc.fontSize(20)
             .font('Helvetica-Bold')
-            .text(issuer.institutionName, headerX, headerY + 15);
+            .text(issuerName, headerX, headerY + 15);
     }
 
     const rightBlockX = headerX + (contentWidth / 2);
@@ -53,7 +89,7 @@ const addHeader = (doc, issuer, logoBuffer) => {
     doc.fontSize(10)
         .font('Helvetica')
         .text(
-            issuer.institutionAddress.join('\n'),
+            issuerAddressLines.join('\n'),
             rightBlockX,
             headerY + 5,
             { align: 'right', width: rightBlockWidth }
@@ -61,7 +97,7 @@ const addHeader = (doc, issuer, logoBuffer) => {
     doc.fontSize(10)
         .font('Helvetica')
         .text(
-            issuer.otherDetails.join('\n'),
+            issuerDetailLines.join('\n'),
             rightBlockX,
             headerY + 35,
             { align: 'right', width: rightBlockWidth }

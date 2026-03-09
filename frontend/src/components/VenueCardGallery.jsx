@@ -22,17 +22,10 @@ export default function VenueCardGallery({
       setLoading(true);
       setError("");
       const response = await api.get("/venues");
-      const payload = response?.data;
-      const candidates = [
-        payload,
-        payload?.data,
-        payload?.items,
-        payload?.results,
-        payload?.data?.data,
-        payload?.data?.items,
-        payload?.results?.data,
-      ];
-      const venuesArray = candidates.find(Array.isArray) || [];
+      // Handle both array response and paginated response
+      const venuesArray = Array.isArray(response.data)
+        ? response.data
+        : response.data.data || [];
       setVenues(venuesArray);
       setLoading(false);
     } catch (err) {

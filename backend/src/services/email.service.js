@@ -1,9 +1,22 @@
 const nodemailer = require('nodemailer');
-const { email, clientUrl, env } = require('../configs/environment.config');
+const { email, clientUrl } = require('../configs/environment.config');
 const { logger } = require('../utils/index.util');
 
 let transporter;
-if (email.enabled) {
+
+const isEmailConfigured = () =>
+    Boolean(
+        email.enabled &&
+            email.host &&
+            email.port &&
+            email.user &&
+            email.pass &&
+            email.from
+    );
+
+const emailConfigured = isEmailConfigured();
+
+if (emailConfigured) {
     transporter = nodemailer.createTransport({
         host: email.host,
         port: email.port,
@@ -22,18 +35,19 @@ if (email.enabled) {
         );
 }
 
-const sendEmail = async (to, subject, text, html) => {
-    if (!email.enabled) {
-        logger.warn('Email sending is disabled. Skipping email task.', {
-            to,
-            subject,
-        });
-        if (env === 'development') {
-            logger.debug('Email Text Body:', text);
-            logger.debug('Email HTML Body:', html);
-        }
-        return;
+const assertEmailReady = () => {
+    if (!emailConfigured) {
+        throw new Error(
+            'Email service is not configured. Set ENABLE_EMAILS=true and provide EMAIL_HOST, EMAIL_PORT, EMAIL_USER, EMAIL_PASS, and EMAIL_FROM.'
+        );
     }
+    if (!transporter) {
+        throw new Error('Email transporter is not initialized.');
+    }
+};
+
+const sendEmail = async (to, subject, text, html) => {
+    assertEmailReady();
 
     try {
         const info = await transporter.sendMail({
@@ -49,6 +63,7 @@ const sendEmail = async (to, subject, text, html) => {
         });
     } catch (error) {
         logger.error('Error sending email.', { error, recipient: to });
+        throw error;
     }
 };
 
@@ -74,5 +89,7 @@ module.exports = {
     sendEmail,
     sendVerificationEmail,
     sendResetPasswordEmail,
+    assertEmailReady,
+    isEmailConfigured,
 };
 

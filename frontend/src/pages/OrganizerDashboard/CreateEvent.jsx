@@ -36,35 +36,36 @@ const getDateStr = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const normalizeId = (value) => String(value ?? '');
-
-const getSlotDateStr = (slotDate) => {
-  if (!slotDate) return '';
-  if (typeof slotDate === 'string') return slotDate.substring(0, 10);
-  return getDateStr(new Date(slotDate));
+const normalizeDateStr = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value.includes('T') ? value.split('T')[0] : value;
+  const dateObj = new Date(value);
+  if (Number.isNaN(dateObj.getTime())) return '';
+  return getDateStr(dateObj);
 };
 
-const slotMatchesVenue = (slot, venueId) => {
-  if (!slot || !venueId) return false;
+const normalizeTimeStr = (value) => (typeof value === 'string' ? value.slice(0, 5) : '');
 
-  const normalizedVenueId = normalizeId(venueId);
-
-  const inVenueIds = Array.isArray(slot.venueIds)
-    && slot.venueIds.some((id) => normalizeId(id) === normalizedVenueId);
-
-  const singleVenueMatch = slot.venueId && normalizeId(slot.venueId) === normalizedVenueId;
-
-  return inVenueIds || singleVenueMatch;
+const getVenueCalendarSlots = (calendarData, venueId) => {
+  if (!calendarData || !venueId) return [];
+  const targetVenueId = String(venueId);
+  return calendarData.filter(slot => {
+    const venueIds = Array.isArray(slot.venueIds) ? slot.venueIds.map(String) : [];
+    const singleVenueId = slot.venueId ? String(slot.venueId) : null;
+    return venueIds.includes(targetVenueId) || singleVenueId === targetVenueId;
+  });
 };
 
 const getAvailableTimeSlots = (calendarData, venueId, date) => {
-  if (!calendarData || !venueId || !date) return [];
+  if (!date) return [];
+  const venueSlots = getVenueCalendarSlots(calendarData, venueId);
+  if (venueSlots.length === 0) return [];
   const selectedDateStr = getDateStr(date);
-  return calendarData
-    .filter(slot => slotMatchesVenue(slot, venueId) && getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr)
+  return venueSlots
+    .filter(slot => normalizeDateStr(slot.date) === selectedDateStr)
     .map(slot => ({
-      startTime: slot.startTime,
-      endTime: slot.endTime
+      startTime: normalizeTimeStr(slot.startTime),
+      endTime: normalizeTimeStr(slot.endTime)
     }));
 };
 
@@ -278,23 +279,15 @@ export default function CreateEvent() {
     toastTimerRef.current = setTimeout(() => setShowToast(false), 5000);
   };
 
-  const venueHasCalendarAvailability = selectedVenue && calendarData.some((slot) => {
-    return slotMatchesVenue(slot, selectedVenue.id);
-  });
+  const venueHasCalendarAvailability = selectedVenue && getVenueCalendarSlots(calendarData, selectedVenue.id).length > 0;
 
   const filterDate = (date) => {
     if (!selectedVenue) return true;
 
-    const venueSlots = Array.isArray(calendarData)
-      ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
-      : [];
-
-    if (venueSlots.length === 0) {
-      return true;
-    }
-
+    const venueSlots = getVenueCalendarSlots(calendarData, selectedVenue.id);
+    if (venueSlots.length === 0) return true;
     const selectedDateStr = getDateStr(date);
-    return venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
+    return venueSlots.some(slot => normalizeDateStr(slot.date) === selectedDateStr);
   };
 
   const validateForm = () => {
@@ -311,29 +304,24 @@ export default function CreateEvent() {
     if (selectedEventTypes.length === 0) newErrors.eventType = 'Please select at least one type of function';
     if (selectedGuestTypes.length === 0) newErrors.guestType = 'Please select at least one type of guest';
 
-    if (selectedVenue && dateParts.startDate && venueHasCalendarAvailability) {
+
+    if (selectedVenue && dateParts.startDate) {
+      const venueSlots = getVenueCalendarSlots(calendarData, selectedVenue.id);
       const selectedDateStr = getDateStr(dateParts.startDate);
-
-      const venueSlots = Array.isArray(calendarData)
-        ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
-        : [];
-
-      const hasVenueAvailabilityData = venueSlots.length > 0;
-      const isAvailable = venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
-
-      if (hasVenueAvailabilityData && !isAvailable) {
-        newErrors.startDate = 'Selected date is not available for this venue';
+      if (venueSlots.length > 0) {
+        const isAvailable = venueSlots.some(slot => normalizeDateStr(slot.date) === selectedDateStr);
+        if (!isAvailable) newErrors.startDate = 'Selected date is not available for this venue';
       }
     }
 
     if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime && venueHasCalendarAvailability) {
       const availableSlots = getAvailableTimeSlots(calendarData, selectedVenue.id, dateParts.startDate);
-      const match = availableSlots.some(slot =>
-        slot.startTime === dateParts.startTime && slot.endTime === dateParts.endTime
-      );
-
-      if (availableSlots.length > 0 && !match) {
-        newErrors.startTime = 'Selected time is not available for this venue';
+      if (availableSlots.length > 0) {
+        const match = availableSlots.some(slot =>
+          normalizeTimeStr(slot.startTime) === normalizeTimeStr(dateParts.startTime) &&
+          normalizeTimeStr(slot.endTime) === normalizeTimeStr(dateParts.endTime)
+        );
+        if (!match) newErrors.startTime = 'Selected time is not available for this venue';
       }
     }
 
@@ -632,20 +620,7 @@ const finalPayload = {
                       onChange={(date) => handleDateTimeChange('endDate', date)}
                       className={`form-input ${errors.endDate ? 'error' : ''}`}
                       placeholderText="Select end date"
-                      filterDate={(date) => {
-                        if (!selectedVenue) return true;
-
-                        const venueSlots = Array.isArray(calendarData)
-                          ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
-                          : [];
-
-                        if (venueSlots.length === 0) {
-                          return true;
-                        }
-
-                        const selectedDateStr = getDateStr(date);
-                        return venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
-                      }}
+                      filterDate={filterDate}
                       minDate={dateParts.startDate || new Date()}
                       dateFormat="yyyy-MM-dd"
                     />
