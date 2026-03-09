@@ -5,6 +5,49 @@ import { MdImage } from "react-icons/md";
 import api from "../utils/api";
 import "../styles/pages/_createEvent.scss";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+const BACKEND_ORIGIN = API_BASE.replace(/\/api\/v\d+\/?$/i, '');
+
+const resolveVenueImageUrl = (rawUrl) => {
+  const value = String(rawUrl || '').trim();
+  if (!value) return '';
+
+  let normalized = value.replace('/api/v1/uploads/', '/uploads/');
+
+  if (normalized.startsWith('/uploads/')) {
+    normalized = `${BACKEND_ORIGIN}${normalized}`;
+  }
+
+  return encodeURI(normalized);
+};
+
+const normalizeImageUrls = (value) => {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean).map((url) => resolveVenueImageUrl(url)).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(Boolean).map((url) => resolveVenueImageUrl(url)).filter(Boolean);
+      }
+      if (typeof parsed === "string") {
+        return [resolveVenueImageUrl(parsed.trim())].filter(Boolean);
+      }
+    } catch {
+      // not JSON - treat as plain URL string
+    }
+
+    return [resolveVenueImageUrl(trimmed)].filter(Boolean);
+  }
+
+  return [];
+};
+
 export default function VenueCardGallery({
   selectedVenue,
   setSelectedVenue,
@@ -22,11 +65,23 @@ export default function VenueCardGallery({
       setLoading(true);
       setError("");
       const response = await api.get("/venues");
-      // Handle both array response and paginated response
-      const venuesArray = Array.isArray(response.data)
-        ? response.data
-        : response.data.data || [];
-      setVenues(venuesArray);
+      const payload = response?.data;
+      const candidates = [
+        payload,
+        payload?.data,
+        payload?.items,
+        payload?.results,
+        payload?.data?.data,
+        payload?.data?.items,
+        payload?.results?.data,
+      ];
+      const venuesArray = candidates.find(Array.isArray) || [];
+      setVenues(
+        venuesArray.map((venue) => ({
+          ...venue,
+          imageUrls: normalizeImageUrls(venue.imageUrls),
+        }))
+      );
       setLoading(false);
     } catch (err) {
       console.error("Failed to fetch venues:", err);
