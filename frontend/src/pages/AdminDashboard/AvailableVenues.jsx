@@ -131,13 +131,9 @@ export default function AvailableVenues() {
 
     try {
       if (editId) {
-        await api.patch(`/admin/venues/${editId}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await api.patch(`/admin/venues/${editId}`, formData);
       } else {
-        await api.post("/admin/venues", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await api.post("/admin/venues", formData);
       }
 
       setModalVisible(false);
