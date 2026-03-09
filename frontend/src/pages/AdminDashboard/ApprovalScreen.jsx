@@ -34,7 +34,16 @@ export default function ApprovalScreen() {
         },
       });
 
+      // Explicitly handle auth errors so we can redirect to login
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          // clear stored credentials and force login
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+          return;
+        }
+
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || `HTTP ${res.status}`);
       }
@@ -94,7 +103,14 @@ export default function ApprovalScreen() {
             },
           });
 
-          if (!res.ok) throw new Error(`Failed to fetch event ${item.eventId}`);
+          if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+              console.warn('Unauthorized fetching event', item.eventId);
+              // let the caller handle auth (no redirect loop here)
+              return item;
+            }
+            throw new Error(`Failed to fetch event ${item.eventId} (status ${res.status})`);
+          }
 
           const eventData = await res.json();
           const event = eventData.event || eventData || {};
