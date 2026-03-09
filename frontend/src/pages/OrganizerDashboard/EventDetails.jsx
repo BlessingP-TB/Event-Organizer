@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
 import { FaArrowLeft, FaUpload, FaCheck, FaFileImage, FaRedo } from "react-icons/fa";
 import { MdError } from "react-icons/md";
+import api from "../../utils/api";
 import "../../styles/pages/_eventdetails.scss";
 
 const DEFAULT_BANNER =
@@ -65,9 +65,7 @@ const EventDetails = () => {
       }
 
       try {
-        const response = await axios.get(`http://localhost:3000/events/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await api.get(`/events/${id}`);
 
         setEvent(response.data);
 
@@ -126,13 +124,9 @@ const EventDetails = () => {
 
   const statsAvailable = event._count && typeof event._count.registrations !== "undefined";
 
-  // ✅ CORRECT IMAGE RESOLUTION: use imageUrl OR convert image bytes to data URL
-// Use the event-level image URL (uploaded banner)
-const bannerSrc = event?.Theme?.image
-  ? bytesToDataUrl(event.Theme.image, 'image/jpeg')
-  : DEFAULT_BANNER;
-
-  const bannerSrc = themeImageUrl || DEFAULT_BANNER;
+  const themeImageUrl = event?.theme?.imageUrl || event?.Theme?.imageUrl || null;
+  const themeImageBytes = event?.theme?.image || event?.Theme?.image;
+  const bannerSrc = themeImageUrl || (themeImageBytes ? bytesToDataUrl(themeImageBytes, 'image/jpeg') : DEFAULT_BANNER);
 
   // For demo/testing, always show upload section
   const canUpload = true;
@@ -172,7 +166,6 @@ const bannerSrc = event?.Theme?.image
     setUploading(true);
     setUploadError("");
     try {
-      const token = localStorage.getItem("accessToken");
       const payload = {
         name: `Theme for ${event.name}`,
         description: `Uploaded by organizer for event ${event.name}`,
@@ -180,16 +173,12 @@ const bannerSrc = event?.Theme?.image
         eventId: event.id,
       };
 
-      await axios.post("http://localhost:3000/themes/", payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      await api.post("/themes", payload);
 
-      const eventRes = await axios.get(`http://localhost:3000/events/${event.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        "Cache-Control": "no-cache",
+      const eventRes = await api.get(`/events/${event.id}`, {
+        headers: {
+          "Cache-Control": "no-cache",
+        },
       });
       setEvent(eventRes.data);
       setSelectedFile(null);

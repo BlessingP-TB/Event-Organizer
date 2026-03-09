@@ -36,18 +36,36 @@ const getDateStr = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeDateStr = (value) => {
+  if (!value) return '';
+  if (typeof value === 'string') return value.includes('T') ? value.split('T')[0] : value;
+  const dateObj = new Date(value);
+  if (Number.isNaN(dateObj.getTime())) return '';
+  return getDateStr(dateObj);
+};
+
+const normalizeTimeStr = (value) => (typeof value === 'string' ? value.slice(0, 5) : '');
+
+const getVenueCalendarSlots = (calendarData, venueId) => {
+  if (!calendarData || !venueId) return [];
+  const targetVenueId = String(venueId);
+  return calendarData.filter(slot => {
+    const venueIds = Array.isArray(slot.venueIds) ? slot.venueIds.map(String) : [];
+    const singleVenueId = slot.venueId ? String(slot.venueId) : null;
+    return venueIds.includes(targetVenueId) || singleVenueId === targetVenueId;
+  });
+};
+
 const getAvailableTimeSlots = (calendarData, venueId, date) => {
-  if (!calendarData || !venueId || !date) return [];
+  if (!date) return [];
+  const venueSlots = getVenueCalendarSlots(calendarData, venueId);
+  if (venueSlots.length === 0) return [];
   const selectedDateStr = getDateStr(date);
-  return calendarData
-    .filter(slot =>
-      Array.isArray(slot.venueIds) &&
-      slot.venueIds.includes(venueId) &&
-      slot.date.substring(0, 10) === selectedDateStr
-    )
+  return venueSlots
+    .filter(slot => normalizeDateStr(slot.date) === selectedDateStr)
     .map(slot => ({
-      startTime: slot.startTime,
-      endTime: slot.endTime
+      startTime: normalizeTimeStr(slot.startTime),
+      endTime: normalizeTimeStr(slot.endTime)
     }));
 };
 
@@ -263,12 +281,10 @@ export default function CreateEvent() {
 
   const filterDate = (date) => {
     if (!selectedVenue) return true;
+    const venueSlots = getVenueCalendarSlots(calendarData, selectedVenue.id);
+    if (venueSlots.length === 0) return true;
     const selectedDateStr = getDateStr(date);
-    return calendarData.some(slot =>
-      Array.isArray(slot.venueIds) &&
-      slot.venueIds.includes(selectedVenue.id) &&
-      slot.date.substring(0, 10) === selectedDateStr
-    );
+    return venueSlots.some(slot => normalizeDateStr(slot.date) === selectedDateStr);
   };
 
   const validateForm = () => {
@@ -286,21 +302,23 @@ export default function CreateEvent() {
     if (selectedGuestTypes.length === 0) newErrors.guestType = 'Please select at least one type of guest';
 
     if (selectedVenue && dateParts.startDate) {
+      const venueSlots = getVenueCalendarSlots(calendarData, selectedVenue.id);
       const selectedDateStr = getDateStr(dateParts.startDate);
-      const isAvailable = calendarData.some(slot =>
-        Array.isArray(slot.venueIds) &&
-        slot.venueIds.includes(selectedVenue.id) &&
-        slot.date.substring(0, 10) === selectedDateStr
-      );
-      if (!isAvailable) newErrors.startDate = 'Selected date is not available for this venue';
+      if (venueSlots.length > 0) {
+        const isAvailable = venueSlots.some(slot => normalizeDateStr(slot.date) === selectedDateStr);
+        if (!isAvailable) newErrors.startDate = 'Selected date is not available for this venue';
+      }
     }
 
     if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime) {
       const availableSlots = getAvailableTimeSlots(calendarData, selectedVenue.id, dateParts.startDate);
-      const match = availableSlots.some(slot =>
-        slot.startTime === dateParts.startTime && slot.endTime === dateParts.endTime
-      );
-      if (!match) newErrors.startTime = 'Selected time is not available for this venue';
+      if (availableSlots.length > 0) {
+        const match = availableSlots.some(slot =>
+          normalizeTimeStr(slot.startTime) === normalizeTimeStr(dateParts.startTime) &&
+          normalizeTimeStr(slot.endTime) === normalizeTimeStr(dateParts.endTime)
+        );
+        if (!match) newErrors.startTime = 'Selected time is not available for this venue';
+      }
     }
 
     if (!termsAccepted) newErrors.terms = 'You must accept the terms and conditions';
@@ -598,15 +616,7 @@ const finalPayload = {
                       onChange={(date) => handleDateTimeChange('endDate', date)}
                       className={`form-input ${errors.endDate ? 'error' : ''}`}
                       placeholderText="Select end date"
-                      filterDate={(date) => {
-                        if (!selectedVenue) return true;
-                        const selectedDateStr = getDateStr(date);
-                        return calendarData.some(slot =>
-                          Array.isArray(slot.venueIds) &&
-                          slot.venueIds.includes(selectedVenue.id) &&
-                          slot.date.substring(0, 10) === selectedDateStr
-                        );
-                      }}
+                      filterDate={filterDate}
                       minDate={dateParts.startDate || new Date()}
                       dateFormat="yyyy-MM-dd"
                     />

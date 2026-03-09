@@ -134,6 +134,17 @@
 
 ---
 
+## 13. Email Verification Link Could Not Be Completed
+
+**Files:** `frontend/src/App.jsx`, `frontend/src/pages/Auth/VerifyEmail.jsx` (new)
+**Problem:** Verification emails linked users to `/auth/verify-email?token=...`, but the frontend had no matching route/page. Users landed on 404 and remained unverified, causing protected API calls to fail with “Please verify your email address to proceed.”
+**Fix:**
+- Added a new auth page `VerifyEmail.jsx` that reads the `token` query param and calls `POST /auth/verify-email`.
+- Added the missing route in `App.jsx`: `/auth/verify-email`.
+- Added clear success/error feedback and a login action after verification.
+
+---
+
 ## Root Cause Summary
 
 Nearly all 404 errors shared the same root cause: frontend files were making API calls to `http://localhost:3000/<path>` directly, but the backend mounts all routes under the `/api/v1` prefix (configured via `API_PREFIX=/api/v1` in `.env`). The shared `api` utility at `frontend/src/utils/api.js` already had the correct `baseURL` configured — the fix was to use it consistently across all files.
@@ -144,7 +155,7 @@ Nearly all 404 errors shared the same root cause: frontend files were making API
 
 ### Issues Identified (March 9, 2026)
 
-#### 13. `/api/v1/notifications` - 404 Not Found
+#### 14. `/api/v1/notifications` - 404 Not Found
 - **Status**: ✅ FIXED
 - **Issue**: Frontend (`Events.jsx:215`) calls `/notifications?userId=...` but this endpoint did not exist in the backend
 - **Location**: `frontend/src/pages/AttendeeDashBoard/Events.jsx` line 215
@@ -152,7 +163,7 @@ Nearly all 404 errors shared the same root cause: frontend files were making API
   - Added `backend/src/routes/notification.routes.js` - returns empty array `[]`
   - Registered route in `backend/src/routes/index.routes.js` at path `/notifications`
 
-#### 14. `/api/v1/registrations/my` - 403 Forbidden
+#### 15. `/api/v1/registrations/my` - 403 Forbidden
 - **Status**: ✅ FIXED
 - **Issue**: Endpoint exists but returns 403 due to `enforceEmailVerification` middleware blocking unverified users
 - **Cause**: The route required verified email to access
@@ -161,7 +172,7 @@ Nearly all 404 errors shared the same root cause: frontend files were making API
   - Users can now view their registrations without email verification
   - Other registration actions (create, decide) still require verified email
 
-#### 15. `/api/v1/registrations/total` - 403 Forbidden
+#### 16. `/api/v1/registrations/total` - 403 Forbidden
 - **Status**: ✅ FIXED
 - **Issue**: OrganizerDashboard calls `/registrations/total` which was blocked by `enforceEmailVerification`
 - **Location**: `backend/src/routes/registration.routes.js` line 30-34

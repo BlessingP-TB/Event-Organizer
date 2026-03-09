@@ -24,6 +24,18 @@ const {
     APPROVAL_STATUS,
 } = require('../constants/index.constants');
 
+const ensureEmailServiceReady = () => {
+    try {
+        emailService.assertEmailReady();
+    } catch (error) {
+        throw new ApiError(
+            HTTP_STATUS.SERVICE_UNAVAILABLE,
+            'Email service is not configured. Please configure SMTP settings and try again.',
+            'EMAIL_SERVICE_UNAVAILABLE'
+        );
+    }
+};
+
 const createToken = async (
     userId,
     type,
@@ -138,6 +150,8 @@ const findAndVerifyToken = async (token, type) => {
 };
 
 const register = async (registerBody) => {
+    ensureEmailServiceReady();
+
     const { email, password, name, role, cellphone_number } = registerBody;
 
     const existingUser = await userService.findUserByEmail(email);
@@ -203,7 +217,15 @@ const register = async (registerBody) => {
         return { user: createdUser, verificationToken: token };
     });
 
-    await emailService.sendVerificationEmail(user.email, verificationToken);
+    try {
+        await emailService.sendVerificationEmail(user.email, verificationToken);
+    } catch (error) {
+        throw new ApiError(
+            HTTP_STATUS.SERVICE_UNAVAILABLE,
+            'Registration succeeded but verification email could not be sent. Please request a resend.',
+            'EMAIL_DELIVERY_FAILED'
+        );
+    }
 
     return user;
 };
@@ -376,6 +398,8 @@ const verifyEmail = async (token) => {
 };
 
 const resendVerification = async (email) => {
+    ensureEmailServiceReady();
+
     const user = await userService.findUserByEmail(email);
     if (!user) {
         throw new ApiError(
@@ -395,10 +419,20 @@ const resendVerification = async (email) => {
         TOKEN_TYPE.VERIFY_EMAIL,
         jwtConfig.verifyEmailExpirationMinutes
     );
-    await emailService.sendVerificationEmail(user.email, verificationToken);
+    try {
+        await emailService.sendVerificationEmail(user.email, verificationToken);
+    } catch (error) {
+        throw new ApiError(
+            HTTP_STATUS.SERVICE_UNAVAILABLE,
+            'Verification email could not be sent. Please try again.',
+            'EMAIL_DELIVERY_FAILED'
+        );
+    }
 };
 
 const forgotPassword = async (email) => {
+    ensureEmailServiceReady();
+
     const user = await userService.findUserByEmail(email);
     if (!user) {
         throw new ApiError(
@@ -412,7 +446,15 @@ const forgotPassword = async (email) => {
         TOKEN_TYPE.RESET_PASSWORD,
         jwtConfig.resetPasswordExpirationMinutes
     );
-    await emailService.sendResetPasswordEmail(user.email, resetToken);
+    try {
+        await emailService.sendResetPasswordEmail(user.email, resetToken);
+    } catch (error) {
+        throw new ApiError(
+            HTTP_STATUS.SERVICE_UNAVAILABLE,
+            'Password reset email could not be sent. Please try again.',
+            'EMAIL_DELIVERY_FAILED'
+        );
+    }
 };
 
 const resetPassword = async (token, newPassword) => {

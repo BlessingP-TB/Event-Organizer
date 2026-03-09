@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { ArrowLeft } from "lucide-react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/api";
 import '../../styles/pages/_uploadpop.scss'; // You'll create this SCSS file
 
 export default function UploadProofOfPayment() {
@@ -98,16 +98,7 @@ export default function UploadProofOfPayment() {
         eventId: eventId // Include the event ID to link the document
       };
 
-      await axios.post(
-        "http://localhost:3000/documents/me/documents", // Ensure this endpoint matches your backend
-        docBody,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      await api.post("/documents/me/documents", docBody);
 
       console.log("Document uploaded successfully for event:", eventId);
       showToastMessage("Document uploaded successfully!");

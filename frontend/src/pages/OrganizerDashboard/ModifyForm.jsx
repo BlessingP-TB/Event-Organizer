@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
 import { ArrowLeft } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import VenueCardGallery from '../../components/VenueCardGallery';
 import TermsCheckbox from '../../components/TermsCheckbox';
+import api from '../../utils/api';
 import "../../styles/pages/_createevent.scss";
 
 const padTo2Digits = (num) => num.toString().padStart(2, '0');
@@ -39,10 +39,7 @@ export default function ModifyForm() {
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("accessToken");
-        const response = await axios.get(`http://localhost:3000/events/${eventId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await api.get(`/events/${eventId}`);
 
         const eventData = response.data;
 
@@ -123,10 +120,7 @@ export default function ModifyForm() {
 
     setLoading(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      await axios.patch(`http://localhost:3000/events/${eventId}`, updatePayload, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.patch(`/events/${eventId}`, updatePayload);
       showToastMessage("Event updated successfully!");
       setTimeout(() => navigate(`/organizer/event-details-modify/${eventId}`), 2000);
     } catch (err) {

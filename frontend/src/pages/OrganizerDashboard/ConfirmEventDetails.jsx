@@ -3,7 +3,7 @@ import React, { useState, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import "../../styles/pages/_confirmevent.scss"; // Ensure this path is correct
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/api";
 
 export default function ConfirmEventDetails() {
   const navigate = useNavigate();
@@ -49,24 +49,12 @@ export default function ConfirmEventDetails() {
       let themeId = null;
       if (themeImage) {
           const base64Image = themeImage.split(',')[1];
-          const imageType = themeImage.split(';')[0].split('/')[1];
-          const themeResponse = await fetch('http://localhost:3000/themes/', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-              },
-              body: JSON.stringify({
-                  name: `Theme for ${formData.name}`,
-                  description: `Theme for event: ${formData.name}`,
-                  image: base64Image,
-                  filename: `theme-${Date.now()}.${imageType}`
-              })
-          });
-          if (!themeResponse.ok) {
-              throw new Error(`HTTP error! status: ${themeResponse.status}`);
-          }
-          const themeResult = await themeResponse.json();
+        const themeResponse = await api.post('/themes', {
+          name: `Theme for ${formData.name}`,
+          description: `Theme for event: ${formData.name}`,
+          image: base64Image,
+        });
+        const themeResult = themeResponse.data;
           themeId = themeResult.id || themeResult.data?.id;
           if (!themeId) {
               throw new Error('Failed to get theme ID from response');
@@ -101,17 +89,7 @@ export default function ConfirmEventDetails() {
 
       console.log("DEBUG: Submitting formData to backend:", submissionData);
 
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.post(
-        "http://localhost:3000/events",
-        submissionData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await api.post('/events', submissionData);
       console.log("Event submitted successfully:", response.data);
       showToastMessage("Event booking request submitted successfully!");
       setTimeout(() => navigate("/organizer/events"), 2000);
