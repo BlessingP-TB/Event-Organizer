@@ -89,7 +89,7 @@ export default function ConfirmEventDetails() {
 
       console.log("DEBUG: Submitting formData to backend:", submissionData);
 
-      const response = await api.post('/events', submissionData);
+  const response = await api.post("/events", submissionData);
       console.log("Event submitted successfully:", response.data);
       showToastMessage("Event booking request submitted successfully!");
       setTimeout(() => navigate("/organizer/events"), 2000);

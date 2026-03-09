@@ -78,6 +78,7 @@ const Dashboard = () => {
       setLoading(false);
     }
   }, [organizerId]);
+  }, [organizerId]);
 
   useEffect(() => {
     fetchDashboardStats();
