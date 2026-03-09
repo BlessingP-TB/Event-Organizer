@@ -7,6 +7,7 @@ import api from '../utils/api';
 import { Bell } from "lucide-react";
 import { motion } from "framer-motion";
 import "../styles/components/_modernSidebar.scss";
+import NotificationModal from './NotificationModal';
 
 const ModernSidebar = ({ role, links, storageKey }) => {
   const [notifications, setNotifications] = useState([]);
@@ -240,24 +241,7 @@ const ModernSidebar = ({ role, links, storageKey }) => {
       )}
       {/* Notification modal shown on top of screen when a notification is clicked */}
       {showNotifModal && activeNote && (
-        <div className="notif-modal-overlay" onClick={closeNotifModal}>
-          <div className="notif-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="notif-modal-header">
-              <h4>{activeNote.type?.replace(/_/g, ' ') || 'Notification'}</h4>
-              <button className="close-btn" onClick={closeNotifModal}>×</button>
-            </div>
-            <div className="notif-modal-body">
-              <p className="modal-message">{activeNote.message}</p>
-              <p className="modal-meta">{new Date(activeNote.createdAt).toLocaleString()}</p>
-            </div>
-            <div className="notif-modal-actions">
-              {activeNote.data?.eventId && (
-                <button className="goto-btn" onClick={() => goToEventFromNotif(activeNote)}>Open Event</button>
-              )}
-              <button className="close-secondary" onClick={closeNotifModal}>Close</button>
-            </div>
-          </div>
-        </div>
+        <NotificationModal note={activeNote} onClose={closeNotifModal} onOpenEvent={goToEventFromNotif} />
       )}
     </>
   );
