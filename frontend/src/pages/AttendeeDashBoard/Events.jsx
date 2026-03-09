@@ -239,7 +239,7 @@ const Events = () => {
     if (existingRating) {
       toast.info("You have already rated this event.");
     } else {
-      navigate("/attendee/rate-events", { state: { eventData: eventData } });
+      navigate("/attendee/ratings", { state: { eventData: eventData } });
     }
   }, [navigate]);
 
