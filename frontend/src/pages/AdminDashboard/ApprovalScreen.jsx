@@ -3,7 +3,8 @@ import "../../styles/pages/_approvalqueue.scss";
 import { FaCalendarAlt, FaTag } from "react-icons/fa";
 import { FiSearch } from "react-icons/fi";
 import { useNavigate } from 'react-router-dom';
-import api from '../../utils/api';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 
 const tabs = ["All", "PENDING", "APPROVED", "REJECTED"];
 
@@ -15,9 +16,10 @@ export default function ApprovalScreen() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const token = localStorage.getItem("accessToken");
+
   /** Fetch Approvals List **/
   const fetchApprovals = async () => {
-    const token = localStorage.getItem("accessToken");
     if (!token) {
       setLoading(false);
       window.location.href = "/login";
@@ -25,12 +27,19 @@ export default function ApprovalScreen() {
     }
 
     try {
-      const res = await api.get('/approvals', {
+      const res = await fetch(`${API_BASE}/approvals`, {
         headers: {
+          Authorization: `Bearer ${token}`,
           "Cache-Control": "no-cache",
         },
       });
-      const data = res?.data;
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.message || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json();
       let approvalArray = [];
 
       if (Array.isArray(data)) approvalArray = data;
@@ -78,12 +87,16 @@ export default function ApprovalScreen() {
         if (!item.eventId) return item;
 
         try {
-          const res = await api.get(`/admin/events/${item.eventId}`, {
+          const res = await fetch(`${API_BASE}/admin/events/${item.eventId}`, {
             headers: {
+              Authorization: `Bearer ${token}`,
               "Cache-Control": "no-cache",
             },
           });
-          const eventData = res?.data;
+
+          if (!res.ok) throw new Error(`Failed to fetch event ${item.eventId}`);
+
+          const eventData = await res.json();
           const event = eventData.event || eventData || {};
 
           return {

@@ -122,9 +122,10 @@ export default function CreateEvent() {
   useEffect(() => {
     const fetchCalendarData = async () => {
       try {
-        const res = await api.get('/admin/calendars', {
-          headers: { 'Cache-Control': 'no-cache' },
-        });
+        const token = localStorage.getItem('accessToken');
+        const headers = { 'Cache-Control': 'no-cache' };
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const res = await api.get('/admin/calendars', { headers });
         const json = res.data;
         setCalendarData(json.data || json || []);
       } catch (err) {
@@ -139,9 +140,10 @@ export default function CreateEvent() {
     const fetchTools = async () => {
       setIsLoadingTools(true);
       try {
-        const res = await api.get('/tools', {
-          headers: { 'Cache-Control': 'no-cache' },
-        });
+        const token = localStorage.getItem('accessToken');
+        const headers = { 'Cache-Control': 'no-cache' };
+        if (token) headers.Authorization = `Bearer ${token}`;
+        const res = await api.get('/tools', { headers });
         const json = res.data;
         const tools = json.data || json || [];
         const toolNames = Array.isArray(tools) ? tools.map(t => t.name).filter(Boolean) : [];
