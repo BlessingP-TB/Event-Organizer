@@ -21,6 +21,7 @@ const venueIssuerController = require('./venueIssuer.controller');
 const systemSettingController = require('./systemSetting.controller');
 const calendarController = require('./calendar.controller');
 const statsController = require('./stats.controller');
+const supportController = require('./support.controller');
 
 module.exports = {
     adminController,
@@ -46,4 +47,5 @@ module.exports = {
     systemSettingController,
     calendarController,
     statsController,
+    supportController,
 };

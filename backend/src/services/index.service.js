@@ -22,6 +22,7 @@ const venueService = require('./venue.service');
 const venueIssuerService = require('./venueIssuer.service');
 const calendarService = require('./calendar.service');
 const statsService = require('./stats.service');
+const supportService = require('./support.service');
 module.exports = {
     adminService,
     approvalService,
@@ -47,4 +48,5 @@ module.exports = {
     venueIssuerService,
     calendarService,
     statsService,
+    supportService,
 };
