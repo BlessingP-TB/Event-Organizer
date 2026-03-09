@@ -14,6 +14,7 @@ export default function AvailableVenues() {
     price: "",
     capacity: "",
     type: "",
+    typeOther: "",
     rateType: "PER_DAY",
     images: [],
   });
@@ -45,6 +46,7 @@ export default function AvailableVenues() {
           price: Number(v.price) || 0,
           capacity: Number(v.capacity) || 0,
           type: v.type || "HALL",
+          typeOther: v.typeOther || "",
           rateType: v.rateType || "PER_DAY",
           imageUrls: v.imageUrls || [],
         }));
@@ -76,6 +78,7 @@ export default function AvailableVenues() {
         price: venue.price?.toString() || "",
         capacity: venue.capacity?.toString() || "",
         type: venue.type,
+        typeOther: venue.typeOther || "",
         rateType: venue.rateType,
         images: venue.imageUrls || [],
       });
@@ -87,6 +90,7 @@ export default function AvailableVenues() {
         price: "",
         capacity: "",
         type: "",
+        typeOther: "",
         rateType: "PER_DAY",
         images: [],
       });
@@ -111,12 +115,23 @@ export default function AvailableVenues() {
   };
 
   const handleSave = async () => {
+    if (!venueData.name?.trim()) return alert("Venue name is required.");
+    if (!venueData.location?.trim()) return alert("Location is required.");
+    if (!venueData.type?.trim()) return alert("Venue type is required.");
+    if (!venueData.rateType?.trim()) return alert("Rate type is required.");
+    if (!venueData.price || Number(venueData.price) < 0) return alert("Price must be 0 or greater.");
+    if (!venueData.capacity || Number(venueData.capacity) < 1) return alert("Capacity must be at least 1.");
+    if (venueData.type === "OTHER" && !venueData.typeOther?.trim()) {
+      return alert("Please specify the venue type when selecting Other.");
+    }
+
     const payload = {
-      name: venueData.name,
-      location: venueData.location,
+      name: venueData.name.trim(),
+      location: venueData.location.trim(),
       price: parseFloat(venueData.price),
       capacity: parseInt(venueData.capacity),
       type: venueData.type,
+      typeOther: venueData.type === "OTHER" ? venueData.typeOther.trim() : "",
       rateType: venueData.rateType,
     };
 
@@ -131,20 +146,21 @@ export default function AvailableVenues() {
 
     try {
       if (editId) {
-        await api.patch(`/admin/venues/${editId}`, formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await api.patch(`/admin/venues/${editId}`, formData);
       } else {
-        await api.post("/admin/venues", formData, {
-          headers: { "Content-Type": "multipart/form-data" },
-        });
+        await api.post("/admin/venues", formData);
       }
 
       setModalVisible(false);
       fetchVenues();
     } catch (err) {
       console.error("Save error:", err);
-      alert("Failed to save venue. Check console.");
+      const apiMessage = err?.response?.data?.message;
+      const details = err?.response?.data?.details;
+      const detailText = Array.isArray(details)
+        ? details.map((d) => d.message || d?.context?.label).filter(Boolean).join("\n")
+        : "";
+      alert(apiMessage || detailText || "Failed to save venue. Check console.");
     }
   };
 
@@ -265,7 +281,7 @@ export default function AvailableVenues() {
               className="input"
               value={venueData.type}
               onChange={(e) =>
-                setVenueData({ ...venueData, type: e.target.value })
+                setVenueData({ ...venueData, type: e.target.value, typeOther: e.target.value === "OTHER" ? venueData.typeOther : "" })
               }
             >
               <option value="" disabled>
@@ -276,6 +292,18 @@ export default function AvailableVenues() {
               <option value="HALL">Hall</option>
               <option value="OTHER">Other</option>
             </select>
+
+            {venueData.type === "OTHER" && (
+              <input
+                className="input"
+                type="text"
+                placeholder="Specify venue type"
+                value={venueData.typeOther}
+                onChange={(e) =>
+                  setVenueData({ ...venueData, typeOther: e.target.value })
+                }
+              />
+            )}
 
             <select
               className="input"
