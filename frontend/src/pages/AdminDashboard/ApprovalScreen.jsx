@@ -4,6 +4,8 @@ import { FaCalendarAlt, FaTag } from "react-icons/fa";
 import { FiSearch } from "react-icons/fi";
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 const tabs = ["All", "PENDING", "APPROVED", "REJECTED"];
 
 export default function ApprovalScreen() {
@@ -25,7 +27,7 @@ export default function ApprovalScreen() {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/approvals", {
+      const res = await fetch(`${API_BASE}/approvals`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Cache-Control": "no-cache",
@@ -85,7 +87,7 @@ export default function ApprovalScreen() {
         if (!item.eventId) return item;
 
         try {
-          const res = await fetch(`http://localhost:3000/admin/events/${item.eventId}`, {
+          const res = await fetch(`${API_BASE}/admin/events/${item.eventId}`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Cache-Control": "no-cache",

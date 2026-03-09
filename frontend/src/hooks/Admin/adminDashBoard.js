@@ -1,6 +1,6 @@
 // src/hooks/Admin/adminDashboard.js
 import { useState, useEffect, useRef } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 
 const useAdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState({
@@ -36,8 +36,8 @@ const useAdminDashboard = () => {
       const token = getToken();
       if (!token) throw new Error('Authentication token missing.');
 
-      const response = await axios.get('http://localhost:3000/admin/dashboard', {
-        headers: { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache' },
+      const response = await api.get('/admin/dashboard', {
+        headers: { 'Cache-Control': 'no-cache' },
       });
 
       return response.data;
@@ -53,8 +53,8 @@ const useAdminDashboard = () => {
       const token = getToken();
       if (!token) throw new Error('Authentication token missing.');
 
-      const response = await axios.get('http://localhost:3000/admin/venues/top-booked', {
-        headers: { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache' },
+      const response = await api.get('/admin/venues/top-booked', {
+        headers: { 'Cache-Control': 'no-cache' },
       });
 
       return response.data || [];
@@ -70,8 +70,8 @@ const useAdminDashboard = () => {
       const token = getToken();
       if (!token) throw new Error('Authentication token missing.');
 
-      const response = await axios.get('http://localhost:3000/admin/analytics/revenue', {
-        headers: { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache' },
+      const response = await api.get('/admin/analytics/revenue', {
+        headers: { 'Cache-Control': 'no-cache' },
       });
 
       return response.data || [];
