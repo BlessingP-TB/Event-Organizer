@@ -2,9 +2,41 @@ const nodemailer = require('nodemailer');
 const { email, clientUrl, env } = require('../configs/environment.config');
 const { logger } = require('../utils/index.util');
 
-let transporter;
-if (email.enabled) {
-    transporter = nodemailer.createTransport({
+let transporterPromise = null;
+
+const createTransporter = async () => {
+    if (!email.enabled) {
+        return null;
+    }
+
+    if (email.useEthereal) {
+        const testAccount = await nodemailer.createTestAccount();
+        logger.info('Using Ethereal SMTP for development emails.', {
+            user: testAccount.user,
+            host: testAccount.smtp.host,
+            port: testAccount.smtp.port,
+        });
+
+        const etherealTransporter = nodemailer.createTransport({
+            host: testAccount.smtp.host,
+            port: testAccount.smtp.port,
+            secure: testAccount.smtp.secure,
+            auth: {
+                user: testAccount.user,
+                pass: testAccount.pass,
+            },
+        });
+
+        await etherealTransporter.verify();
+        logger.info('Ethereal email transporter is configured and ready.');
+        return etherealTransporter;
+    }
+
+    if (!email.host || !email.port || !email.user || !email.pass) {
+        throw new Error('Email is enabled but SMTP settings are incomplete. Set EMAIL_HOST, EMAIL_PORT, EMAIL_USER, and EMAIL_PASS or enable EMAIL_USE_ETHEREAL=true.');
+    }
+
+    const smtpTransporter = nodemailer.createTransport({
         host: email.host,
         port: email.port,
         secure: email.port === 465,
@@ -14,13 +46,17 @@ if (email.enabled) {
         },
     });
 
-    transporter
-        .verify()
-        .then(() => logger.info('Email transporter is configured and ready.'))
-        .catch((error) =>
-            logger.error('Email transporter verification failed.', error)
-        );
-}
+    await smtpTransporter.verify();
+    logger.info('SMTP email transporter is configured and ready.');
+    return smtpTransporter;
+};
+
+const getTransporter = async () => {
+    if (!transporterPromise) {
+        transporterPromise = createTransporter();
+    }
+    return transporterPromise;
+};
 
 const sendEmail = async (to, subject, text, html) => {
     if (!email.enabled) {
@@ -36,8 +72,17 @@ const sendEmail = async (to, subject, text, html) => {
     }
 
     try {
+        const transporter = await getTransporter();
+        if (!transporter) {
+            logger.warn('Email sending is disabled. Skipping email task.', {
+                to,
+                subject,
+            });
+            return;
+        }
+
         const info = await transporter.sendMail({
-            from: email.from,
+            from: email.from || 'no-reply@smartevents.local',
             to,
             subject,
             text,
@@ -47,10 +92,21 @@ const sendEmail = async (to, subject, text, html) => {
             messageId: info.messageId,
             recipient: to,
         });
+
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        if (previewUrl) {
+            logger.info('Email preview URL (Ethereal):', { previewUrl });
+        }
     } catch (error) {
         logger.error('Error sending email.', { error, recipient: to });
     }
 };
+
+if (email.enabled) {
+    getTransporter().catch((error) => {
+        logger.error('Email transporter initialization failed.', { error });
+    });
+}
 
 const sendVerificationEmail = async (to, token) => {
     const subject = 'Verify Your Email Address';

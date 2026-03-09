@@ -5,7 +5,7 @@ import {
   FaBuilding, FaWineGlassAlt, FaUtensils, FaBroom, FaShieldAlt, FaMoneyBillWave,
   FaFilePdf, FaFileImage, FaFile, FaDownload, FaEdit, FaSave, FaTimes
 } from "react-icons/fa";
-import axios from 'axios'; // Import axios
+import api from '../../utils/api';
 import eventPic from "../../assets/images/eventPic.PNG";
 import "../../styles/pages/EventDetails.scss";
 
@@ -41,28 +41,25 @@ export default function AdminEventDetails() {
 
     try {
       // Fetch event details
-      const eventRes = await fetch(`http://localhost:3000/admin/events/${eventId}`, {
-        headers: { Authorization: `Bearer ${token}`, "Cache-Control": "no-cache" },
+      const eventRes = await api.get(`/admin/events/${eventId}`, {
+        headers: { "Cache-Control": "no-cache" },
       });
-      if (!eventRes.ok) throw new Error(`Event HTTP ${eventRes.status}`);
-      const eventData = await eventRes.json();
+      const eventData = eventRes?.data;
       setEvent(eventData);
 
       // Fetch approvals and match event
-      const approvalRes = await fetch(`http://localhost:3000/approvals`, {
-        headers: { Authorization: `Bearer ${token}`, "Cache-Control": "no-cache" },
+      const approvalRes = await api.get('/approvals', {
+        headers: { "Cache-Control": "no-cache" },
       });
-      if (!approvalRes.ok) throw new Error(`Approval HTTP ${approvalRes.status}`);
-      const approvalData = await approvalRes.json();
+      const approvalData = approvalRes?.data;
       const matchingApproval = approvalData.data.find((a) => a.eventId === eventId);
       setApproval(matchingApproval || null);
 
       // Fetch bookings and match event
-      const bookingRes = await fetch(`http://localhost:3000/bookings/bookings`, {
-        headers: { Authorization: `Bearer ${token}`, "Cache-Control": "no-cache" },
+      const bookingRes = await api.get('/bookings/bookings', {
+        headers: { "Cache-Control": "no-cache" },
       });
-      if (!bookingRes.ok) throw new Error(`Booking HTTP ${bookingRes.status}`);
-      const bookingData = await bookingRes.json();
+      const bookingData = bookingRes?.data;
       const allBookings =
         bookingData.data || bookingData.bookings || bookingData.items || bookingData;
       const matchingBooking = Array.isArray(allBookings)
@@ -81,10 +78,9 @@ export default function AdminEventDetails() {
       // --- NEW: Fetch documents for the organizer of this event ---
       if (eventData && eventData.organizerId) {
           try {
-              const docsRes = await axios.get(`http://localhost:3000/admin/users/${eventData.organizerId}/documents`, {
+                const docsRes = await api.get(`/admin/users/${eventData.organizerId}/documents`, {
                   headers: {
-                      Authorization: `Bearer ${token}`,
-                      "Cache-Control": "no-cache" // Add cache control
+                    "Cache-Control": "no-cache"
                   }
               });
               // Filter documents by the current event ID
@@ -135,21 +131,8 @@ export default function AdminEventDetails() {
       const body = { status: newStatus };
       if (reason) body.notes = reason;
 
-      const res = await fetch(`http://localhost:3000/approvals/${approval.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `HTTP ${res.status}`);
-      }
-
-      const updated = await res.json();
+      const res = await api.patch(`/approvals/${approval.id}`, body);
+      const updated = res?.data;
       setApproval(updated);
       setShowRejectReason(false);
       setRejectReason("");
@@ -171,25 +154,12 @@ export default function AdminEventDetails() {
 
     try {
       // Use the NEW admin endpoint for updating booking details
-      const res = await fetch(`http://localhost:3000/admin/bookings/${booking.id}`, { // Changed endpoint
-        method: "PATCH", // Changed method to PATCH
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      const res = await api.patch(`/admin/bookings/${booking.id}`, {
           status: bookingUpdate.status,
           depositPaid: bookingUpdate.depositPaid,
           totalPaid: bookingUpdate.totalPaid,
-        }),
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `HTTP ${res.status}`);
-      }
-
-      const updatedBooking = await res.json();
+      const updatedBooking = res?.data;
       setBooking(updatedBooking); // Update the main booking state
       // Update the bookingUpdate state to reflect the saved values
       setBookingUpdate({
@@ -231,21 +201,8 @@ export default function AdminEventDetails() {
     }
 
     try {
-      const res = await fetch(`http://localhost:3000/admin/documents/${docId}/status`, { // Use the correct admin endpoint
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newDocStatus }),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `HTTP ${res.status}`);
-      }
-
-      const updatedDoc = await res.json();
+      const res = await api.patch(`/admin/documents/${docId}/status`, { status: newDocStatus });
+      const updatedDoc = res?.data;
 
       // Update the document status in the local state
       setEventDocuments(prevDocs => 
@@ -270,8 +227,7 @@ export default function AdminEventDetails() {
     }
 
     try {
-      const response = await axios.get(`http://localhost:3000/documents/documents/${docId}`, { // Use the correct endpoint for admin
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.get(`/documents/documents/${docId}`, {
         responseType: 'blob' // Important: Receive the response as a Blob
       });
 

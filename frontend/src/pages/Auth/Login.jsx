@@ -11,20 +11,17 @@ export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [retryAfterSeconds, setRetryAfterSeconds] = useState(0);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  
-
-
   const handleSubmit = async (e) => {
     e.preventDefault();
+      if (loading || retryAfterSeconds > 0) return;
     setLoading(true);
-
-     console.log("Submitting form:", form);
 
     try {
       const res = await api.post('/auth/login', form);
@@ -44,15 +41,29 @@ export default function Login() {
       };
       navigate(routes[user.role.toUpperCase()] || '/');
     } catch (err) {
+      const retryAfterHeader = err.response?.headers?.['retry-after'];
+      const retryAfter = Number.parseInt(retryAfterHeader, 10);
+      if (Number.isFinite(retryAfter) && retryAfter > 0) {
+        setRetryAfterSeconds(retryAfter);
+      }
+
       const msg =
         err.response?.data?.message ||
         err.message ||
         'Login failed. Please check your credentials.';
-      toast.error(msg);
+      toast.error(msg, { id: 'auth-login-error' });
     } finally {
       setLoading(false);
     }
   };
+
+  React.useEffect(() => {
+    if (retryAfterSeconds <= 0) return;
+    const timer = window.setTimeout(() => {
+      setRetryAfterSeconds((current) => Math.max(0, current - 1));
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [retryAfterSeconds]);
 
   return (
     <div className="auth-center">
@@ -92,8 +103,12 @@ export default function Login() {
           </button>
         </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? 'Logging in…' : 'Login'}
+        <button type="submit" disabled={loading || retryAfterSeconds > 0}>
+          {loading
+            ? 'Logging in…'
+            : retryAfterSeconds > 0
+              ? `Try again in ${retryAfterSeconds}s`
+              : 'Login'}
         </button>
 
         <div className="auth-footer">

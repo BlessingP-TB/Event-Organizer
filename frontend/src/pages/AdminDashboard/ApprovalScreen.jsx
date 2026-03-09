@@ -3,6 +3,7 @@ import "../../styles/pages/_approvalqueue.scss";
 import { FaCalendarAlt, FaTag } from "react-icons/fa";
 import { FiSearch } from "react-icons/fi";
 import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api';
 
 const tabs = ["All", "PENDING", "APPROVED", "REJECTED"];
 
@@ -14,10 +15,9 @@ export default function ApprovalScreen() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
-  const token = localStorage.getItem("accessToken");
-
   /** Fetch Approvals List **/
   const fetchApprovals = async () => {
+    const token = localStorage.getItem("accessToken");
     if (!token) {
       setLoading(false);
       window.location.href = "/login";
@@ -25,19 +25,12 @@ export default function ApprovalScreen() {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/approvals", {
+      const res = await api.get('/approvals', {
         headers: {
-          Authorization: `Bearer ${token}`,
           "Cache-Control": "no-cache",
         },
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.message || `HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
+      const data = res?.data;
       let approvalArray = [];
 
       if (Array.isArray(data)) approvalArray = data;
@@ -85,16 +78,12 @@ export default function ApprovalScreen() {
         if (!item.eventId) return item;
 
         try {
-          const res = await fetch(`http://localhost:3000/admin/events/${item.eventId}`, {
+          const res = await api.get(`/admin/events/${item.eventId}`, {
             headers: {
-              Authorization: `Bearer ${token}`,
               "Cache-Control": "no-cache",
             },
           });
-
-          if (!res.ok) throw new Error(`Failed to fetch event ${item.eventId}`);
-
-          const eventData = await res.json();
+          const eventData = res?.data;
           const event = eventData.event || eventData || {};
 
           return {

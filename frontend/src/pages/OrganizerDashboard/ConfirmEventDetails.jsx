@@ -3,13 +3,19 @@ import React, { useState, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import "../../styles/pages/_confirmevent.scss"; // Ensure this path is correct
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/api";
 
 export default function ConfirmEventDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   // Receive the complete formData from the CreateEvent page
   const { formData, selectedVenue, termsAccepted, themeImage } = location.state || {};
+  const venueDetails = selectedVenue || {
+    name: 'Selected venue',
+    location: 'N/A',
+    type: 'N/A',
+    capacity: 'N/A',
+  };
 
   // --- STATE MANAGEMENT ---
   const [loading, setLoading] = useState(false);
@@ -40,7 +46,7 @@ export default function ConfirmEventDetails() {
       showToastMessage("You must accept the terms before submitting.");
       return;
     }
-    if (!selectedVenue || !formData.venueId) {
+    if (!formData?.venueId) {
       showToastMessage("A venue must be selected before submitting.");
       return;
     }
@@ -50,23 +56,13 @@ export default function ConfirmEventDetails() {
       if (themeImage) {
           const base64Image = themeImage.split(',')[1];
           const imageType = themeImage.split(';')[0].split('/')[1];
-          const themeResponse = await fetch('http://localhost:3000/themes/', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-              },
-              body: JSON.stringify({
-                  name: `Theme for ${formData.name}`,
-                  description: `Theme for event: ${formData.name}`,
-                  image: base64Image,
-                  filename: `theme-${Date.now()}.${imageType}`
-              })
+          const themeResponse = await api.post('/themes/', {
+          name: `Theme for ${formData.name}`,
+          description: `Theme for event: ${formData.name}`,
+          image: base64Image,
+          filename: `theme-${Date.now()}.${imageType}`,
           });
-          if (!themeResponse.ok) {
-              throw new Error(`HTTP error! status: ${themeResponse.status}`);
-          }
-          const themeResult = await themeResponse.json();
+          const themeResult = themeResponse.data;
           themeId = themeResult.id || themeResult.data?.id;
           if (!themeId) {
               throw new Error('Failed to get theme ID from response');
@@ -86,8 +82,6 @@ export default function ConfirmEventDetails() {
         description: formData.description,
         expectedAttend: formData.expectedAttend,
         venueId: formData.venueId,
-        organizerId: formData.organizerId,
-        purposeOfFunction: formData.purposeOfFunction,
         startDateTime: formData.startDateTime,
         endDateTime: formData.endDateTime,
         isFree: formData.isFree,
@@ -96,22 +90,11 @@ export default function ConfirmEventDetails() {
         resources: formData.resources || [],
         services: formData.services || {}, // ✅ Already has boolean flags
         themeId: themeId ?? null,
-        status: formData.status ?? "DRAFT",
       };
 
       console.log("DEBUG: Submitting formData to backend:", submissionData);
 
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.post(
-        "http://localhost:3000/events",
-        submissionData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await api.post('/events', submissionData);
       console.log("Event submitted successfully:", response.data);
       showToastMessage("Event booking request submitted successfully!");
       setTimeout(() => navigate("/organizer/events"), 2000);
@@ -125,7 +108,7 @@ export default function ConfirmEventDetails() {
   };
 
   // --- RENDER LOGIC ---
-  if (!formData || !selectedVenue) {
+  if (!formData) {
     return (
       <div className="confirm-event-page">
          <div className="confirm-event-container">
@@ -171,10 +154,10 @@ export default function ConfirmEventDetails() {
             </section>
             <section className="confirm-section">
               <h2>Selected Venue</h2>
-              <p><strong>Name:</strong> {selectedVenue.name}</p>
-              <p><strong>Location:</strong> {selectedVenue.location}</p>
-              <p><strong>Type:</strong> {selectedVenue.type}</p>
-              <p><strong>Capacity:</strong> {selectedVenue.capacity}</p>
+              <p><strong>Name:</strong> {venueDetails.name}</p>
+              <p><strong>Location:</strong> {venueDetails.location}</p>
+              <p><strong>Type:</strong> {venueDetails.type}</p>
+              <p><strong>Capacity:</strong> {venueDetails.capacity}</p>
             </section>
 
             {/* Event Context */}
