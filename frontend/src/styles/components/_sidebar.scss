@@ -251,6 +251,9 @@
   max-height: 80vh;
   display: flex;
   flex-direction: column;
+  /* entrance animation */
+  transform-origin: center;
+  animation: notifFadeScaleIn 220ms cubic-bezier(.2,.9,.2,1);
 }
 
 .notif-modal-header {
@@ -314,4 +317,15 @@
   padding: 8px 12px;
   border-radius: 6px;
   cursor: pointer;
+}
+
+@keyframes notifFadeScaleIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
