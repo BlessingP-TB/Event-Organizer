@@ -119,7 +119,7 @@ export default function CreateEvent() {
       try {
         const token = localStorage.getItem('accessToken');
         if (!token) throw new Error('Authentication token missing.');
-        const res = await fetch('http://localhost:3000/admin/calendars', {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/admin/calendars`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Cache-Control': 'no-cache'
@@ -142,7 +142,7 @@ export default function CreateEvent() {
       try {
         const token = localStorage.getItem('accessToken');
         if (!token) throw new Error('Authentication token missing.');
-        const res = await fetch('http://localhost:3000/tools', {
+        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/tools`, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Cache-Control': 'no-cache'

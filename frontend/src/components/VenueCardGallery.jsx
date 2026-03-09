@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from "react";
 import { MapPin } from "lucide-react";
 import { MdImage } from "react-icons/md";
-import axios from "axios";
+import api from "../utils/api";
 import "../styles/pages/_createEvent.scss";
 
 export default function VenueCardGallery({
@@ -20,7 +20,7 @@ export default function VenueCardGallery({
   const fetchVenues = async () => {
     try {
       setLoading(true);
-      const response = await axios.get("http://localhost:3000/venues");
+      const response = await api.get("/venues");
       // Handle both array response and paginated response
       const venuesArray = Array.isArray(response.data)
         ? response.data

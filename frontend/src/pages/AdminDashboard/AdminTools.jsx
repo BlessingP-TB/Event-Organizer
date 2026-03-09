@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import "../../styles/pages/_resources.scss";
 import { MdAddCircle, MdDelete, MdEdit } from "react-icons/md";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 export default function ResourcesManagement() {
   const [resources, setResources] = useState([]);
   const [resourceData, setResourceData] = useState({
@@ -20,7 +22,7 @@ export default function ResourcesManagement() {
     return;
   }
   try {
-    const res = await fetch("http://localhost:3000/tools", {
+    const res = await fetch(`${API_BASE}/tools`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Cache-Control": "no-cache",
@@ -81,8 +83,8 @@ export default function ResourcesManagement() {
 
     try {
       const url = editId
-        ? `http://localhost:3000/admin/tools/${editId}`
-        : "http://localhost:3000/admin/tools";
+        ? `${API_BASE}/admin/tools/${editId}`
+        : `${API_BASE}/admin/tools`;
       const method = editId ? "PATCH" : "POST";
 
       const res = await fetch(url, {
@@ -112,7 +114,7 @@ export default function ResourcesManagement() {
     if (!token) return;
 
     try {
-      const res = await fetch(`http://localhost:3000/admin/tools/${id}`, {
+      const res = await fetch(`${API_BASE}/admin/tools/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,

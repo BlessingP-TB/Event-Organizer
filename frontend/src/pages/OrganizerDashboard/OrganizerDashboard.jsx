@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import DashboardHeader from "../../components/DashBoardHeader";
 import OverviewCard from "../../components/OverviewCard";
 import QuickActions from "../../components/QuickActions";
@@ -14,7 +14,6 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const token = localStorage.getItem("accessToken");
   const user = JSON.parse(localStorage.getItem("user")); // <-- parse the object
   const organizerId = user?.id; // <-- extract organizer ID
 
@@ -22,17 +21,16 @@ const Dashboard = () => {
     setLoading(prev => !stats.totalEvents && prev);
     setError(null);
 
-    if (!token || !organizerId) {
-      setError("Authentication token or user ID not found. Please log in.");
+    if (!organizerId) {
+      setError("User ID not found. Please log in.");
       setLoading(false);
       return;
     }
 
     try {
       // Fetch organizer events for totalEvents
-      const responseEvents = await axios.get("http://localhost:3000/events", {
-        headers: { Authorization: `Bearer ${token}` },
-        params: { page: 1, limit: 1, organizerId }
+      const responseEvents = await api.get("/events/organizer", {
+        params: { page: 1, limit: 1 }
       });
 
       const eventsData = responseEvents.data;
@@ -40,10 +38,9 @@ const Dashboard = () => {
       const totalEvents = meta.totalItems || 0;
 
       // Fetch total registrations for this organizer
-      const responseRegistrations = await axios.get(
-        `http://localhost:3000/registrations/total`,
+      const responseRegistrations = await api.get(
+        "/registrations/total",
         {
-          headers: { Authorization: `Bearer ${token}` },
           params: { page: 1, limit: 1, organizerId }
         }
       );
@@ -62,7 +59,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [token, organizerId, stats.totalEvents]);
+  }, [organizerId, stats.totalEvents]);
 
   useEffect(() => {
     fetchDashboardStats();
