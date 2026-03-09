@@ -1,0 +1,9 @@
+const EVENT_STATUS = Object.freeze({
+    DRAFT: 'DRAFT',
+    PUBLISHED: 'PUBLISHED',
+    ONGOING: 'ONGOING',
+    COMPLETED: 'COMPLETED',
+    CANCELLED: 'CANCELLED',
+});
+
+module.exports = EVENT_STATUS;

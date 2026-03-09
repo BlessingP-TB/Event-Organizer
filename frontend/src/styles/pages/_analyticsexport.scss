@@ -1,0 +1,222 @@
+@import '../abstracts-auth/_variable';
+
+// =========================
+// Analytics Export Screen
+// =========================
+.analytics-export-container {
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(160deg, #e0f7fa, #ffffff);
+  min-height: 100vh;
+  font-family: $font-stack;
+  color: $text-color;
+  padding-bottom: 2rem;
+}
+
+// =========================
+// Sticky Header
+// =========================
+.export-header {
+  position: sticky;
+  top: 0;
+  background: #0b4f78;
+  padding: 1rem 1.5rem;
+  text-align: center;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  border-radius: 0 0 20px 20px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  margin-bottom: 1.5rem;
+  z-index: 100;
+}
+
+// =========================
+// Scrollable Content
+// =========================
+.analytics-export-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+// =========================
+// Export Card
+// =========================
+.export-card {
+  background-color: #ffffff;
+  border-radius: 20px;
+  padding: 1.5rem;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+  &:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 25px rgba(0,0,0,0.12);
+  }
+}
+
+// =========================
+// Section Title
+// =========================
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: #0b4f78;
+}
+
+// =========================
+// Format Buttons Row
+// =========================
+.button-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.format-button {
+  flex: 1;
+  border: none;
+  border-radius: 50px;
+  background: #f1f5f9;
+  text-align: center;
+  padding: 0.65rem;
+  color: #0b4f78;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+
+  &:hover {
+    background: #0b4f78;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+  }
+
+  &.selected {
+    background-color: #0b4f78;
+    color: #fff;
+    box-shadow: 0 6px 12px rgba(0,0,0,0.12);
+  }
+
+  &:focus {
+    outline: 2px solid #0b4f78;
+    outline-offset: 2px;
+  }
+}
+
+// =========================
+// Date Picker
+// =========================
+.date-container {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-top: 1px dashed #0b4f78;
+  gap: 0.5rem;
+
+  svg {
+    flex-shrink: 0;
+    color: #0b4f78;
+  }
+}
+
+.picker {
+  flex: 1;
+  margin-left: 0.5rem;
+  color: $text-color;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  background: #f1f5f9;
+  font-size: 0.95rem;
+  padding: 0.5rem 0.75rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:focus {
+    outline: 2px solid #0b4f78;
+    outline-offset: 2px;
+    border-color: #0b4f78;
+    background: #fff;
+  }
+
+  option {
+    padding: 0.5rem;
+  }
+}
+
+// =========================
+// Generate Button
+// =========================
+.generate-button {
+  background: #0b4f78;
+  border-radius: 50px;
+  padding: 1rem;
+  width: 100%;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.05rem;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    background: #0b4f78;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 18px rgba(0,0,0,0.15);
+  }
+
+  &:active {
+    background-color: #094061; // slightly darker for active
+    transform: translateY(1px);
+  }
+
+  &:focus {
+    outline: 2px solid #0b4f78;
+    outline-offset: 2px;
+  }
+}
+
+// =========================
+// Responsive Adjustments
+// =========================
+@media (max-width: 480px) {
+  .analytics-export-content {
+    padding: 1rem;
+  }
+
+  .export-header {
+    font-size: 1.25rem;
+  }
+
+  .export-card {
+    padding: 1rem;
+  }
+
+  .section-title {
+    font-size: 1rem;
+  }
+
+  .format-button {
+    font-size: 0.875rem;
+    padding: 0.5rem;
+  }
+
+  .picker {
+    font-size: 0.875rem;
+  }
+
+  .generate-button {
+    font-size: 0.95rem;
+  }
+}

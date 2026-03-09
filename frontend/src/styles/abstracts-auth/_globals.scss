@@ -1,0 +1,36 @@
+// src/styles/abstracts-auth/_globals.scss
+@use './_variable' as *;
+
+body {
+  background: $background-gradient;
+  overflow-y: auto;
+  color: $text-color;
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  
+ 
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+button {
+  cursor: pointer;
+}
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+}
+
+.footer {
+  margin-top: auto;
+}

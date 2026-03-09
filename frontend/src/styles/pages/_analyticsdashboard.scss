@@ -1,0 +1,383 @@
+/* ---------------------------------------------------------
+   ADMIN ANALYTICS DASHBOARD — CLEAN WHITE THEME
+--------------------------------------------------------- */
+
+.admin-dashboard-page {
+  padding: 2rem 2.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2.5rem;
+  width: 100%;
+  
+  background: #ffffff;     /* FULL WHITE BACKGROUND */
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+  }
+}
+
+/* --------------------------- HEADER --------------------------- */
+
+.dashboard-header {
+  .header-title {
+    font-size: 1.9rem;
+    font-weight: 700;
+    color: #0a2540;
+  }
+}
+
+/* ---------------------- CARD STYLE (REUSABLE) ---------------------- */
+
+%card {
+  background: #ffffff;
+  padding: 1.6rem;
+  border-radius: 14px;
+  box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.08);   /* CLEAN SHADOW */
+  width: 100%;
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0px 10px 24px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* ---------------------- REVENUE CARD ---------------------- */
+
+.revenue-card {
+  @extend %card;
+
+  .revenue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    .revenue-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #0a2540;
+    }
+
+    .monthly-badge {
+      background: rgba(0, 118, 255, 0.12);
+      padding: 0.3rem 0.7rem;
+      border-radius: 8px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: #006adc;
+    }
+  }
+
+  .revenue-amount-container {
+    margin-top: 1rem;
+
+    .revenue-amount {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #0a2540;
+    }
+
+    .revenue-change {
+      display: flex;
+      align-items: center;
+      margin-top: 0.4rem;
+      gap: 0.35rem;
+
+      .revenue-icon {
+        color: #18b51f;
+      }
+
+      .revenue-change-text {
+        font-size: 0.85rem;
+        color: #555;
+      }
+    }
+  }
+
+  .revenue-chart {
+    margin-top: 1rem;
+
+    .chart-placeholder {
+      background: #f5f7fa;
+      padding: 1.4rem;
+      border-radius: 12px;
+      text-align: center;
+      color: #777;
+      font-size: 0.9rem;
+      border: 1px dashed #d6dce5;
+    }
+  }
+}
+
+/* ---------------------- STATS GRID ---------------------- */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.stat-card {
+  @extend %card;
+
+  .stat-header {
+    display: flex;
+    justify-content: space-between;
+
+    .stat-title {
+      font-size: 1rem;
+      font-weight: 600;
+      color: #0b1b2b;
+    }
+  }
+
+  .stat-value {
+    margin-top: 0.7rem;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #0a2540;
+  }
+
+  .stat-subtitle {
+    color: #7b8895;
+    font-size: 0.85rem;
+    margin-top: 0.2rem;
+  }
+}
+
+/* ---------------------- OCCUPANCY CARD ---------------------- */
+
+.occupancy-card {
+  @extend %card;
+
+  .card-header {
+    margin-bottom: 1rem;
+
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: #0a2540;
+    }
+  }
+
+  .occupancy-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.9rem;
+  }
+
+  .occupancy-row {
+    display: grid;
+    grid-template-columns: 1fr 3fr auto;
+    align-items: center;
+    gap: 0.8rem;
+
+    .occupancy-label {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .occupancy-value {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: #0a2540;
+    }
+  }
+
+  .occupancy-bar-container {
+    width: 100%;
+    height: 9px;
+    background: #e8edf3;
+    border-radius: 10px;
+    overflow: hidden;
+
+    .occupancy-bar-filled {
+      height: 100%;
+      background: #0077b6;
+      border-radius: 10px;
+      transition: width 0.4s ease;
+    }
+  }
+
+  .occupancy-caption {
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: #7b8895;
+  }
+}
+
+/* ---------------------- ACTION LINKS ---------------------- */
+
+.action-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.action-link {
+  @extend %card;
+  padding: 1rem 1.3rem;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #0a2540;
+
+  .action-icon {
+    font-size: 1.1rem;
+    color: #666;
+  }
+
+  &:active {
+    transform: translateY(-1px);
+  }
+}
+
+/* ---------------------- LINE GRAPH ---------------------- */
+
+.line-graph-container {
+  width: 100%;
+  height: auto;
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+/* ---------------------------------------------------------
+   ADMIN ANALYTICS DASHBOARD — CLEAN WHITE THEME
+--------------------------------------------------------- */
+
+.admin-dashboard-page {
+  padding: 2.4rem 2.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3rem;                   /* BIGGER SPACE BETWEEN MAIN SECTIONS */
+  width: 100%;
+  background: #ffffff;
+
+  @media (max-width: 768px) {
+    padding: 1.5rem;
+    gap: 2rem;
+  }
+}
+
+/* Space between header and content */
+.dashboard-header {
+  margin-bottom: 0.5rem;
+
+  .header-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: #0a2540;
+  }
+}
+
+/* ---------------------- UNIVERSAL CARD STYLE ---------------------- */
+
+%card {
+  background: #ffffff;
+  padding: 1.9rem;              /* more breathing room */
+  border-radius: 14px;
+  box-shadow: 0px 6px 20px rgba(0, 0, 0, 0.08);
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 1.3rem;                  /* spacing inside the card */
+  transition: transform 0.12s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    transform: translateY(-3px);
+    box-shadow: 0px 10px 26px rgba(0, 0, 0, 0.12);
+  }
+}
+
+/* ---------------------- REVENUE CARD ---------------------- */
+
+.revenue-card {
+  @extend %card;
+  gap: 1.5rem; /* more spacing inside */
+
+  .revenue-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .revenue-amount-container {
+    margin-top: 0.5rem;
+  }
+
+  .revenue-chart {
+    margin-top: 0.5rem;
+  }
+}
+
+/* ---------------------- STATS GRID ---------------------- */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1.5rem;                /* more spacing between each stat card */
+  margin-top: 0.3rem;         /* space above grid */
+}
+
+.stat-card {
+  @extend %card;
+  gap: 0.8rem;
+}
+
+/* ---------------------- OCCUPANCY CARD ---------------------- */
+
+.occupancy-card {
+  @extend %card;
+  gap: 1.4rem;
+
+  .occupancy-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.1rem;              /* bigger spacing between venue rows */
+  }
+
+  .occupancy-row {
+    display: grid;
+    grid-template-columns: 1fr 3fr auto;
+    align-items: center;
+    gap: 1.1rem;              /* better spacing between name-bar-number */
+  }
+}
+
+/* ---------------------- ACTION LINKS ---------------------- */
+
+.action-links {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;                /* SPACING BETWEEN ACTION BUTTONS */
+  margin-top: 0.5rem;         /* space above the whole actions section */
+}
+
+.action-link {
+  @extend %card;
+  flex-direction: row;        /* align icon + text horizontally */
+  gap: 1rem;
+  padding: 1.3rem 1.5rem;
+}
+
+/* ---------------------- LINE GRAPH ---------------------- */
+
+.line-graph-container {
+  width: 100%;
+  height: auto;
+  margin-top: 0.5rem;
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+}

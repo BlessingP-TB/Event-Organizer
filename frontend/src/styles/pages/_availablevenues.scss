@@ -1,0 +1,285 @@
+$primary-color: #0077B6;
+$secondary-color: #0b4f78;
+$danger-color: #ca1619;
+$text-color: #ffffff;
+$border-radius: 12px;
+
+// Page background
+body {
+  background-color: #ffffff; // entire page background is white
+}
+
+.available-venues-container {
+  background-color: #ffffff; // container background white
+  padding: 30px 20px;
+  border-radius: $border-radius;
+  width: 100%;
+  max-width: 1200px; // keeps layout neat on large screens
+  margin: 30px auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+
+  .header {
+    font-size: 26px;
+    font-weight: 700;
+    color: $primary-color;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+
+  .add-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: $primary-color;
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: $border-radius;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: 0.3s ease all;
+
+    &:hover {
+      background: darken($primary-color, 10%);
+      transform: translateY(-2px);
+    }
+
+    svg {
+      margin-right: 5px;
+    }
+  }
+
+  .empty-text {
+    text-align: center;
+    margin-top: 40px;
+    color: gray;
+  }
+
+  // === 3-column layout for venue cards ===
+  .venues-list {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr); // 3 cards per row
+    gap: 20px;
+    width: 100%;
+
+    @media (max-width: 1100px) {
+      grid-template-columns: repeat(2, 1fr); // 2 cards per row on medium screens
+    }
+
+    @media (max-width: 700px) {
+      grid-template-columns: 1fr; // 1 card per row on small screens
+    }
+  }
+
+  .venue-card {
+    background-color: $secondary-color; // cards remain blue
+    border-radius: $border-radius;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    width: 100%; // fills the grid column
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.15);
+    }
+
+    .carousel-image {
+      width: 100%;
+      height: 160px;
+      object-fit: cover;
+      background-color: #E3F2FD; // cloud blue background if no image
+    }
+
+    .placeholder {
+      width: 100%;
+      height: 160px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background-color: #E3F2FD;
+      color: gray;
+      font-weight: 600;
+    }
+
+    h3 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #ffffff; // white title
+      margin: 10px;
+    }
+
+    p {
+      font-size: 14px;
+      color: $text-color;
+      margin: 3px 10px;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding: 10px;
+
+      button {
+        flex: none;
+        padding: 8px 15px;
+        border-radius: $border-radius;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: 0.3s ease all;
+
+        &:first-child {
+          background-color: $primary-color;
+          color: #fff;
+
+          &:hover {
+            background: darken($primary-color, 10%);
+          }
+        }
+
+        &:last-child {
+          background-color: $danger-color;
+          color: #fff;
+
+          &:hover {
+            background: darken($danger-color, 10%);
+          }
+        }
+      }
+    }
+  }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+
+  .modal {
+    background: #ffffff; // modal background white
+    border-radius: $border-radius;
+    padding: 25px;
+    width: 100%;
+    max-width: 400px;
+    max-height: 90vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+
+    .modal-header {
+      font-size: 22px;
+      font-weight: 700;
+      color: $primary-color;
+      text-align: center;
+      margin-bottom: 10px;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 10px;
+      border-radius: $border-radius;
+      border: 1px solid rgba($primary-color, 0.5);
+      font-size: 14px;
+      color: $secondary-color;
+      background: #ffffff;
+      transition: 0.3s ease all;
+
+      &:focus {
+        outline: none;
+        border-color: $primary-color;
+        box-shadow: 0 0 8px rgba($primary-color, 0.3);
+      }
+    }
+
+    input[type="file"] {
+      cursor: pointer;
+      color: $secondary-color;
+      background: #ffffff;
+      border-radius: $border-radius;
+      padding: 8px;
+      border: 1px solid rgba($primary-color, 0.5);
+    }
+
+    .image-preview {
+      display: flex;
+      gap: 10px;
+      overflow-x: auto;
+      margin-bottom: 10px;
+
+      .image-container {
+        position: relative;
+
+        img {
+          width: 70px;
+          height: 70px;
+          border-radius: $border-radius;
+          object-fit: cover;
+        }
+
+        button {
+          position: absolute;
+          top: -5px;
+          right: -5px;
+          background: $danger-color;
+          color: #fff;
+          border: none;
+          border-radius: 50%;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 12px;
+          cursor: pointer;
+        }
+      }
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+
+      button {
+        flex: 1;
+        padding: 10px 0;
+        border-radius: $border-radius;
+        font-weight: 700;
+        cursor: pointer;
+        transition: 0.3s ease all;
+        border: none;
+
+        &:first-child {
+          background-color: $primary-color;
+          color: #fff;
+
+          &:hover {
+            background: darken($primary-color, 10%);
+          }
+        }
+
+        &:last-child {
+          background-color: $danger-color;
+          color: #fff;
+
+          &:hover {
+            background: darken($danger-color, 10%);
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,51 @@
+import { useEffect, useState } from 'react';
+// 👇 --- 1. IMPORT THE CORRECT ORGANISER FUNCTION ---
+import { useFocusEffect } from '@react-navigation/native';
+import { useCallback } from 'react';
+import {
+  deleteEvent,
+  getOrganiserEvents,
+  updateEvent // Be careful: This is the ADMIN updateEvent
+} from '../../data/Organiser/myEvents';
+
+export const useEvents = () => {
+  const [events, setEvents] = useState([]);
+
+  const loadEvents = async () => {
+    // 👇 --- 2. CALL THE CORRECT ORGANISER FUNCTION ---
+    const loaded = await getOrganiserEvents();
+    setEvents(loaded);
+  };
+
+  // ✅ Load once at first mount
+  useEffect(() => {
+    loadEvents();
+  }, []);
+
+  // ✅ Reload every time screen refocuses
+  useFocusEffect(
+    useCallback(() => {
+      loadEvents();
+    }, [])
+  );
+
+  const getEventById = (id) => {
+    // ⚠️ WARNING: This function is the cause of your crash.
+    // The EventDetails screen calls this function immediately,
+    // but the 'events' array is still empty because loadEvents()
+    // hasn't finished. This returns 'undefined', crashing the screen.
+    return events.find(
+      (event) =>
+        event.id === parseInt(id) ||
+        String(event.id) === String(id)
+    );
+  };
+
+  const approvedEvents = events.filter(
+    (event) => event.approval === 'Approved'
+  );
+
+  // Note: 'updateEvent' imported from myEvents.js is the ADMIN function.
+  // Using it here will cause an auth error.
+  return { events, getEventById, approvedEvents, deleteEvent, reload: loadEvents, updateEvent };
+};

@@ -1,0 +1,84 @@
+// frontend/src/styles/abstracts-auth/WelcomePage.scss
+// Variables
+$primary-bg: linear-gradient(to right, #caf0f8, #0077b6);
+$accent-color: #023e8a;
+$accent-hover: #9e88d3;
+$text-color: #000000;
+$font-stack: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+// ✅ Global Reset (move this OUTSIDE of .welcome-page)
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+}
+
+// ✅ Main page styles
+.welcome-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  padding: 0 20px;
+  background: $primary-bg;
+  color: $text-color;
+  text-align: center;
+  font-family: $font-stack;
+  position: relative;
+  overflow: hidden;
+
+  .navbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 15px 30px;
+    display: flex;
+    align-items: center;
+    // background-color: rgba(255, 246, 246, 0.349);
+    // box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .logo {
+      height: 50px;
+    }
+  }
+
+  h1 {
+      font-size: 3.5rem;
+      line-height: 1.2;
+      margin-bottom: 20px;
+
+      @media (max-width: 768px) { font-size: 2.5rem; }
+      @media (max-width: 480px) { font-size: 2rem; }
+    }
+
+    p {
+      font-size: 1.2rem;
+      line-height: 1.6;
+      margin-bottom: 40px;
+
+      @media (max-width: 768px) { font-size: 1rem; }
+      @media (max-width: 480px) { font-size: 0.9rem; }
+    }
+
+
+  button {
+    background-color: $accent-color;
+    color: #fff6f6;
+    border: none;
+    padding: 14px 32px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+
+    &:hover {
+      background-color: $accent-hover;
+    }
+  }
+}

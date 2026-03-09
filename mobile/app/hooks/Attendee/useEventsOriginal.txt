@@ -1,0 +1,35 @@
+// hooks/useEvents.js
+import { useState, useEffect } from 'react';
+import { getEvents } from '../../data/Organiser/myEvents';
+
+export const useEvents = () => {
+  const [events, setEvents] = useState([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    const loadEvents = async () => {
+      try {
+        const allEvents = await getEvents();
+        // Filter only approved events
+        const approvedEvents = allEvents.filter(event => event.approval === 'Approved');
+        setEvents(approvedEvents);
+      } catch (error) {
+        console.error('Error loading events:', error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    loadEvents();
+  }, []);
+
+  const getEventById = (id) => {
+    return events.find(event => event.id === parseInt(id));
+  };
+
+  return {
+    events,
+    isLoaded,
+    getEventById,
+  };
+};

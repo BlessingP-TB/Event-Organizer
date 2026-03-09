@@ -1,0 +1,500 @@
+// data/Organiser/myEvents.js
+import API_URL from '@/config';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { addAdminNotification } from '../Admin/adminDash';
+
+// -----------------------------------------------------------------
+// --- HELPER FUNCTIONS (Moved to top for global access) ---
+// -----------------------------------------------------------------
+
+const mapStatusToApproval = (event) => {
+  // 1. Sort approvals by creation date descending (newest first)
+  const sortedApprovals = event.approvals
+    ?.slice()
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+  // 2. Check the MOST RECENT approval for a definitive decision
+  const currentApproval = sortedApprovals?.[0];
+
+  if (currentApproval) {
+    switch (currentApproval.status.toUpperCase()) {
+      case 'APPROVED':
+        return 'Approved';
+      case 'REJECTED':
+        return 'Declined';
+      case 'PENDING':
+        return 'Waiting for Approval';
+    }
+  }
+
+  // 3. Fallback: If no approval records are found
+  const primaryStatus = event.status?.toUpperCase();
+  if (primaryStatus === 'PUBLISHED' || primaryStatus === 'PENDING') {
+    return 'Waiting for Approval';
+  }
+
+  return 'Waiting for Approval';
+};
+
+const formatDisplayDate = (isoString) => {
+  if (!isoString) return 'N/A';
+  return new Date(isoString).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+};
+
+const formatTimeRange = (startIso, endIso) => {
+  if (!startIso || !endIso) return 'N/A';
+  const startTime = new Date(startIso).toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  const endTime = new Date(endIso).toLocaleTimeString(undefined, {
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+  return `${startTime} - ${endTime}`;
+};
+
+const calculateDuration = (startIso, endIso) => {
+  if (!startIso || !endIso) return 'N/A';
+  const diffMs = new Date(endIso).getTime() - new Date(startIso).getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+  if (diffHours >= 24) return `${Math.floor(diffHours / 24)} days`;
+  return `${Math.round(diffHours * 10) / 10} hours`;
+};
+
+
+// -----------------------------------------------------------------
+// --- ORGANISER FUNCTIONS ---
+// -----------------------------------------------------------------
+
+const getOrganiserAuthToken = async () => {
+  const token = await AsyncStorage.getItem('ORGANISER_JWT_TOKEN');
+  if (!token) {
+    console.error('Organiser auth token not found. Please login.');
+  }
+  return token;
+};
+
+// --- NEW: getOrganiserEvents (for Organiser list) ---
+export const getOrganiserEvents = async () => {
+  try {
+    const token = await getOrganiserAuthToken();
+    if (!token) throw new Error('Authentication token not found.');
+    // --- FIX: ADDED QUERY PARAMETERS ---
+    // The 'listOrganizerEvents' validator expects pagination.
+    const response = await fetch(`${API_URL}/events/organizer?page=1&pageSize=20`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    // --- END FIX ---
+
+
+    if (!response.ok) {
+      const errorBody = await response.json();
+      throw new Error(`API Error: ${errorBody.message || response.statusText}`);
+    }
+
+    const result = await response.json();
+    let events = result.data; // Assuming data is in result.data
+
+    if (!Array.isArray(events)) {
+      events = [];
+    }
+
+    // Map backend data to frontend fields
+    return events.map((event) => ({
+      title: event.name || event.title,
+      approval: mapStatusToApproval(event),
+      id: event.id || event.uuid,
+      displayDate: formatDisplayDate(event.startDateTime),
+      time: formatTimeRange(event.startDateTime, event.endDateTime),
+      duration: calculateDuration(event.startDateTime, event.endDateTime),
+      description: event.description,
+      capacity: event.expectedAttend,
+      location: event.venue?.name || 'Venue Name Missing',
+      organizer: event.organizer?.name || 'Organizer Missing',
+      price: event.isFree ? 'Free' : 'TBD',
+      contact: event.organizer?.contactEmail || 'N/A',
+      ...event,
+    }));
+
+  } catch (e) {
+    console.error('❌ Failed to load ORGANISER events from API', e);
+    return []; // Return empty array on failure
+  }
+};
+
+// --- NEW: getOrganiserEventById (for Organiser details) ---
+export const getOrganiserEventById = async (eventId) => {
+  try {
+    const token = await getOrganiserAuthToken();
+    if (!token) throw new Error('Authentication token not found.');
+
+    // Note: Assuming '/events/:eventId' is the correct endpoint.
+    const response = await fetch(`${API_URL}/events/${eventId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json();
+      throw new Error(`API Error: ${errorBody.message || response.statusText}`);
+    }
+
+    const event = await response.json(); // Assuming it returns the event object
+
+    // Map backend data to frontend fields
+    return {
+      title: event.name || event.title,
+      approval: mapStatusToApproval(event),
+      id: event.id || event.uuid,
+      displayDate: formatDisplayDate(event.startDateTime),
+      time: formatTimeRange(event.startDateTime, event.endDateTime),
+      duration: calculateDuration(event.startDateTime, event.endDateTime),
+      description: event.description,
+      capacity: event.expectedAttend,
+      location: event.venue?.name || 'Venue Name Missing',
+      organizer: event.organizer?.name || 'Organizer Missing',
+      price: event.isFree ? 'Free' : 'TBD',
+      contact: event.organizer?.contactEmail || 'N/A',
+      ...event,
+    };
+
+  } catch (e) {
+    console.error(`❌ Failed to load ORGANISER event ${eventId} from API`, e);
+    return null; // Return null on failure
+  }
+};
+
+// --- createEventAPI (for Organiser) ---
+export const createEventAPI = async (eventData) => {
+  try {
+    const token = await getOrganiserAuthToken();
+    if (!token) throw new Error('Authentication token not found.');
+
+    const response = await fetch(`${API_URL}/events`, { // POST /events
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(eventData),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json();
+      throw new Error(`API Error: ${errorBody.message || response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (e) {
+    console.error('❌ Failed to create event via API:', e);
+    throw e;
+  }
+};
+
+// --- updateEventAPI (for Organiser) ---
+export const updateEventAPI = async (eventId, eventData) => {
+  try {
+    const token = await getOrganiserAuthToken();
+    if (!token) throw new Error('Authentication token not found.');
+
+    const response = await fetch(`${API_URL}/events/${eventId}`, { // PATCH /events/:eventId
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(eventData),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json();
+      throw new Error(`API Error: ${errorBody.message || response.statusText}`);
+    }
+
+    return await response.json();
+  } catch (e) {
+    console.error('❌ Failed to update event via API:', e);
+    throw e;
+  }
+};
+
+
+// -----------------------------------------------------------------
+// --- ADMIN FUNCTIONS ---
+// -----------------------------------------------------------------
+
+const getAuthToken = async () => {
+  const token = await AsyncStorage.getItem('ADMIN_JWT_TOKEN');
+  if (!token) {
+    console.error('Authentication token not found. Admin login required.');
+  }
+  return token || 'DUMMY_TOKEN_IF_MISSING';
+};
+
+// 1. Admin implementation for getEvents (Admin view)
+export const getEvents = async () => {
+  try {
+    const token = await getAuthToken();
+    const response = await fetch(`${API_URL}/admin/events`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Failed to fetch events: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const result = await response.json();
+    let events = result.data;
+
+    if (!Array.isArray(events)) {
+      console.error(
+        'API response data is not an array. Check API key extraction.'
+      );
+      events = [];
+    }
+
+    return events.map((event) => ({
+      title: event.name || event.title,
+      approval: mapStatusToApproval(event),
+      id: event.id || event.uuid,
+      displayDate: formatDisplayDate(event.startDateTime),
+      time: formatTimeRange(event.startDateTime, event.endDateTime),
+      duration: calculateDuration(event.startDateTime, event.endDateTime),
+      description: event.description,
+      capacity: event.expectedAttend,
+      location: event.venue?.name || 'Venue Name Missing',
+      organizer: event.organizer?.name || 'Organizer Missing',
+      price: event.isFree ? 'Free' : 'TBD',
+      contact: event.organizer?.contactEmail || 'N/A',
+      category: 'TBD',
+      ...event,
+    }));
+  } catch (e) {
+    console.error('❌ Failed to load events from API', e);
+    return [];
+  }
+};
+
+// 2. Admin implementation for updateEvent (Used by handleApprove/handleReject)
+export const updateEvent = async (updatedEvent) => {
+  try {
+    const token = await getAuthToken();
+
+    let newStatus;
+    if (updatedEvent.approval === 'Approved') {
+      newStatus = 'APPROVED';
+    } else if (updatedEvent.approval === 'Declined') {
+      newStatus = 'REJECTED';
+    } else {
+      newStatus = 'PENDING';
+    }
+
+    const response = await fetch(
+      `${API_URL}/admin/events/${updatedEvent.id}/approvals`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          type: 'GENERAL',
+          notes: `Action taken by admin via frontend: ${updatedEvent.approval}`,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      let errorDetails = 'No details provided.';
+      try {
+        const errorBody = await response.json();
+        errorDetails = errorBody.message || JSON.stringify(errorBody);
+      } catch (e) {
+        errorDetails = await response.text();
+      }
+
+      console.error(
+        `❌ API Failed (${response.status} ${response.statusText}):`,
+        errorDetails
+      );
+      throw new Error(
+        `Event update failed: ${response.status} - ${errorDetails}`
+      );
+    }
+
+    if (response.status === 204 || response.status === 201) {
+      return updatedEvent;
+    }
+
+    return await response.json();
+  } catch (e) {
+    console.error('❌ Failed to update event status via API:', e);
+    throw e;
+  }
+};
+
+// -----------------------------------------------------------------
+// --- LEGACY & SAMPLE FUNCTIONS ---
+// -----------------------------------------------------------------
+
+const EVENTS_KEY = 'organiser_events';
+
+// Save a new event (LEGACY AsyncStorage version)
+export const saveEvent = async (newEvent) => {
+  try {
+    const existing = await getEvents(); // WARNING: This calls the ADMIN getEvents()
+    const updated = [...existing, newEvent];
+    await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(updated));
+
+    console.log('✅ Event saved (Legacy). Sending admin notification...');
+
+    await addAdminNotification({
+      title: 'New Event Submitted',
+      message: `"${newEvent.title}" needs approval.`,
+    });
+
+    console.log('✅ Admin notification sent');
+  } catch (e) {
+    console.error('❌ Failed to save event or notify admin:', e);
+    throw e;
+  }
+};
+
+export const deleteEvent = async (eventId) => {
+  try {
+    const existing = await getEvents(); // WARNING: This calls the ADMIN getEvents()
+    const filtered = existing.filter(
+      (event) => event.id !== parseInt(eventId)
+    );
+    await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(filtered));
+    return true;
+  } catch (e) {
+    console.error('Failed to delete event', e);
+    return false;
+  }
+};
+
+// ... (SAMPLE_EVENTS array remains unchanged) ...
+const SAMPLE_EVENTS = [
+  {
+    id: 1,
+    title: 'Annual Tech Summit',
+    date: 'Saturday, 19 October at 09:00 AM',
+    displayDate: 'November 15, 2025',
+    time: '09:00 AM - 05:00 PM',
+    duration: '8 hours',
+    location: 'San Francisco Convention Center',
+    capacity: '500 attendees',
+    price: 'Free',
+    organizer: 'Tech Innovators Inc.',
+    contact: 'info@techsummit.com',
+    category: 'Technology',
+    tags: ['AI', 'Startup', 'Networking'],
+    description:
+      'Join industry leaders for a full day of talks, workshops, and networking around the latest in AI, cloud computing, and startup innovation.',
+    image:
+      'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80',
+    status: 'Upcoming',
+    approval: 'Waiting for Approval',
+  },
+  {
+    id: 2,
+    title: 'Marketing Strategy Workshop',
+    date: 'Sunday, 27 October at 14:00 PM',
+    displayDate: '2025-10-28',
+    time: '10:00 AM - 01:00 PM',
+    duration: '3 hours',
+    location: 'Online (Zoom)',
+    capacity: '100 attendees',
+    price: '$25',
+    organizer: 'GrowthLab Academy',
+    contact: 'hello@growthlab.co',
+    category: 'Marketing',
+    tags: ['Digital', 'Strategy', 'Workshop'],
+    description:
+      'Learn actionable frameworks to build a winning marketing strategy in 2026. Perfect for founders and marketing managers.',
+    image:
+      'https://images.unsplash.com/photo-1552664730-d307ca884978?w=800&q=80',
+    status: 'Upcoming',
+    approval: 'Approved',
+  },
+  {
+    id: 3,
+    title: 'Product Launch Event',
+    date: 'Friday, 25 October at 18:30 PM',
+    displayDate: '2025-09-01',
+    time: '02:00 PM - 05:00 PM',
+    duration: '3 hours',
+    location: 'Innovation Campus, Hall B',
+    capacity: '200 attendees',
+    price: 'Free',
+    organizer: 'ProductLabs',
+    contact: 'events@productlabs.com',
+    category: 'Sport',
+    tags: ['Launch', 'Demo', 'Networking'],
+    description: 'Be the first to see our groundbreaking new product suite.',
+    image:
+      'https://images.unsplash.com/photo-1559223607-ca4c3a29500d?w=800&q=80',
+    status: 'Past',
+    approval: 'Approved',
+  },
+  {
+    id: 4,
+    title: 'Team Building Retreat',
+    date: 'Saturday, 02 November at 19:00 PM',
+    displayDate: 'August 20, 2025',
+    time: 'All Day',
+    duration: '1 day',
+    location: 'Mountain View Resort',
+    capacity: '50 attendees',
+    price: 'Company Sponsored',
+    organizer: 'HR Department',
+    contact: 'hr@company.com',
+    category: 'Arts & Culture',
+    tags: ['Team', 'Wellness', 'Fun'],
+    description: 'A day of outdoor activities, bonding, and relaxation.',
+    image:
+      'https://images.unsplash.com/photo-1514320291840-2e0a9bf2a9ae?w=800&q=80',
+    status: 'Past',
+    approval: 'Declined',
+  },
+  {
+    id: 5,
+    title: 'Quarterly Review Meeting',
+    date: 'Wednesday, 30 October at 10:00 AM',
+    displayDate: 'July 5, 2025',
+    time: '10:00 AM - 12:00 PM',
+    duration: '2 hours',
+    location: 'Main Conference Room',
+    capacity: '30 attendees',
+    price: 'N/A',
+    organizer: 'Leadership Team',
+    contact: 'leadership@company.com',
+    category: 'Academic',
+    tags: ['Meeting', 'Review', 'Strategy'],
+    description: 'Quarterly performance and strategy review.',
+    image:
+      'https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&q=80',
+    status: 'Cancelled',
+    approval: 'Declined',
+  },
+];

@@ -1,0 +1,8 @@
+const ATTENDANCE_STATUS = Object.freeze({
+    CHECKED_IN: 'CHECKED_IN',
+    CHECKED_OUT: 'CHECKED_OUT',
+    ATTENDED: 'ATTENDED',
+    NO_SHOW: 'NO_SHOW',
+});
+
+module.exports = ATTENDANCE_STATUS;

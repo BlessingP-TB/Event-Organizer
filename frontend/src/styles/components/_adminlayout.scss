@@ -1,0 +1,41 @@
+@import "../abstracts-auth/_variable";
+@import "../abstracts-auth/_responsive-variables";
+
+/* ---------------------------
+   ADMIN LAYOUT FIX
+--------------------------- */
+.admin-layout-container {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background: #ebe7e7;
+
+  /* Reserve sidebar space on desktop */
+  @media (min-width: $breakpoint-sm) {
+    padding-left: 260px;   // Sidebar width
+  }
+}
+
+/* ---------------------------
+   MAIN CONTENT AREA
+--------------------------- */
+.admin-layout-content {
+  flex: 1;
+  // padding: 2rem;
+  width: 100%;
+  background: #ffffff;
+
+  @media (max-width: $breakpoint-sm) {
+    padding-top: 5rem; // prevent overlap with mobile hamburger
+  }
+}
+
+/* Footer stays at bottom */
+.admin-layout-container {
+  display: flex;
+  flex-direction: column;
+
+  .footer {
+    margin-top: auto;
+  }
+}

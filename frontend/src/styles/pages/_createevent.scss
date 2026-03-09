@@ -1,0 +1,415 @@
+/* ==========================
+   CREATE EVENT PAGE STYLES
+   ========================== */
+
+.create-event-page {
+  background: #f8fafc;
+  min-height: 100vh;
+  padding: 2.5rem 0;
+  display: flex;
+  justify-content: center;
+  overflow-y: auto;
+
+  .create-event-container {
+    width: 100%;
+    max-width: 1200px;
+    background: #ffffff;
+    border-radius: 1rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+
+    .create-event-wrapper {
+      width: 100%;
+    }
+
+    .create-event-header {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-bottom: 2px solid #e5e7eb;
+      padding-top: 2rem;
+      padding-bottom: 1.25rem;
+
+      .create-event-title {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #1e293b;
+      }
+
+      .back-button {
+        position: absolute;
+        left: 1.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: #ffff;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background: #e2e8f0;
+        }
+      }
+    }
+
+    .create-event-form-wrapper {
+      width: 100%;
+
+      .create-event-form {
+        display: flex;
+        flex-direction: column;
+        gap: 2.5rem;
+      }
+
+      .form-section {
+        background: #f1f3f3;
+        border: 1px solid #e2e8f0;
+        border-radius: 1rem;
+        padding: 2rem 2.5rem;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+
+        .section-title {
+          font-size: 1.5rem;
+          font-weight: 700;
+          color: #0f172a;
+          margin-bottom: 1rem;
+        }
+      }
+
+      .form-grid {
+        display: grid;
+        gap: 2rem;
+
+        &.grid-3 {
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        }
+
+        &.grid-2 {
+          grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        }
+
+        &.grid-1 {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+
+        .form-label {
+          font-weight: 700;
+          color: #334155;
+        }
+
+        .form-input,
+        .form-textarea,
+        select {
+          border: 1px solid #cbd5e1;
+          border-radius: 8px;
+          padding: 0.8rem;
+          font-size: 1rem;
+          font-weight: 600;
+          color: #0f172a;
+          background-color: #ffffff;
+          outline: none;
+          transition: border-color 0.2s ease;
+
+          &:focus {
+            border-color: rgba(15, 23, 42, 0.7);
+          }
+
+          &.error {
+            border-color: #ef4444;
+          }
+
+          &::placeholder {
+            color: rgba(15, 23, 42, 0.7);
+            font-weight: 500;
+          }
+        }
+
+        .error-message {
+          font-size: 0.85rem;
+          color: #ef4444;
+        }
+      }
+
+      /* Available Time Slots Styling */
+      .available-time-label {
+        margin-top: 8px;
+        font-weight: 500;
+        color: #0077B6;
+        font-size: 14px;
+      }
+
+      .available-time-slots {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .time-slot-btn {
+        background-color: #E6F2FF;
+        border: 1px solid #0077B6;
+        border-radius: 4px;
+        padding: 6px 10px;
+        font-size: 12px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+
+        &:hover {
+          background-color: #0077B6;
+          color: white;
+        }
+
+        &:active {
+          background-color: #005f99;
+          color: white;
+        }
+      }
+
+      .no-available-times {
+        color: #e74c3c;
+        font-size: 14px;
+        margin-top: 8px;
+      }
+
+      /* Resources Required */
+      .resources-grid {
+        .resource-box {
+          .number-input {
+            width: 160px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            background: #fff;
+            padding: 0 0.5rem;
+
+            .number-btn {
+              width: 30px;
+              height: 30px;
+              font-size: 1.2rem;
+              font-weight: 700;
+              color: #0f172a;
+              border: none;
+              background: #e2e8f0;
+              border-radius: 50%;
+              cursor: pointer;
+
+              &:hover {
+                background: #cbd5e1;
+              }
+            }
+
+            .number-display {
+              font-weight: 700;
+              font-size: 1.1rem;
+              width: 50px;
+              text-align: center;
+            }
+          }
+        }
+      }
+
+      /* Venue Card Grid */
+      .venue-card-grid {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-start; /* align left */
+        gap: 1rem;
+      }
+
+      .venue-card {
+        width: 220px;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 2px solid #e2e8f0;
+        border-radius: 1rem;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        display: flex;
+        flex-direction: column;
+
+        &:hover {
+          border-color: #3b82f6;
+        }
+
+        &.selected {
+          border-color: #3b82f6;
+          box-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+        }
+
+        .venue-image {
+          height: 120px;
+          overflow: hidden;
+
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+
+          .image-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: #e0f2fe;
+            color: #0077B6;
+          }
+        }
+
+        .venue-info {
+          padding: 0.5rem 0.75rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.25rem;
+
+          h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #0f172a;
+          }
+
+          p {
+            font-size: 0.85rem;
+            color: #334155;
+          }
+        }
+      }
+
+      /* Responsive Venue Cards */
+      @media (max-width: 1024px) {
+        .venue-card-grid {
+          justify-content: center;
+        }
+      }
+
+      @media (max-width: 640px) {
+        .venue-card-grid {
+          flex-direction: column;
+          align-items: center;
+        }
+        .venue-card {
+          width: 90%;
+        }
+      }
+
+      /* Submit Button */
+      .form-footer {
+        text-align: center;
+        margin-top: 2rem;
+
+        .btn-primary {
+          background: #144f6b;
+          color: #fff;
+          padding: 1rem 2.5rem;
+          border: none;
+          border-radius: 10px;
+          font-size: 1rem;
+          font-weight: 700;
+          margin-left: 3px;
+          cursor: pointer;
+          transition: all 0.3s ease;
+
+          &:hover {
+            background: #0c2c4b;
+            transform: translateY(-2px);
+          }
+        }
+      }
+    }
+  }
+}
+
+/* ==========================
+   Checkbox Services Styling
+   ========================== */
+.checkbox-services-grid {
+  display: grid;
+  gap: 1.5rem;
+
+  @media (min-width: 768px) {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .service-checkbox {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    font-weight: 700;
+    font-size: 1rem; // match numeric resource font size
+    color: #0f172a;
+
+    input[type="checkbox"] {
+      width: 22px;  // slightly bigger
+      height: 22px; // slightly bigger
+      accent-color: #3b82f6; // blue when checked
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+
+    &:hover {
+      border-color: #3b82f6;
+      box-shadow: 0 2px 5px rgba(59, 130, 246, 0.3);
+    }
+  }
+}
+
+/* Bottom Toast */
+.bottom-toast {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0f172a;
+  color: #fff;
+  border-radius: 0.5rem;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 1000;
+
+  .toast-message {
+    font-weight: 600;
+  }
+
+  .toast-close {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-size: 1.2rem;
+    cursor: pointer;
+  }
+}

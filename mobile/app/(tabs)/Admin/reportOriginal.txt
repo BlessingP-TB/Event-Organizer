@@ -1,0 +1,446 @@
+import { Ionicons } from "@expo/vector-icons";
+import { Picker } from "@react-native-picker/picker";
+import { useState, useEffect } from "react";
+import {
+    Alert,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from "react-native";
+import * as FileSystem from "expo-file-system/legacy";
+import * as Sharing from "expo-sharing";
+import { Asset } from "expo-asset";
+
+let PDFDocument;
+let StandardFonts;
+let rgb;
+let Buffer;
+
+if (Platform.OS !== "web") {
+    const pdfLib = require("pdf-lib");
+    PDFDocument = pdfLib.PDFDocument;
+    StandardFonts = pdfLib.StandardFonts;
+    rgb = pdfLib.rgb;
+    Buffer = require("buffer").Buffer;
+}
+
+const AnalyticsExportScreen = () => {
+    const [exportFormat, setExportFormat] = useState("PDF");
+    const [selectedDays, setSelectedDays] = useState(30);
+
+    const dayOptions = [
+        { label: "Last 7 Days", value: 7 },
+        { label: "Last 14 Days", value: 14 },
+        { label: "Last 30 Days", value: 30 },
+        { label: "Last 60 Days", value: 60 },
+        { label: "Last 90 Days", value: 90 },
+    ];
+
+    // Mock venue-based data
+    const reportData = [
+        {
+            venueName: "Vayne Arena",
+            eventName: "Tech Innovation Hackathon",
+            attendees: 150,
+            bookings: 120,
+            revenue: 15000,
+            date: "2025-10-15",
+        },
+        {
+            venueName: "Vayne Arena",
+            eventName: "AI Research Conference",
+            attendees: 200,
+            bookings: 180,
+            revenue: 25000,
+            date: "2025-11-01",
+        },
+        {
+            venueName: "TUT Main Hall",
+            eventName: "Community Outreach",
+            attendees: 80,
+            bookings: 70,
+            revenue: 5000,
+            date: "2025-10-20",
+        },
+        {
+            venueName: "Innovation Hub",
+            eventName: "TUT Developers Meetup",
+            attendees: 60,
+            bookings: 55,
+            revenue: 3000,
+            date: "2025-10-25",
+        },
+        {
+            venueName: "Vayne Arena",
+            eventName: "Startup Showcase",
+            attendees: 120,
+            bookings: 110,
+            revenue: 15000,
+            date: "2025-10-30",
+        },
+    ];
+
+    // Group events by venue
+    const groupByVenue = (data) => {
+        const grouped = {};
+        data.forEach((item) => {
+            if (!grouped[item.venueName]) {
+                grouped[item.venueName] = {
+                    venueName: item.venueName,
+                    totalEvents: 0,
+                    totalRevenue: 0,
+                };
+            }
+            grouped[item.venueName].totalEvents += 1;
+            grouped[item.venueName].totalRevenue += item.revenue;
+        });
+        return Object.values(grouped);
+    };
+
+    // Prepare TUT logo for embedding
+    const [logoAsset, setLogoAsset] = useState(null);
+
+    useEffect(() => {
+        const prepareLogo = async () => {
+            try {
+                const asset = Asset.fromModule(require("../../../assets/images/TUT-Logo1.jpg"));
+                await asset.downloadAsync();
+                setLogoAsset(asset);
+            } catch (error) {
+                console.warn("Logo not found or failed to prepare:", error);
+            }
+        };
+        prepareLogo();
+    }, []);
+
+    const generateCSV = async () => {
+        try {
+            const venueReports = groupByVenue(reportData);
+
+            let csvContent = "VENUE ANALYTICS REPORT\n";
+            csvContent += `Report Period: Last ${selectedDays} Days\n\n`;
+            csvContent += "Venue,Events Hosted,Total Revenue\n";
+
+            venueReports.forEach((venue) => {
+                csvContent += `${venue.venueName},${venue.totalEvents},R${venue.totalRevenue}\n`;
+            });
+
+            const fileName = `venue_report_${Date.now()}.csv`;
+            const fileUri = FileSystem.documentDirectory + fileName;
+
+            await FileSystem.writeAsStringAsync(fileUri, csvContent, {
+                encoding: "utf8",
+            });
+
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri);
+            } else {
+                Alert.alert("Error", "Sharing not available on this device");
+            }
+        } catch (error) {
+            console.error("Error generating CSV:", error);
+            Alert.alert("Error", "Failed to generate CSV");
+        }
+    };
+
+    const generatePDF = async () => {
+        try {
+            const venueReports = groupByVenue(reportData);
+
+            const pdfDoc = await PDFDocument.create();
+            let page = pdfDoc.addPage([600, 800]);
+            const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+            const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+            let yPosition = 750;
+
+            // === Load and Draw Logo ===
+            if (logoAsset) {
+                try {
+                    const logoBytes = await FileSystem.readAsStringAsync(logoAsset.localUri, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    });
+                    const logoImage = await pdfDoc.embedJpg(logoBytes);
+                    const logoDims = logoImage.scale(0.25);
+                    page.drawImage(logoImage, {
+                        x: (600 - logoDims.width) / 2,
+                        y: 650,
+                        width: logoDims.width,
+                        height: logoDims.height,
+                    });
+                    yPosition = 630;
+                } catch (error) {
+                    console.warn("Failed to embed logo:", error);
+                }
+            }
+
+            // === Header ===
+            page.drawText("Tshwane University of Technology", {
+                x: 145,
+                y: yPosition,
+                size: 16,
+                font: boldFont,
+                color: rgb(0, 0.2, 0.6), // TUT blue
+            });
+
+            yPosition -= 25;
+            page.drawText("Venue Analytics Report", {
+                x: 210,
+                y: yPosition,
+                size: 14,
+                font: boldFont,
+                color: rgb(0, 0, 0),
+            });
+
+            yPosition -= 20;
+            page.drawText(`Report Period: Last ${selectedDays} Days`, {
+                x: 210,
+                y: yPosition,
+                size: 11,
+                font: font,
+                color: rgb(0.3, 0.3, 0.3),
+            });
+
+            // === Divider ===
+            yPosition -= 25;
+            page.drawLine({
+                start: { x: 50, y: yPosition },
+                end: { x: 550, y: yPosition },
+                thickness: 1,
+                color: rgb(0.8, 0.8, 0.8),
+            });
+
+            yPosition -= 40;
+            page.drawText("Venue Summary", {
+                x: 50,
+                y: yPosition,
+                size: 14,
+                font: boldFont,
+                color: rgb(0, 0.2, 0.6),
+            });
+
+            yPosition -= 25;
+
+            // === Venue Summary Section ===
+            venueReports.forEach((venue) => {
+                const textBlock = `${venue.venueName} hosted ${venue.totalEvents} event${venue.totalEvents > 1 ? "s" : ""
+                    } in the last ${selectedDays} days, earning a total of R${venue.totalRevenue}.`;
+
+                page.drawText(textBlock, {
+                    x: 65,
+                    y: yPosition,
+                    size: 11,
+                    font: font,
+                    color: rgb(0.1, 0.1, 0.1),
+                });
+
+                yPosition -= 20;
+                page.drawLine({
+                    start: { x: 60, y: yPosition },
+                    end: { x: 540, y: yPosition },
+                    thickness: 0.5,
+                    color: rgb(0.85, 0.85, 0.85),
+                });
+                yPosition -= 20;
+
+                if (yPosition < 80) {
+                    page.drawText("Generated by TUT Connect Analytics System", {
+                        x: 180,
+                        y: 50,
+                        size: 10,
+                        font: font,
+                        color: rgb(0.4, 0.4, 0.4),
+                    });
+                    page = pdfDoc.addPage([600, 800]);
+                    yPosition = 750;
+                }
+            });
+
+            // === Footer ===
+            page.drawText("Generated by TUT Connect Analytics System", {
+                x: 180,
+                y: 50,
+                size: 10,
+                font: font,
+                color: rgb(0.4, 0.4, 0.4),
+            });
+
+            // === Save PDF ===
+            const pdfBytes = await pdfDoc.save();
+            const fileName = `venue_report_${Date.now()}.pdf`;
+            const fileUri = FileSystem.documentDirectory + fileName;
+
+            const base64 = Buffer.from(pdfBytes).toString("base64");
+            await FileSystem.writeAsStringAsync(fileUri, base64, { encoding: "base64" });
+
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(fileUri);
+            } else {
+                Alert.alert("Error", "Sharing is not available on this device");
+            }
+        } catch (error) {
+            console.error("Error generating PDF:", error);
+            Alert.alert("Error", "Failed to generate PDF: " + error.message);
+        }
+    };
+
+    const handleGenerateReport = async () => {
+        if (exportFormat === "PDF") {
+            await generatePDF();
+        } else if (exportFormat === "Excel") {
+            await generateCSV();
+        }
+    };
+
+    return (
+        <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+            <Text style={styles.header}>Venue Analytics & Exports</Text>
+
+            <View style={styles.card}>
+                <Text style={styles.sectionTitle}>Export Format</Text>
+                <View style={styles.buttonRow}>
+                    <TouchableOpacity
+                        style={[
+                            styles.formatButton,
+                            exportFormat === "PDF" && styles.selectedButton,
+                        ]}
+                        onPress={() => setExportFormat("PDF")}
+                    >
+                        <Text
+                            style={[
+                                styles.formatText,
+                                exportFormat === "PDF" && styles.selectedText,
+                            ]}
+                        >
+                            PDF
+                        </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[
+                            styles.formatButton,
+                            exportFormat === "Excel" && styles.selectedButton,
+                        ]}
+                        onPress={() => setExportFormat("Excel")}
+                    >
+                        <Text
+                            style={[
+                                styles.formatText,
+                                exportFormat === "Excel" && styles.selectedText,
+                            ]}
+                        >
+                            Excel
+                        </Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Date Range Picker */}
+                <View style={styles.dateContainer}>
+                    <Ionicons name="calendar-outline" size={20} color="#555" />
+                    <Picker
+                        selectedValue={selectedDays}
+                        style={styles.picker}
+                        onValueChange={(itemValue) => setSelectedDays(itemValue)}
+                    >
+                        {dayOptions.map((option) => (
+                            <Picker.Item
+                                key={option.value}
+                                label={option.label}
+                                value={option.value}
+                            />
+                        ))}
+                    </Picker>
+                </View>
+            </View>
+
+            <TouchableOpacity
+                style={styles.generateButton}
+                onPress={handleGenerateReport}
+            >
+                <Text style={styles.generateText}>Generate Venue Report</Text>
+            </TouchableOpacity>
+        </ScrollView>
+    );
+};
+
+export default AnalyticsExportScreen;
+
+const styles = StyleSheet.create({
+    container: {
+        flex: 1,
+        backgroundColor: "#F7F7F7",
+    },
+    content: {
+        padding: 20,
+    },
+    header: {
+        fontSize: 20,
+        fontWeight: "700",
+        marginBottom: 15,
+        color: "#333",
+    },
+    card: {
+        backgroundColor: "#fff",
+        borderRadius: 15,
+        padding: 15,
+        marginBottom: 20,
+        shadowColor: "#000",
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 3,
+    },
+    sectionTitle: {
+        fontSize: 16,
+        fontWeight: "600",
+        marginBottom: 10,
+    },
+    buttonRow: {
+        flexDirection: "row",
+        gap: 10,
+        marginBottom: 15,
+    },
+    formatButton: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: "#ccc",
+        borderRadius: 10,
+        alignItems: "center",
+        paddingVertical: 10,
+    },
+    selectedButton: {
+        backgroundColor: "#0077B6",
+        borderColor: "#0077B6",
+    },
+    formatText: {
+        color: "#555",
+        fontWeight: "500",
+    },
+    selectedText: {
+        color: "#fff",
+    },
+    dateContainer: {
+        flexDirection: "row",
+        alignItems: "center",
+        paddingVertical: 10,
+        borderTopWidth: 1,
+        borderColor: "#eee",
+    },
+    picker: {
+        flex: 1,
+        marginLeft: 8,
+        color: "#333",
+    },
+    generateButton: {
+        backgroundColor: "#0077B6",
+        borderRadius: 10,
+        paddingVertical: 15,
+        alignItems: "center",
+    },
+    generateText: {
+        color: "#fff",
+        fontWeight: "600",
+        fontSize: 16,
+    },
+});

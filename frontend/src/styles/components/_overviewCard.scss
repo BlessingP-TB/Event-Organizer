@@ -1,0 +1,29 @@
+@import '../abstracts-auth/_variable';
+
+.overview-card {
+  background: $card-bg;
+  padding: 20px;
+  border-radius: $radius;
+  box-shadow: $shadow;
+
+  .overview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #666;
+    font-size: 14px;
+  }
+
+  h2 {
+    margin-top: 10px;
+    font-size: 24px;
+  }
+
+  .positive {
+    color: #16a34a;
+  }
+
+  .negative {
+    color: #dc2626;
+  }
+}

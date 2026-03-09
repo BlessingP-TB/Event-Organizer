@@ -1,0 +1,118 @@
+/* ================================
+   PROFESSIONAL FOOTER (PREMIUM)
+================================ */
+.footer-pro {
+  background: #0f172a; /* deep navy */
+  color: #cbd5e1; /* soft gray */
+  padding: 2rem 1rem 2rem;
+  font-family: "Inter", sans-serif;
+  border-top: 1px solid rgba(255, 255, 255, 0.03);
+
+  .footer-pro-container {
+    max-width: 1200px;
+    margin: 0 auto;
+
+    display: grid;
+    gap: 3rem;
+
+    grid-template-columns: 1fr;
+    @media (min-width: 640px) { grid-template-columns: 2fr 1fr 1fr 1fr; }
+  }
+
+  /* Brand Section */
+  .brand {
+    .footer-pro-logo {
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.5px;
+    }
+
+    .footer-pro-desc {
+      margin-top: 0.75rem;
+      color: #94a3b8;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      max-width: 300px;
+    }
+
+    /* Social Icons */
+    .footer-pro-socials {
+      display: flex;
+      gap: 0.75rem;
+      margin-top: 1.5rem;
+
+      .social-icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #e2e8f0;
+        font-size: 0.9rem;
+        transition: 0.25s ease;
+
+        &:hover {
+          background: #3b82f6;
+          transform: translateY(-3px);
+          color: white;
+          box-shadow: 0 6px 18px rgba(59, 130, 246, 0.4);
+        }
+      }
+    }
+  }
+
+  /* Link Columns */
+  .footer-pro-section {
+    h4 {
+      font-size: 1rem;
+      font-weight: 600;
+      color: white;
+      margin-bottom: 1rem;
+    }
+
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+
+      li a {
+        color: #94a3b8;
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.2s ease;
+
+        &:hover {
+          color: #3b82f6;
+        }
+      }
+    }
+  }
+
+  /* Bottom Bar */
+  .footer-pro-bottom {
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+
+    text-align: center;
+
+    p {
+      margin: 0;
+      color: #94a3b8;
+      font-size: 0.85rem;
+    }
+
+    .design-credit {
+      display: block;
+      margin-top: 6px;
+      color: #64748b;
+      font-size: 0.8rem;
+    }
+  }
+}

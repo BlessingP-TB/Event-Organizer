@@ -1,0 +1,269 @@
+// Override react-calendar default styles to match React Native look
+.react-calendar {
+  border: none;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  padding: 15px;
+  width: 100%;
+  min-height: 500px; // Add minimum height
+
+  .react-calendar__navigation {
+    border-bottom: 1px solid #e5e5e5;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    button {
+      min-width: 44px;
+      height: 44px;
+      line-height: 44px;
+      border-radius: 50%;
+      border: none;
+      background-color: transparent;
+      &:hover {
+        background-color: #f0f0f0;
+      }
+    }
+    .react-calendar__navigation__label {
+      font-weight: bold;
+      font-size: 16px;
+    }
+  }
+
+  .react-calendar__month-view__weekdays {
+    text-align: center;
+    font-weight: bold;
+    abbr {
+      text-decoration: none;
+    }
+  }
+
+  .react-calendar__tile {
+    padding: 8px 4px;
+    border-radius: 8px;
+    border: none;
+    background-color: transparent;
+    position: relative;
+    height: 60px; // Increase tile height
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background-color: #f0f0f0;
+    }
+
+    &.react-calendar__tile--now {
+      background-color: #0077B6;
+      color: white;
+      &:hover {
+        background-color: #005f99;
+      }
+    }
+
+    &.react-calendar__tile--active {
+      background-color: #0077B6;
+      color: white;
+      &:hover {
+        background-color: #005f99;
+      }
+    }
+  }
+
+  .tile-marked {
+    background-color: #dbeafe !important;
+  }
+}
+
+// admin-calendar-container styles
+.admin-calendar-container {
+  width: 100%;
+  min-height: 100vh;
+  margin: 0;
+  text-align: center;
+  padding: 20px;
+  background-color: #F9FAFB;
+
+  h2 {
+    font-size: 22px;
+    font-weight: bold;
+    color: #0077B6;
+    margin-bottom: 10px;
+  }
+
+  .action-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 10px;
+  }
+
+  .action-button {
+    margin-left: 5px;
+    padding: 8px 20px;
+    border-radius: 10px;
+    background-color: #0077B6;
+    color: white;
+    border: none;
+    cursor: pointer;
+
+    &.selected {
+      background-color: #005f99;
+    }
+  }
+
+  .dot-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+  }
+
+  .dots-wrapper {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-top: 5px;
+  }
+
+  .dot {
+    display: block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin: 1px;
+  }
+
+  .tile-marked {
+    background-color: #dbeafe !important;
+  }
+}
+
+.modal-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.56);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-centered {
+  width: 85%;
+  max-height: 90vh;
+   max-width: 500px;
+   
+   margin-top: -20rem;
+   margin-bottom: -20rem;
+   margin-left: 15rem;
+}
+
+.modal-content {
+  background-color: white;
+  border-radius: 15px;
+  padding: 20px;
+  max-height: 80vh;
+  overflow-y: auto;
+
+  h3 {
+    color: #0077B6;
+    margin-bottom: 15px;
+  }
+}
+
+.venue-selection {
+  margin-bottom: 15px;
+
+  .venue-label {
+    font-weight: bold;
+    margin-bottom: 8px;
+  }
+}
+
+.venue-option {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  margin-bottom: 5px;
+  background-color: white;
+  cursor: pointer;
+
+  &.selected {
+    background-color: #e6f2ff;
+    border-color: #0077B6;
+  }
+}
+
+.date-section {
+  margin-bottom: 20px;
+  
+
+  .date-label {
+    font-weight: bold;
+    margin-bottom: 5px;
+  }
+
+  .delete-slot-button {
+    background-color: #1b1717e3 !important; // Bootstrap danger color
+    color: white !important;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    margin-top: 5px;
+    width: 100%;
+    
+    &:hover {
+      background-color: #a39c9c !important;
+    }
+
+
+  }
+}
+
+.time-input {
+  display: block;
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #0077B6;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+.modal-buttons {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+
+  .modal-button {
+    flex: 1;
+    margin: 0 5px;
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    color: white;
+    cursor: pointer;
+
+    &:first-child {
+      margin-left: 0;
+    }
+    
+    &:last-child {
+      margin-right: 0;
+    }
+  }
+}
+
+.no-dates-message {
+  text-align: center;
+  color: #888;
+  margin: 20px 0;
+}

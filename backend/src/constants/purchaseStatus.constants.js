@@ -1,0 +1,9 @@
+const PURCHASE_STATUS = Object.freeze({
+    INITIATED: 'INITIATED',
+    PENDING: 'PENDING',
+    COMPLETED: 'COMPLETED',
+    FAILED: 'FAILED',
+    REFUNDED: 'REFUNDED',
+});
+
+module.exports = PURCHASE_STATUS;

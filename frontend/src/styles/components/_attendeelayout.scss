@@ -1,0 +1,51 @@
+@import "../abstracts-auth/_variable";
+@import "../abstracts-auth/_responsive-variables";
+
+/* ----------------------------------------------
+   MAIN LAYOUT WRAPPER
+   Prevents overlap & ensures correct spacing
+---------------------------------------------- */
+.attendee-layout-container {
+  display: flex;
+  width: 100%;
+  min-height: 100vh;
+  background: #ffffff;
+
+  /* Desktop: reserve sidebar space */
+  @media (min-width: $breakpoint-sm) {
+    padding-left: 260px; // matches sidebar width
+  }
+}
+
+/* ----------------------------------------------
+   CONTENT AREA
+---------------------------------------------- */
+.attendee-layout-content {
+  flex: 1;
+  width: 100%;
+  min-height: 100vh;
+  // padding: 1.5rem;
+  background: $background-gradient_2;
+
+  /* Mobile: avoid hamburger overlap */
+  @media (max-width: $breakpoint-sm) {
+    padding-top: 5rem;
+  }
+
+  /* Cleaner spacing on desktop */
+  @media (min-width: $breakpoint-sm) {
+    // padding: 2rem 2.5rem;
+  }
+}
+
+/* ----------------------------------------------
+   FOOTER ALWAYS STAYS AT BOTTOM
+---------------------------------------------- */
+.attendee-layout-container {
+  display: flex;
+  flex-direction: row;
+
+  .footer {
+    margin-top: auto;
+  }
+}
