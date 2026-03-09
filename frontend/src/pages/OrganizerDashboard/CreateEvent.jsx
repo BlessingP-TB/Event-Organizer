@@ -384,7 +384,7 @@ const finalPayload = {
   ...formData,
   startDateTime: combineDateTime(dateParts.startDate, dateParts.startTime),
   endDateTime: combineDateTime(dateParts.endDate || dateParts.startDate, dateParts.endTime),
-  expectedAttend: Number(formData.expectedAttend),
+  expectedAttend: Number(formData.expectedAttend) || 1,
   resources: numericResourcesArray,
   services: enhancedServices, // ✅ Now all values are booleans
 };

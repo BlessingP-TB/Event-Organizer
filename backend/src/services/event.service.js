@@ -128,7 +128,7 @@ const createEvent = async (organizerId, eventBody) => {
         const event = await tx.event.create({
             data: {
                 ...rest,
-                status: EVENT_STATUS.PUBLISHED,
+                status: EVENT_STATUS.DRAFT,
                 organizerId,
                 venueId,
                 themeId,
@@ -168,8 +168,8 @@ const createEvent = async (organizerId, eventBody) => {
                 targetType: 'Event',
                 targetId: event.id,
                 type: APPROVAL_TYPE.GENERAL,
-                status: APPROVAL_STATUS.APPROVED,
-                notes: 'Auto-approved on creation for immediate attendee visibility.',
+                status: APPROVAL_STATUS.PENDING,
+                notes: 'Awaiting admin review for new event.',
                 event: {
                     connect: { id: event.id },
                 },

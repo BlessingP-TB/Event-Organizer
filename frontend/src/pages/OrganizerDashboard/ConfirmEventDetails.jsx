@@ -88,10 +88,8 @@ export default function ConfirmEventDetails() {
       const submissionData = {
         name: formData.name,
         description: formData.description,
-        expectedAttend: formData.expectedAttend,
+        ...(formData.expectedAttend > 0 && { expectedAttend: Number(formData.expectedAttend) }),
         venueId: formData.venueId,
-        organizerId: formData.organizerId,
-        purposeOfFunction: formData.purposeOfFunction,
         startDateTime: formData.startDateTime,
         endDateTime: formData.endDateTime,
         isFree: formData.isFree,
@@ -100,7 +98,6 @@ export default function ConfirmEventDetails() {
         resources: formData.resources || [],
         services: formData.services || {}, // ✅ Already has boolean flags
         themeId: themeId ?? null,
-        status: formData.status ?? "DRAFT",
       };
 
       console.log("DEBUG: Submitting formData to backend:", submissionData);
@@ -113,6 +110,8 @@ export default function ConfirmEventDetails() {
       setTimeout(() => navigate("/organizer/events"), 2000);
     } catch (error) {
       console.error("Error submitting event:", error);
+      console.error("Error response data:", error.response?.data);
+      console.error("Validation details:", error.response?.data?.details);
       const errorMessage = error.response?.data?.message || error.message || "An unexpected error occurred.";
       showToastMessage(`Failed to submit event: ${errorMessage}`);
     } finally {
