@@ -128,6 +128,7 @@ const createEvent = async (organizerId, eventBody) => {
         const event = await tx.event.create({
             data: {
                 ...rest,
+                status: EVENT_STATUS.PUBLISHED,
                 organizerId,
                 venueId,
                 themeId,
@@ -157,19 +158,28 @@ const createEvent = async (organizerId, eventBody) => {
             tx
         );
 
-           await tx.approval.create({
+        const organizerProfile = await tx.organizerProfile.findUnique({
+            where: { userId: organizerId },
+            select: { id: true },
+        });
+
+        await tx.approval.create({
             data: {
                 targetType: 'Event',
-                targetId: event.id,       
+                targetId: event.id,
                 type: APPROVAL_TYPE.GENERAL,
-                status: APPROVAL_STATUS.PENDING,
-                notes: 'Awaiting admin review for new event.',
-                event: {                  
+                status: APPROVAL_STATUS.APPROVED,
+                notes: 'Auto-approved on creation for immediate attendee visibility.',
+                event: {
                     connect: { id: event.id },
-                },       
-                organizerProfile: {
-                    connect: { userId: organizerId },
                 },
+                ...(organizerProfile
+                    ? {
+                          organizerProfile: {
+                              connect: { id: organizerProfile.id },
+                          },
+                      }
+                    : {}),
             },
         });
 
