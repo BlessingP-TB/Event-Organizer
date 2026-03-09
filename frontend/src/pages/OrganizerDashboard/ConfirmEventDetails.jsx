@@ -31,6 +31,22 @@ export default function ConfirmEventDetails() {
     toastTimerRef.current = setTimeout(() => setShowToast(false), 5000);
   };
 
+  const notifyAdmin = (eventPayload, venue) => {
+    const adminNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
+
+    const newNotification = {
+      id: `admin-notif-${Date.now()}`,
+      title: 'New Event Request Submitted',
+      message: `Organizer submitted "${eventPayload.name}" at ${venue?.name || 'selected venue'} for admin review.`,
+      timestamp: new Date().toLocaleString(),
+      read: false,
+      eventId: eventPayload?.id || null,
+    };
+
+    localStorage.setItem('adminNotifications', JSON.stringify([newNotification, ...adminNotifications]));
+    window.dispatchEvent(new Event('adminNotificationsUpdated'));
+  };
+
   const formatDateTime = (isoString) => {
     if (!isoString) return { date: "Not set", time: "" };
     const date = new Date(isoString);
@@ -56,11 +72,11 @@ export default function ConfirmEventDetails() {
       if (themeImage) {
           const base64Image = themeImage.split(',')[1];
           const imageType = themeImage.split(';')[0].split('/')[1];
-          const themeResponse = await api.post('/themes/', {
-          name: `Theme for ${formData.name}`,
-          description: `Theme for event: ${formData.name}`,
-          image: base64Image,
-          filename: `theme-${Date.now()}.${imageType}`,
+          const themeResponse = await api.post('/themes', {
+            name: `Theme for ${formData.name}`,
+            description: `Theme for event: ${formData.name}`,
+            image: base64Image,
+            filename: `theme-${Date.now()}.${imageType}`
           });
           const themeResult = themeResponse.data;
           themeId = themeResult.id || themeResult.data?.id;
@@ -94,8 +110,10 @@ export default function ConfirmEventDetails() {
 
       console.log("DEBUG: Submitting formData to backend:", submissionData);
 
-      const response = await api.post('/events', submissionData);
+      const response = await api.post("/events", submissionData);
       console.log("Event submitted successfully:", response.data);
+      const createdEvent = response?.data?.data || response?.data;
+      notifyAdmin({ ...submissionData, id: createdEvent?.id }, selectedVenue);
       showToastMessage("Event booking request submitted successfully!");
       setTimeout(() => navigate("/organizer/events"), 2000);
     } catch (error) {

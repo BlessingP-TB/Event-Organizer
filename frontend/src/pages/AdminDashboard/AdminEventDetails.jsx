@@ -6,7 +6,6 @@ import {
   FaFilePdf, FaFileImage, FaFile, FaDownload, FaEdit, FaSave, FaTimes
 } from "react-icons/fa";
 import api from '../../utils/api';
-import { toast } from 'react-hot-toast';
 import eventPic from "../../assets/images/eventPic.PNG";
 import "../../styles/pages/EventDetails.scss";
 
@@ -45,47 +44,64 @@ export default function AdminEventDetails() {
       const eventRes = await api.get(`/admin/events/${eventId}`, {
         headers: { "Cache-Control": "no-cache" },
       });
-      const eventData = eventRes?.data;
+      const eventData = eventRes?.data?.data || eventRes?.data;
+
+      if (!eventData) {
+        throw new Error('Event payload missing');
+      }
+
       setEvent(eventData);
 
       // Fetch approvals and match event
-      const approvalRes = await api.get('/approvals', {
-        headers: { "Cache-Control": "no-cache" },
-      });
-      const approvalData = approvalRes?.data;
-      const matchingApproval = approvalData.data.find((a) => a.eventId === eventId);
-      setApproval(matchingApproval || null);
+      try {
+        const approvalRes = await api.get('/admin/approvals', {
+          headers: { "Cache-Control": "no-cache" },
+        });
+        const approvals = approvalRes?.data?.data || approvalRes?.data || [];
+        const matchingApproval = Array.isArray(approvals)
+          ? approvals.find((a) => a.eventId === eventId)
+          : null;
+        setApproval(matchingApproval || null);
+      } catch (approvalErr) {
+        console.warn('Failed to fetch approvals for event details:', approvalErr);
+        setApproval(null);
+      }
 
       // Fetch bookings and match event
-      const bookingRes = await api.get('/bookings/bookings', {
-        headers: { "Cache-Control": "no-cache" },
-      });
-      const bookingData = bookingRes?.data;
-      const allBookings =
-        bookingData.data || bookingData.bookings || bookingData.items || bookingData;
-      const matchingBooking = Array.isArray(allBookings)
-        ? allBookings.find((b) => b.eventId === eventId)
-        : null;
-      setBooking(matchingBooking || null);
-      // Initialize the update state with the current booking data
-      if (matchingBooking) {
+      try {
+        const bookingRes = await api.get('/bookings/bookings', {
+          headers: { "Cache-Control": "no-cache" },
+        });
+        const bookingData = bookingRes?.data;
+        const allBookings =
+          bookingData?.data || bookingData?.bookings || bookingData?.items || bookingData;
+        const matchingBooking = Array.isArray(allBookings)
+          ? allBookings.find((b) => b.eventId === eventId)
+          : null;
+        setBooking(matchingBooking || null);
+        if (matchingBooking) {
           setBookingUpdate({
-              status: matchingBooking.status,
-              depositPaid: matchingBooking.depositPaid,
-              totalPaid: parseFloat(matchingBooking.totalPaid) // Ensure it's a number
+            status: matchingBooking.status,
+            depositPaid: matchingBooking.depositPaid,
+            totalPaid: parseFloat(matchingBooking.totalPaid),
           });
+        }
+      } catch (bookingErr) {
+        console.warn('Failed to fetch booking details for event:', bookingErr);
+        setBooking(null);
       }
 
       // --- NEW: Fetch documents for the organizer of this event ---
       if (eventData && eventData.organizerId) {
           try {
-                const docsRes = await api.get(`/admin/users/${eventData.organizerId}/documents`, {
-                  headers: {
-                    "Cache-Control": "no-cache"
-                  }
+            const docsRes = await api.get(`/admin/users/${eventData.organizerId}/documents`, {
+              headers: { "Cache-Control": "no-cache" }
               });
+            const docsPayload = docsRes?.data?.data || docsRes?.data || [];
               // Filter documents by the current event ID
-              const eventDocs = docsRes.data.filter(doc => doc.eventId === eventId);
+            const eventDocs = Array.isArray(docsPayload)
+            ? docsPayload.filter(doc => doc.eventId === eventId)
+            : [];
               setEventDocuments(eventDocs);
           } catch (docsErr) {
               console.error(`Failed to fetch documents for organizer ${eventData.organizerId}:`, docsErr);
@@ -132,8 +148,8 @@ export default function AdminEventDetails() {
       const body = { status: newStatus };
       if (reason) body.notes = reason;
 
-      const res = await api.patch(`/approvals/${approval.id}`, body);
-      const updated = res?.data;
+      const res = await api.patch(`/admin/approvals/${approval.id}`, body);
+      const updated = res?.data?.data || res?.data;
       setApproval(updated);
       setShowRejectReason(false);
       setRejectReason("");
@@ -156,11 +172,12 @@ export default function AdminEventDetails() {
     try {
       // Use the NEW admin endpoint for updating booking details
       const res = await api.patch(`/admin/bookings/${booking.id}`, {
-          status: bookingUpdate.status,
-          depositPaid: bookingUpdate.depositPaid,
-          totalPaid: bookingUpdate.totalPaid,
+        status: bookingUpdate.status,
+        depositPaid: bookingUpdate.depositPaid,
+        totalPaid: bookingUpdate.totalPaid,
       });
-      const updatedBooking = res?.data;
+
+      const updatedBooking = res?.data?.data || res?.data;
       setBooking(updatedBooking); // Update the main booking state
       // Update the bookingUpdate state to reflect the saved values
       setBookingUpdate({
@@ -202,8 +219,11 @@ export default function AdminEventDetails() {
     }
 
     try {
-      const res = await api.patch(`/admin/documents/${docId}/status`, { status: newDocStatus });
-      const updatedDoc = res?.data;
+      const res = await api.patch(`/admin/documents/${docId}/status`, {
+        status: newDocStatus,
+      });
+
+      const updatedDoc = res?.data?.data || res?.data;
 
       // Update the document status in the local state
       setEventDocuments(prevDocs => 

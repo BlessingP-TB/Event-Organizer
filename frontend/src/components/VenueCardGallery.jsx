@@ -5,6 +5,49 @@ import { MdImage } from "react-icons/md";
 import api from "../utils/api";
 import "../styles/pages/_createEvent.scss";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+const BACKEND_ORIGIN = API_BASE.replace(/\/api\/v\d+\/?$/i, '');
+
+const resolveVenueImageUrl = (rawUrl) => {
+  const value = String(rawUrl || '').trim();
+  if (!value) return '';
+
+  let normalized = value.replace('/api/v1/uploads/', '/uploads/');
+
+  if (normalized.startsWith('/uploads/')) {
+    normalized = `${BACKEND_ORIGIN}${normalized}`;
+  }
+
+  return encodeURI(normalized);
+};
+
+const normalizeImageUrls = (value) => {
+  if (Array.isArray(value)) {
+    return value.filter(Boolean).map((url) => resolveVenueImageUrl(url)).filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed)) {
+        return parsed.filter(Boolean).map((url) => resolveVenueImageUrl(url)).filter(Boolean);
+      }
+      if (typeof parsed === "string") {
+        return [resolveVenueImageUrl(parsed.trim())].filter(Boolean);
+      }
+    } catch {
+      // not JSON - treat as plain URL string
+    }
+
+    return [resolveVenueImageUrl(trimmed)].filter(Boolean);
+  }
+
+  return [];
+};
+
 export default function VenueCardGallery({
   selectedVenue,
   setSelectedVenue,
@@ -22,12 +65,25 @@ export default function VenueCardGallery({
   const fetchVenues = async () => {
     try {
       setLoading(true);
+      setError("");
       const response = await api.get("/venues");
-      // Handle both array response and paginated response
-      const venuesArray = Array.isArray(response.data)
-        ? response.data
-        : response.data.data || [];
-      setVenues(venuesArray);
+      const payload = response?.data;
+      const candidates = [
+        payload,
+        payload?.data,
+        payload?.items,
+        payload?.results,
+        payload?.data?.data,
+        payload?.data?.items,
+        payload?.results?.data,
+      ];
+      const venuesArray = candidates.find(Array.isArray) || [];
+      setVenues(
+        venuesArray.map((venue) => ({
+          ...venue,
+          imageUrls: normalizeImageUrls(venue.imageUrls),
+        }))
+      );
       setLoading(false);
     } catch (err) {
       console.error("Failed to fetch venues:", err);
@@ -40,48 +96,31 @@ export default function VenueCardGallery({
     fetchVenues();
   }, []);
 
-  // Reload venues when other tabs/windows notify that venues were updated
-  useEffect(() => {
-    const onStorage = (e) => {
-      if (e.key === 'venues_updated') {
-        fetchVenues();
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, []);
+  const normalizedCampusFilter = String(campusFilter || "").trim();
+  const normalizedVenueTypeFilter = String(venueTypeFilter || "").trim();
+  const normalizedMinCapacity = Number(minCapacity);
+
+  const hasCampusFilter = normalizedCampusFilter.length > 0;
+  const hasVenueTypeFilter = normalizedVenueTypeFilter.length > 0;
+  const hasCapacityFilter =
+    Number.isFinite(normalizedMinCapacity) && normalizedMinCapacity > 0;
 
   const filteredVenues = venues.filter((venue) => {
+    const venueCampusLocation = `${venue.campus || ""} ${venue.location || ""}`.toLowerCase();
+    const venueType = String(venue.type || "").toLowerCase();
+
     const campusMatch =
-      !campusFilter ||
-      venue.location?.toLowerCase().includes(campusFilter.toLowerCase());
+      !hasCampusFilter ||
+      venueCampusLocation.includes(normalizedCampusFilter.toLowerCase());
     const typeMatch =
-      !venueTypeFilter ||
-      venue.type?.toLowerCase().includes(venueTypeFilter.toLowerCase());
+      !hasVenueTypeFilter ||
+      venueType.includes(normalizedVenueTypeFilter.toLowerCase());
     const capacityMatch =
-      !minCapacity || Number(venue.capacity) >= Number(minCapacity);
+      !hasCapacityFilter || Number(venue.capacity) >= normalizedMinCapacity;
     return campusMatch && typeMatch && capacityMatch;
   });
 
-  const selectedVenueId = resolveVenueId(selectedVenue);
-  const allVenueOptions = venues.map((venue) => ({
-    venueId: resolveVenueId(venue),
-    venue,
-  })).filter((item) => item.venueId);
-
-  const selectVenueById = (venueId) => {
-    const chosenVenue = venues.find((venue) => resolveVenueId(venue) === venueId);
-    if (!chosenVenue) return;
-    const normalizedVenue = { ...chosenVenue, id: resolveVenueId(chosenVenue) };
-    setSelectedVenue(normalizedVenue);
-    setFormData((prev) => ({ ...prev, venueId: resolveVenueId(chosenVenue) }));
-  };
-
-  useEffect(() => {
-    if (selectedVenueId) return;
-    if (filteredVenues.length !== 1) return;
-    selectVenueById(resolveVenueId(filteredVenues[0]));
-  }, [filteredVenues, selectedVenueId]);
+  const isFilterActive = hasCampusFilter || hasVenueTypeFilter || hasCapacityFilter;
 
   if (loading) return <p className="loading">Loading venues...</p>;
   if (error) return <p className="error">{error}</p>;
@@ -96,7 +135,11 @@ export default function VenueCardGallery({
 
       <div className="venue-card-grid">
         {filteredVenues.length === 0 ? (
-          <p className="no-venues">No venues available that match your filters.</p>
+          <p className="no-venues">
+            {isFilterActive
+              ? "No venues available that match your filters."
+              : "No venues available right now."}
+          </p>
         ) : (
           filteredVenues.map((venue) => {
             const venueId = resolveVenueId(venue);
@@ -105,7 +148,10 @@ export default function VenueCardGallery({
               key={venueId || venue.name}
               className={`venue-card ${selectedVenueId === venueId ? "selected" : ""}`}
               onClick={() => {
-                selectVenueById(venueId);
+                setSelectedVenue(venue);
+                if (typeof setFormData === "function") {
+                  setFormData(prev => ({ ...prev, venueId: venue.id }));
+                }
               }}
             >
               {/* Venue Image */}
