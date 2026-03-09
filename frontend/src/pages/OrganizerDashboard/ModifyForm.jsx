@@ -8,6 +8,8 @@ import VenueCardGallery from '../../components/VenueCardGallery';
 import TermsCheckbox from '../../components/TermsCheckbox';
 import "../../styles/pages/_createevent.scss";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 const padTo2Digits = (num) => num.toString().padStart(2, '0');
 
 const deconstructISOString = (isoString) => {
@@ -40,7 +42,7 @@ export default function ModifyForm() {
       setError(null);
       try {
         const token = localStorage.getItem("accessToken");
-        const response = await axios.get(`http://localhost:3000/events/${eventId}`, {
+        const response = await axios.get(`${API_BASE}/events/${eventId}`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
@@ -124,7 +126,7 @@ export default function ModifyForm() {
     setLoading(true);
     try {
       const token = localStorage.getItem("accessToken");
-      await axios.patch(`http://localhost:3000/events/${eventId}`, updatePayload, {
+      await axios.patch(`${API_BASE}/events/${eventId}`, updatePayload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       showToastMessage("Event updated successfully!");

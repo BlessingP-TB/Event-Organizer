@@ -36,6 +36,13 @@ const getDateStr = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const timeToMinutes = (timeStr) => {
+  if (!timeStr) return null;
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return (hours * 60) + minutes;
+};
+
 const getAvailableTimeSlots = (calendarData, venueId, date) => {
   if (!calendarData || !venueId || !date) return [];
   const selectedDateStr = getDateStr(date);
@@ -297,10 +304,21 @@ export default function CreateEvent() {
 
     if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime) {
       const availableSlots = getAvailableTimeSlots(calendarData, selectedVenue.id, dateParts.startDate);
-      const match = availableSlots.some(slot =>
-        slot.startTime === dateParts.startTime && slot.endTime === dateParts.endTime
-      );
-      if (!match) newErrors.startTime = 'Selected time is not available for this venue';
+      const selectedStart = timeToMinutes(dateParts.startTime);
+      const selectedEnd = timeToMinutes(dateParts.endTime);
+
+      if (selectedStart === null || selectedEnd === null || selectedEnd <= selectedStart) {
+        newErrors.startTime = 'Please select a valid time range';
+      } else {
+        const match = availableSlots.some((slot) => {
+          const slotStart = timeToMinutes(slot.startTime);
+          const slotEnd = timeToMinutes(slot.endTime);
+          if (slotStart === null || slotEnd === null) return false;
+          return selectedStart >= slotStart && selectedEnd <= slotEnd;
+        });
+
+        if (!match) newErrors.startTime = 'Selected time is not available for this venue';
+      }
     }
 
     if (!termsAccepted) newErrors.terms = 'You must accept the terms and conditions';

@@ -5,6 +5,8 @@ import { FaArrowLeft, FaUpload, FaCheck, FaFileImage, FaRedo } from "react-icons
 import { MdError } from "react-icons/md";
 import "../../styles/pages/_eventdetails.scss";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 const DEFAULT_BANNER =
   "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&q=80";
 
@@ -65,7 +67,7 @@ const EventDetails = () => {
       }
 
       try {
-        const response = await axios.get(`http://localhost:3000/events/${id}`, {
+        const response = await axios.get(`${API_BASE}/events/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -180,14 +182,14 @@ const bannerSrc = event?.Theme?.image
         eventId: event.id,
       };
 
-      await axios.post("http://localhost:3000/themes/", payload, {
+      await axios.post(`${API_BASE}/themes`, payload, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       });
 
-      const eventRes = await axios.get(`http://localhost:3000/events/${event.id}`, {
+      const eventRes = await axios.get(`${API_BASE}/events/${event.id}`, {
         headers: { Authorization: `Bearer ${token}` },
         "Cache-Control": "no-cache",
       });

@@ -5,6 +5,8 @@ import axios from "axios";
 import { Trash2 } from "lucide-react";
 import "../../styles/pages/_eventdetails.scss";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 const EventDetailsModify = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -18,7 +20,7 @@ const EventDetailsModify = () => {
   const fetchEventById = useCallback(async (eventId) => {
     try {
       const token = localStorage.getItem("accessToken");
-      const response = await axios.get(`http://localhost:3000/events/${eventId}`, {
+      const response = await axios.get(`${API_BASE}/events/${eventId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEvent(response.data);
@@ -51,7 +53,7 @@ const EventDetailsModify = () => {
     setIsCancelling(true);
     try {
       const token = localStorage.getItem("accessToken");
-      await axios.delete(`http://localhost:3000/events/${id}`, {
+      await axios.delete(`${API_BASE}/events/${id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert("Event cancelled!");

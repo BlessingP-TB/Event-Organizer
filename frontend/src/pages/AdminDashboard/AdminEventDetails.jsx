@@ -9,6 +9,8 @@ import axios from 'axios'; // Import axios
 import eventPic from "../../assets/images/eventPic.PNG";
 import "../../styles/pages/EventDetails.scss";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 export default function AdminEventDetails() {
   const { id: eventId } = useParams();
   const navigate = useNavigate();
@@ -41,7 +43,7 @@ export default function AdminEventDetails() {
 
     try {
       // Fetch event details
-      const eventRes = await fetch(`http://localhost:3000/admin/events/${eventId}`, {
+      const eventRes = await fetch(`${API_BASE}/admin/events/${eventId}`, {
         headers: { Authorization: `Bearer ${token}`, "Cache-Control": "no-cache" },
       });
       if (!eventRes.ok) throw new Error(`Event HTTP ${eventRes.status}`);
@@ -49,7 +51,7 @@ export default function AdminEventDetails() {
       setEvent(eventData);
 
       // Fetch approvals and match event
-      const approvalRes = await fetch(`http://localhost:3000/approvals`, {
+      const approvalRes = await fetch(`${API_BASE}/approvals`, {
         headers: { Authorization: `Bearer ${token}`, "Cache-Control": "no-cache" },
       });
       if (!approvalRes.ok) throw new Error(`Approval HTTP ${approvalRes.status}`);
@@ -58,7 +60,7 @@ export default function AdminEventDetails() {
       setApproval(matchingApproval || null);
 
       // Fetch bookings and match event
-      const bookingRes = await fetch(`http://localhost:3000/bookings/bookings`, {
+      const bookingRes = await fetch(`${API_BASE}/bookings/bookings`, {
         headers: { Authorization: `Bearer ${token}`, "Cache-Control": "no-cache" },
       });
       if (!bookingRes.ok) throw new Error(`Booking HTTP ${bookingRes.status}`);
@@ -81,7 +83,7 @@ export default function AdminEventDetails() {
       // --- NEW: Fetch documents for the organizer of this event ---
       if (eventData && eventData.organizerId) {
           try {
-              const docsRes = await axios.get(`http://localhost:3000/admin/users/${eventData.organizerId}/documents`, {
+                const docsRes = await axios.get(`${API_BASE}/admin/users/${eventData.organizerId}/documents`, {
                   headers: {
                       Authorization: `Bearer ${token}`,
                       "Cache-Control": "no-cache" // Add cache control
@@ -135,7 +137,7 @@ export default function AdminEventDetails() {
       const body = { status: newStatus };
       if (reason) body.notes = reason;
 
-      const res = await fetch(`http://localhost:3000/approvals/${approval.id}`, {
+      const res = await fetch(`${API_BASE}/approvals/${approval.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -171,7 +173,7 @@ export default function AdminEventDetails() {
 
     try {
       // Use the NEW admin endpoint for updating booking details
-      const res = await fetch(`http://localhost:3000/admin/bookings/${booking.id}`, { // Changed endpoint
+      const res = await fetch(`${API_BASE}/admin/bookings/${booking.id}`, { // Changed endpoint
         method: "PATCH", // Changed method to PATCH
         headers: {
           "Content-Type": "application/json",
@@ -231,7 +233,7 @@ export default function AdminEventDetails() {
     }
 
     try {
-      const res = await fetch(`http://localhost:3000/admin/documents/${docId}/status`, { // Use the correct admin endpoint
+      const res = await fetch(`${API_BASE}/admin/documents/${docId}/status`, { // Use the correct admin endpoint
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -270,7 +272,7 @@ export default function AdminEventDetails() {
     }
 
     try {
-      const response = await axios.get(`http://localhost:3000/documents/documents/${docId}`, { // Use the correct endpoint for admin
+      const response = await axios.get(`${API_BASE}/documents/documents/${docId}`, { // Use the correct endpoint for admin
         headers: { Authorization: `Bearer ${token}` },
         responseType: 'blob' // Important: Receive the response as a Blob
       });

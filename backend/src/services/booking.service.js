@@ -44,12 +44,15 @@ const createEventBooking = async (
 ) => {
     const calculatedCost = calculateVenueCost(venue, startDateTime, endDateTime);
 
-    const defaultIssuer = await tx.venueIssuer.findFirst();
+    let defaultIssuer = await tx.venueIssuer.findFirst();
     if (!defaultIssuer) {
-        throw new ApiError(
-            HTTP_STATUS.INTERNAL_SERVER_ERROR,
-            'No Venue Issuer configured in system. Cannot create invoice.'
-        );
+        defaultIssuer = await tx.venueIssuer.create({
+            data: {
+                institutionName: 'Default Venue Issuer',
+                institutionAddress: ['Address not configured'],
+                otherDetails: ['Auto-generated issuer profile'],
+            },
+        });
     }
 
     const depositThresholdSetting = await systemSettingService.getSetting(

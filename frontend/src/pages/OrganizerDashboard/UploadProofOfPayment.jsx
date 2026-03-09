@@ -5,6 +5,8 @@ import { useNavigate, useParams, useLocation } from "react-router-dom";
 import axios from "axios";
 import '../../styles/pages/_uploadpop.scss'; // You'll create this SCSS file
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 export default function UploadProofOfPayment() {
   const navigate = useNavigate();
   const { id: eventId } = useParams(); // Destructure and rename 'id' to 'eventId' for clarity
@@ -99,7 +101,7 @@ export default function UploadProofOfPayment() {
       };
 
       await axios.post(
-        "http://localhost:3000/documents/me/documents", // Ensure this endpoint matches your backend
+        `${API_BASE}/documents/me/documents`,
         docBody,
         {
           headers: {
