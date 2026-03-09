@@ -3,7 +3,7 @@ import React, { useState, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import "../../styles/pages/_confirmevent.scss"; // Ensure this path is correct
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/api";
 
 export default function ConfirmEventDetails() {
   const navigate = useNavigate();
@@ -101,16 +101,9 @@ export default function ConfirmEventDetails() {
 
       console.log("DEBUG: Submitting formData to backend:", submissionData);
 
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.post(
-        "http://localhost:3000/events",
-        submissionData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
+      const response = await api.post(
+        "/events",
+        submissionData
       );
       console.log("Event submitted successfully:", response.data);
       showToastMessage("Event booking request submitted successfully!");
