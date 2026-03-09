@@ -136,11 +136,10 @@ const ModernSidebar = ({ role, links, storageKey }) => {
       localStorage.setItem(storageKey, JSON.stringify(updated));
     }
 
-    // Show an on-screen modal with notification details instead of navigating
-    setActiveNote(note);
-    setShowNotifModal(true);
-    // close the sidebar popup so the modal appears centered on the page
+    // Navigate to the Notifications page so user sees the full list
     setShowNotifications(false);
+    const basePath = role === 'ADMIN' ? '/admin' : role === 'ORGANIZER' ? '/organizer' : '/attendee';
+    navigate(`${basePath}/notifications`);
   };
 
   const closeNotifModal = () => {

@@ -54,6 +54,7 @@ const ResetPasswordForm = lazy(() => import('./pages/Auth/ResetPasswordForm'));
 
 /* ---------- Shared Pages ---------- */
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const Discover = lazy(() => import('./pages/AttendeeDashBoard/Discover'));
 
 /* ---------- Utility Components ---------- */
@@ -98,6 +99,7 @@ function App() {
             <Route path="discover" element={<Discover />} />
             <Route path="events" element={<MyEvents />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="notifications" element={<NotificationsPage role="ORGANIZER" />} />
             <Route path="upload-pop/:id" element={<UploadProofOfPayment />} />
             <Route path="create-event" element={<CreateEvent />} />
             <Route path="confirm-event" element={<ConfirmEventDetails />} />
@@ -129,6 +131,7 @@ function App() {
             <Route path="tools" element={<AdminTools />} />
             <Route path="chat" element={<AdminChat />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="notifications" element={<NotificationsPage role="ADMIN" />} />
            <Route path="events" element={<AdminEvents />} />
           {/* <Route path="events/:id" element={<AdminEventDetails />} />  */}
 
@@ -151,6 +154,7 @@ function App() {
             <Route path="register/:id" element={<AttendeeRegisterForEvent />} />
             <Route path="ratings" element={<AttendeeEventRating />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="notifications" element={<NotificationsPage role="ATTENDEE" />} />
           </Route>
 
           {/* ---------- 404 ---------- */}
