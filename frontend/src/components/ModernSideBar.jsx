@@ -2,6 +2,8 @@
 
 import React, { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
+import { useNavigate } from 'react-router-dom';
+import api from '../utils/api';
 import { Bell } from "lucide-react";
 import { motion } from "framer-motion";
 import "../styles/components/_modernSidebar.scss";
@@ -9,6 +11,8 @@ import "../styles/components/_modernSidebar.scss";
 const ModernSidebar = ({ role, links, storageKey }) => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [activeNote, setActiveNote] = useState(null);
+  const [showNotifModal, setShowNotifModal] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const popupRef = useRef(null);
 
@@ -22,23 +26,62 @@ const ModernSidebar = ({ role, links, storageKey }) => {
       setNotifications(updated);
     };
 
+    const handleCountUpdate = () => {
+      // trigger re-render by reading from localStorage when count updates
+      const storedCount = parseInt(localStorage.getItem(`${storageKey}:unreadCount`) || '0', 10);
+      // update notifications state only if count change might imply different list
+      setNotifications(JSON.parse(localStorage.getItem(storageKey) || "[]"));
+    };
+
     window.addEventListener(`${storageKey}Updated`, handleUpdate);
-    return () => window.removeEventListener(`${storageKey}Updated`, handleUpdate);
+    window.addEventListener(`${storageKey}CountUpdated`, handleCountUpdate);
+    return () => {
+      window.removeEventListener(`${storageKey}Updated`, handleUpdate);
+      window.removeEventListener(`${storageKey}CountUpdated`, handleCountUpdate);
+    };
   }, [storageKey]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = parseInt(localStorage.getItem(`${storageKey}:unreadCount`) || String(notifications.filter((n) => !n.read).length), 10);
+  const navigate = useNavigate();
 
   /* ---------------- Toggle Sidebar ---------------- */
   const toggleMobile = () => setIsMobileOpen((prev) => !prev);
 
   /* ---------------- Toggle Notifications ---------------- */
   const toggleNotifications = () => {
-    setShowNotifications((prev) => !prev);
+    const newState = !showNotifications;
+    setShowNotifications(newState);
 
-    // Auto-mark all notifications as read
-    const updated = notifications.map((n) => ({ ...n, read: true }));
-    setNotifications(updated);
-    localStorage.setItem(storageKey, JSON.stringify(updated));
+    // If opening the popup, request server to mark all as read (bulk) then refresh
+    if (newState) {
+      (async () => {
+        try {
+          await api.patch('/notifications/mark-read', {});
+        } catch (err) {
+          console.warn('Failed to bulk-mark notifications read on server', err);
+        }
+
+        try {
+          const res = await api.get('/notifications');
+          const serverNotes = res.data?.data || [];
+          setNotifications(serverNotes);
+          localStorage.setItem(storageKey, JSON.stringify(serverNotes));
+          // also update unread count stored by poller; if unavailable, derive
+          const derived = serverNotes.filter((n) => !n.read).length;
+          localStorage.setItem(`${storageKey}:unreadCount`, String(derived));
+          window.dispatchEvent(new Event(`${storageKey}Updated`));
+          window.dispatchEvent(new Event(`${storageKey}CountUpdated`));
+        } catch (err) {
+          // fallback: mark locally
+          const updated = notifications.map((n) => ({ ...n, read: true }));
+          setNotifications(updated);
+          localStorage.setItem(storageKey, JSON.stringify(updated));
+          localStorage.setItem(`${storageKey}:unreadCount`, '0');
+          window.dispatchEvent(new Event(`${storageKey}Updated`));
+          window.dispatchEvent(new Event(`${storageKey}CountUpdated`));
+        }
+      })();
+    }
   };
 
   const handleDismiss = (id) => {
@@ -47,6 +90,50 @@ const ModernSidebar = ({ role, links, storageKey }) => {
     const updated = notifications.filter((n) => n.id !== id);
     setNotifications(updated);
     localStorage.setItem(storageKey, JSON.stringify(updated));
+  };
+
+  const handleOpen = async (note) => {
+    try {
+      // mark as read on the server
+      await api.patch(`/notifications/${note.id}/read`);
+    } catch (err) {
+      console.warn('Failed to mark notification read on server', err);
+    }
+
+    // re-fetch notifications from server (poller will also update soon)
+    try {
+      const res = await api.get('/notifications');
+      const serverNotes = res.data?.data || [];
+      setNotifications(serverNotes);
+      localStorage.setItem(storageKey, JSON.stringify(serverNotes));
+      window.dispatchEvent(new Event(`${storageKey}Updated`));
+    } catch (err) {
+      // fallback: mark locally
+      const updated = notifications.map((n) => (n.id === note.id ? { ...n, read: true } : n));
+      setNotifications(updated);
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+    }
+
+    // Show an on-screen modal with notification details instead of navigating
+    setActiveNote(note);
+    setShowNotifModal(true);
+    // keep the sidebar popup open state as-is (we close it when user dismisses)
+  };
+
+  const closeNotifModal = () => {
+    setShowNotifModal(false);
+    setActiveNote(null);
+  };
+
+  const goToEventFromNotif = (note) => {
+    const eventId = note.data?.eventId;
+    if (eventId) {
+      if (role === 'ADMIN') navigate(`/admin/details/${eventId}`);
+      else if (role === 'ORGANIZER') navigate(`/organizer/event/${eventId}`);
+      else navigate(`/attendee/view-event/${eventId}`);
+      setShowNotifications(false);
+      closeNotifModal();
+    }
   };
 
   return (
@@ -114,18 +201,21 @@ const ModernSidebar = ({ role, links, storageKey }) => {
             {showNotifications && (
               <div className="notification-popup">
                 {notifications.length > 0 ? (
-                  <ul>
+                  <ul className="notif-list">
                     {notifications.map((note) => (
                       <li
                         key={note.id}
-                        className={note.read ? "read" : "unread"}
+                        className={`notif-item ${note.read ? 'read' : 'unread'}`}
+                        onClick={() => handleOpen(note)}
                       >
-                        <strong>{note.title}</strong>
-                        <p>{note.message}</p>
-                        <small>{note.timestamp || "Just now"}</small>
-                        <button onClick={() => handleDismiss(note.id)}>
-                          ×
-                        </button>
+                        <div className="notif-left">
+                          <div className="notif-type">{note.type.replace(/_/g, ' ')}</div>
+                          <div className="notif-message">{note.message}</div>
+                        </div>
+                        <div className="notif-right">
+                          <small className="notif-time">{new Date(note.createdAt).toLocaleString()}</small>
+                          <button className="notif-dismiss" onClick={(e) => { e.stopPropagation(); handleDismiss(note.id); }}>×</button>
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -147,6 +237,27 @@ const ModernSidebar = ({ role, links, storageKey }) => {
             setShowNotifications(false);
           }}
         />
+      )}
+      {/* Notification modal shown on top of screen when a notification is clicked */}
+      {showNotifModal && activeNote && (
+        <div className="notif-modal-overlay" onClick={closeNotifModal}>
+          <div className="notif-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="notif-modal-header">
+              <h4>{activeNote.type?.replace(/_/g, ' ') || 'Notification'}</h4>
+              <button className="close-btn" onClick={closeNotifModal}>×</button>
+            </div>
+            <div className="notif-modal-body">
+              <p className="modal-message">{activeNote.message}</p>
+              <p className="modal-meta">{new Date(activeNote.createdAt).toLocaleString()}</p>
+            </div>
+            <div className="notif-modal-actions">
+              {activeNote.data?.eventId && (
+                <button className="goto-btn" onClick={() => goToEventFromNotif(activeNote)}>Open Event</button>
+              )}
+              <button className="close-secondary" onClick={closeNotifModal}>Close</button>
+            </div>
+          </div>
+        </div>
       )}
     </>
   );
