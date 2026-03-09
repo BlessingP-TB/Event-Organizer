@@ -36,32 +36,32 @@ const getDateStr = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeId = (value) => String(value ?? '');
+
+const getSlotDateStr = (slotDate) => {
+  if (!slotDate) return '';
+  if (typeof slotDate === 'string') return slotDate.substring(0, 10);
+  return getDateStr(new Date(slotDate));
+};
+
+const slotMatchesVenue = (slot, venueId) => {
+  if (!slot || !venueId) return false;
+
+  const normalizedVenueId = normalizeId(venueId);
+
+  const inVenueIds = Array.isArray(slot.venueIds)
+    && slot.venueIds.some((id) => normalizeId(id) === normalizedVenueId);
+
+  const singleVenueMatch = slot.venueId && normalizeId(slot.venueId) === normalizedVenueId;
+
+  return inVenueIds || singleVenueMatch;
+};
+
 const getAvailableTimeSlots = (calendarData, venueId, date) => {
   if (!calendarData || !venueId || !date) return [];
   const selectedDateStr = getDateStr(date);
-
-  const slotMatchesVenue = (slot) => {
-    if (!slot || !venueId) return false;
-    if (Array.isArray(slot.venueIds)) {
-      return slot.venueIds.map(String).includes(String(venueId));
-    }
-    if (slot.venueId) {
-      return String(slot.venueId) === String(venueId);
-    }
-    return false;
-  };
-
-  const slotDateStr = (slot) => {
-    if (slot?.date) return String(slot.date).substring(0, 10);
-    if (slot?.startDateTime) return String(slot.startDateTime).substring(0, 10);
-    return '';
-  };
-
   return calendarData
-    .filter(slot =>
-      slotMatchesVenue(slot) &&
-      slotDateStr(slot) === selectedDateStr
-    )
+    .filter(slot => slotMatchesVenue(slot, venueId) && getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr)
     .map(slot => ({
       startTime: slot.startTime,
       endTime: slot.endTime
@@ -279,24 +279,22 @@ export default function CreateEvent() {
   };
 
   const venueHasCalendarAvailability = selectedVenue && calendarData.some((slot) => {
-    if (Array.isArray(slot?.venueIds)) {
-      return slot.venueIds.map(String).includes(String(selectedVenue.id));
-    }
-    if (slot?.venueId) {
-      return String(slot.venueId) === String(selectedVenue.id);
-    }
-    return false;
+    return slotMatchesVenue(slot, selectedVenue.id);
   });
 
   const filterDate = (date) => {
     if (!selectedVenue) return true;
-    if (!venueHasCalendarAvailability) return true;
+
+    const venueSlots = Array.isArray(calendarData)
+      ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
+      : [];
+
+    if (venueSlots.length === 0) {
+      return true;
+    }
+
     const selectedDateStr = getDateStr(date);
-    return calendarData.some(slot =>
-      ((Array.isArray(slot?.venueIds) && slot.venueIds.map(String).includes(String(selectedVenue.id))) ||
-        (slot?.venueId && String(slot.venueId) === String(selectedVenue.id))) &&
-      String(slot?.date || slot?.startDateTime || '').substring(0, 10) === selectedDateStr
-    );
+    return venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
   };
 
   const validateForm = () => {
@@ -315,12 +313,17 @@ export default function CreateEvent() {
 
     if (selectedVenue && dateParts.startDate && venueHasCalendarAvailability) {
       const selectedDateStr = getDateStr(dateParts.startDate);
-      const isAvailable = calendarData.some(slot =>
-        ((Array.isArray(slot?.venueIds) && slot.venueIds.map(String).includes(String(selectedVenue.id))) ||
-          (slot?.venueId && String(slot.venueId) === String(selectedVenue.id))) &&
-        String(slot?.date || slot?.startDateTime || '').substring(0, 10) === selectedDateStr
-      );
-      if (!isAvailable) newErrors.startDate = 'Selected date is not available for this venue';
+
+      const venueSlots = Array.isArray(calendarData)
+        ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
+        : [];
+
+      const hasVenueAvailabilityData = venueSlots.length > 0;
+      const isAvailable = venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
+
+      if (hasVenueAvailabilityData && !isAvailable) {
+        newErrors.startDate = 'Selected date is not available for this venue';
+      }
     }
 
     if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime && venueHasCalendarAvailability) {
@@ -328,7 +331,10 @@ export default function CreateEvent() {
       const match = availableSlots.some(slot =>
         slot.startTime === dateParts.startTime && slot.endTime === dateParts.endTime
       );
-      if (!match) newErrors.startTime = 'Selected time is not available for this venue';
+
+      if (availableSlots.length > 0 && !match) {
+        newErrors.startTime = 'Selected time is not available for this venue';
+      }
     }
 
     if (!termsAccepted) newErrors.terms = 'You must accept the terms and conditions';
@@ -628,13 +634,17 @@ const finalPayload = {
                       placeholderText="Select end date"
                       filterDate={(date) => {
                         if (!selectedVenue) return true;
-                        if (!venueHasCalendarAvailability) return true;
+
+                        const venueSlots = Array.isArray(calendarData)
+                          ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
+                          : [];
+
+                        if (venueSlots.length === 0) {
+                          return true;
+                        }
+
                         const selectedDateStr = getDateStr(date);
-                        return calendarData.some(slot =>
-                          ((Array.isArray(slot?.venueIds) && slot.venueIds.map(String).includes(String(selectedVenue.id))) ||
-                            (slot?.venueId && String(slot.venueId) === String(selectedVenue.id))) &&
-                          String(slot?.date || slot?.startDateTime || '').substring(0, 10) === selectedDateStr
-                        );
+                        return venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
                       }}
                       minDate={dateParts.startDate || new Date()}
                       dateFormat="yyyy-MM-dd"

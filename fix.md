@@ -134,6 +134,61 @@
 
 ---
 
+## 13. Ntiyiso — CreateEvent Venue/Date Selection Bug
+
+**File:** `frontend/src/pages/OrganizerDashboard/CreateEvent.jsx`  
+**Problem:** Selecting a venue made date selection fail or become overly restrictive because availability checks were too strict (payload shape/type mismatches and empty-calendar scenarios).  
+**Fix:**
+- Added robust slot matching for both `venueIds` and `venueId` formats.
+- Normalized ID/date matching logic to prevent false mismatches.
+- Prevented hard lockouts when calendar data is empty/not loaded.
+- Relaxed validation so date/time availability errors are only shown when relevant slot data actually exists.
+
+---
+
+## 14. Organizer Confirm Submit 404 Error
+
+**File:** `frontend/src/pages/OrganizerDashboard/ConfirmEventDetails.jsx`  
+**Problem:** Event submit used hardcoded `http://localhost:3000/events` and theme submit used `http://localhost:3000/themes/`, both missing `/api/v1`.  
+**Fix:**
+- Replaced raw URL requests with shared `api` utility.
+- Updated submissions to:
+  - `POST /events`
+  - `POST /themes`
+- Removed manual token/header duplication handled by `api` interceptors.
+
+---
+
+## 15. EventDetails Build Break (Duplicate Variable)
+
+**File:** `frontend/src/pages/OrganizerDashboard/EventDetails.jsx`  
+**Problem:** Duplicate declaration of `bannerSrc` caused build failure (`The symbol "bannerSrc" has already been declared`).  
+**Fix:** Removed invalid duplicate declaration and kept a single valid `bannerSrc` assignment using theme image bytes fallback.
+
+---
+
+## 16. Event Submit Blocked by Missing Venue Issuer
+
+**Files:**
+- `backend/src/services/booking.service.js`
+- `backend/src/services/purchase.service.js`
+
+**Problem:** Event/purchase flows failed with: `No Venue Issuer configured in system. Cannot create invoice.` when no issuer existed in DB.  
+**Fix:** Added fallback helper to auto-create a default `VenueIssuer` when none exists, allowing invoice creation and submission to proceed.
+
+---
+
+## 17. Admin Event Details Load Failure
+
+**File:** `frontend/src/pages/AdminDashboard/AdminEventDetails.jsx`  
+**Problem:** `Failed to load event or related details.` due to hardcoded non-versioned endpoints and brittle response handling.  
+**Fix:**
+- Replaced hardcoded URLs with shared `api` client (`/api/v1` aware).
+- Updated event, approvals, bookings, documents, status updates, and download calls.
+- Added safer payload parsing (`data.data` vs `data`) and non-fatal handling for optional related fetches.
+
+---
+
 ## Root Cause Summary
 
 Nearly all 404 errors shared the same root cause: frontend files were making API calls to `http://localhost:3000/<path>` directly, but the backend mounts all routes under the `/api/v1` prefix (configured via `API_PREFIX=/api/v1` in `.env`). The shared `api` utility at `frontend/src/utils/api.js` already had the correct `baseURL` configured — the fix was to use it consistently across all files.
