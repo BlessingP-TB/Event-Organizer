@@ -3,7 +3,7 @@ import React, { useState, useRef } from "react";
 import { ArrowLeft } from "lucide-react";
 import "../../styles/pages/_confirmevent.scss"; // Ensure this path is correct
 import { useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/api";
 
 export default function ConfirmEventDetails() {
   const navigate = useNavigate();
@@ -23,6 +23,22 @@ export default function ConfirmEventDetails() {
     setShowToast(true);
     if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     toastTimerRef.current = setTimeout(() => setShowToast(false), 5000);
+  };
+
+  const notifyAdmin = (eventPayload, venue) => {
+    const adminNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
+
+    const newNotification = {
+      id: `admin-notif-${Date.now()}`,
+      title: 'New Event Request Submitted',
+      message: `Organizer submitted "${eventPayload.name}" at ${venue?.name || 'selected venue'} for admin review.`,
+      timestamp: new Date().toLocaleString(),
+      read: false,
+      eventId: eventPayload?.id || null,
+    };
+
+    localStorage.setItem('adminNotifications', JSON.stringify([newNotification, ...adminNotifications]));
+    window.dispatchEvent(new Event('adminNotificationsUpdated'));
   };
 
   const formatDateTime = (isoString) => {
@@ -50,23 +66,13 @@ export default function ConfirmEventDetails() {
       if (themeImage) {
           const base64Image = themeImage.split(',')[1];
           const imageType = themeImage.split(';')[0].split('/')[1];
-          const themeResponse = await fetch('http://localhost:3000/themes/', {
-              method: 'POST',
-              headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-              },
-              body: JSON.stringify({
-                  name: `Theme for ${formData.name}`,
-                  description: `Theme for event: ${formData.name}`,
-                  image: base64Image,
-                  filename: `theme-${Date.now()}.${imageType}`
-              })
+          const themeResponse = await api.post('/themes', {
+            name: `Theme for ${formData.name}`,
+            description: `Theme for event: ${formData.name}`,
+            image: base64Image,
+            filename: `theme-${Date.now()}.${imageType}`
           });
-          if (!themeResponse.ok) {
-              throw new Error(`HTTP error! status: ${themeResponse.status}`);
-          }
-          const themeResult = await themeResponse.json();
+          const themeResult = themeResponse.data;
           themeId = themeResult.id || themeResult.data?.id;
           if (!themeId) {
               throw new Error('Failed to get theme ID from response');
@@ -101,18 +107,10 @@ export default function ConfirmEventDetails() {
 
       console.log("DEBUG: Submitting formData to backend:", submissionData);
 
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.post(
-        "http://localhost:3000/events",
-        submissionData,
-        {
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await api.post("/events", submissionData);
       console.log("Event submitted successfully:", response.data);
+      const createdEvent = response?.data?.data || response?.data;
+      notifyAdmin({ ...submissionData, id: createdEvent?.id }, selectedVenue);
       showToastMessage("Event booking request submitted successfully!");
       setTimeout(() => navigate("/organizer/events"), 2000);
     } catch (error) {
