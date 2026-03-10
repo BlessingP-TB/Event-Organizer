@@ -36,22 +36,32 @@ const getDateStr = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const timeToMinutes = (timeStr) => {
-  if (!timeStr) return null;
-  const [hours, minutes] = timeStr.split(':').map(Number);
-  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
-  return (hours * 60) + minutes;
+const normalizeId = (value) => String(value ?? '');
+
+const getSlotDateStr = (slotDate) => {
+  if (!slotDate) return '';
+  if (typeof slotDate === 'string') return slotDate.substring(0, 10);
+  return getDateStr(new Date(slotDate));
+};
+
+const slotMatchesVenue = (slot, venueId) => {
+  if (!slot || !venueId) return false;
+
+  const normalizedVenueId = normalizeId(venueId);
+
+  const inVenueIds = Array.isArray(slot.venueIds)
+    && slot.venueIds.some((id) => normalizeId(id) === normalizedVenueId);
+
+  const singleVenueMatch = slot.venueId && normalizeId(slot.venueId) === normalizedVenueId;
+
+  return inVenueIds || singleVenueMatch;
 };
 
 const getAvailableTimeSlots = (calendarData, venueId, date) => {
   if (!calendarData || !venueId || !date) return [];
   const selectedDateStr = getDateStr(date);
   return calendarData
-    .filter(slot =>
-      Array.isArray(slot.venueIds) &&
-      slot.venueIds.includes(venueId) &&
-      slot.date.substring(0, 10) === selectedDateStr
-    )
+    .filter(slot => slotMatchesVenue(slot, venueId) && getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr)
     .map(slot => ({
       startTime: slot.startTime,
       endTime: slot.endTime
@@ -285,25 +295,23 @@ export default function CreateEvent() {
     toastTimerRef.current = setTimeout(() => setShowToast(false), 5000);
   };
 
+  const venueHasCalendarAvailability = selectedVenue && calendarData.some((slot) => {
+    return slotMatchesVenue(slot, selectedVenue.id);
+  });
+
   const filterDate = (date) => {
-    // Always allow future dates if no venue selected or no calendar data
-    if (!selectedVenue || calendarData.length === 0) {
-      return date >= new Date(new Date().setHours(0, 0, 0, 0));
+    if (!selectedVenue) return true;
+
+    const venueSlots = Array.isArray(calendarData)
+      ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
+      : [];
+
+    if (venueSlots.length === 0) {
+      return true;
     }
+
     const selectedDateStr = getDateStr(date);
-    const hasSlot = calendarData.some(slot =>
-      Array.isArray(slot.venueIds) &&
-      slot.venueIds.includes(selectedVenue.id) &&
-      slot.date.substring(0, 10) === selectedDateStr
-    );
-    // If venue has calendar slots, only allow those dates; otherwise allow all future dates
-    const venueHasAnySlots = calendarData.some(slot =>
-      Array.isArray(slot.venueIds) && slot.venueIds.includes(selectedVenue.id)
-    );
-    if (venueHasAnySlots) {
-      return hasSlot;
-    }
-    return date >= new Date(new Date().setHours(0, 0, 0, 0));
+    return venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
   };
 
   const validateForm = () => {
@@ -320,40 +328,29 @@ export default function CreateEvent() {
     if (selectedEventTypes.length === 0) newErrors.eventType = 'Please select at least one type of function';
     if (selectedGuestTypes.length === 0) newErrors.guestType = 'Please select at least one type of guest';
 
-    if (selectedVenue && dateParts.startDate && calendarData.length > 0) {
+    if (selectedVenue && dateParts.startDate && venueHasCalendarAvailability) {
       const selectedDateStr = getDateStr(dateParts.startDate);
-      const venueHasAnySlots = calendarData.some(slot =>
-        Array.isArray(slot.venueIds) && slot.venueIds.includes(selectedVenue.id)
-      );
-      if (venueHasAnySlots) {
-        const isAvailable = calendarData.some(slot =>
-          Array.isArray(slot.venueIds) &&
-          slot.venueIds.includes(selectedVenue.id) &&
-          slot.date.substring(0, 10) === selectedDateStr
-        );
-        if (!isAvailable) newErrors.startDate = 'Selected date is not available for this venue';
+
+      const venueSlots = Array.isArray(calendarData)
+        ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
+        : [];
+
+      const hasVenueAvailabilityData = venueSlots.length > 0;
+      const isAvailable = venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
+
+      if (hasVenueAvailabilityData && !isAvailable) {
+        newErrors.startDate = 'Selected date is not available for this venue';
       }
     }
 
-    if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime) {
-      const selectedStart = timeToMinutes(dateParts.startTime);
-      const selectedEnd = timeToMinutes(dateParts.endTime);
+    if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime && venueHasCalendarAvailability) {
+      const availableSlots = getAvailableTimeSlots(calendarData, selectedVenue.id, dateParts.startDate);
+      const match = availableSlots.some(slot =>
+        slot.startTime === dateParts.startTime && slot.endTime === dateParts.endTime
+      );
 
-      if (selectedStart === null || selectedEnd === null || selectedEnd <= selectedStart) {
-        newErrors.startTime = 'Please select a valid time range';
-      } else if (calendarData.length > 0) {
-        const availableSlots = getAvailableTimeSlots(calendarData, selectedVenue.id, dateParts.startDate);
-        // Only validate against calendar slots if venue has any slots defined
-        if (availableSlots.length > 0) {
-          const match = availableSlots.some((slot) => {
-            const slotStart = timeToMinutes(slot.startTime);
-            const slotEnd = timeToMinutes(slot.endTime);
-            if (slotStart === null || slotEnd === null) return false;
-            return selectedStart >= slotStart && selectedEnd <= slotEnd;
-          });
-
-          if (!match) newErrors.startTime = 'Selected time is not available for this venue';
-        }
+      if (availableSlots.length > 0 && !match) {
+        newErrors.startTime = 'Selected time is not available for this venue';
       }
     }
 
@@ -670,18 +667,18 @@ const finalPayload = {
                       className={`form-input ${errors.endDate ? 'error' : ''}`}
                       placeholderText="Select end date"
                       filterDate={(date) => {
-                        const minDateCheck = date >= (dateParts.startDate || new Date(new Date().setHours(0, 0, 0, 0)));
-                        if (!selectedVenue || calendarData.length === 0) return minDateCheck;
+                        if (!selectedVenue) return true;
+
+                        const venueSlots = Array.isArray(calendarData)
+                          ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
+                          : [];
+
+                        if (venueSlots.length === 0) {
+                          return true;
+                        }
+
                         const selectedDateStr = getDateStr(date);
-                        const venueHasAnySlots = calendarData.some(slot =>
-                          Array.isArray(slot.venueIds) && slot.venueIds.includes(selectedVenue.id)
-                        );
-                        if (!venueHasAnySlots) return minDateCheck;
-                        return calendarData.some(slot =>
-                          Array.isArray(slot.venueIds) &&
-                          slot.venueIds.includes(selectedVenue.id) &&
-                          slot.date.substring(0, 10) === selectedDateStr
-                        );
+                        return venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
                       }}
                       minDate={dateParts.startDate || new Date()}
                       dateFormat="yyyy-MM-dd"
@@ -746,6 +743,11 @@ const finalPayload = {
                 )}
               </section>
 
+<<<<<<< Updated upstream
+=======
+              {/* Event Gallery removed per request */}
+
+>>>>>>> Stashed changes
               {/* Terms */}
               <section className="form-section">
                 <TermsCheckbox onDecision={(accepted) => { setTermsAccepted(accepted); if (errors.terms) setErrors(prev => ({ ...prev, terms: '' })); }} />
@@ -766,8 +768,5 @@ const finalPayload = {
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </div>
-  );
 }
+                {/* Event Gallery removed per request */}

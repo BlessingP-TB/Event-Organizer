@@ -135,10 +135,9 @@ const EventDetails = () => {
 
   const statsAvailable = event._count && typeof event._count.registrations !== "undefined";
 
-  const bannerSrc =
-    bytesToDataUrl(event?.Theme?.image, "image/jpeg") ||
-    event?.Theme?.imageUrl ||
-    DEFAULT_BANNER;
+  const bannerSrc = event?.Theme?.image
+    ? bytesToDataUrl(event.Theme.image, 'image/jpeg') || DEFAULT_BANNER
+    : DEFAULT_BANNER;
 
   // For demo/testing, always show upload section
   const canUpload = true;

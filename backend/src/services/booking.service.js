@@ -34,6 +34,25 @@ const calculateVenueCost = (venue, startDateTime, endDateTime) => {
     return venue.price;
 };
 
+const ensureDefaultVenueIssuer = async (tx) => {
+    const existingIssuer = await tx.venueIssuer.findFirst();
+    if (existingIssuer) {
+        return existingIssuer;
+    }
+
+    return tx.venueIssuer.create({
+        data: {
+            institutionName: 'Smart Events Default Issuer',
+            institutionAddress: [
+                'Not configured yet',
+            ],
+            otherDetails: [
+                'Auto-created default issuer. Please update issuer details from admin settings.',
+            ],
+        },
+    });
+};
+
 const createEventBooking = async (
     eventId,
     organizerId,
@@ -44,16 +63,7 @@ const createEventBooking = async (
 ) => {
     const calculatedCost = calculateVenueCost(venue, startDateTime, endDateTime);
 
-    let defaultIssuer = await tx.venueIssuer.findFirst();
-    if (!defaultIssuer) {
-        defaultIssuer = await tx.venueIssuer.create({
-            data: {
-                institutionName: 'Default Venue Issuer',
-                institutionAddress: ['Address not configured'],
-                otherDetails: ['Auto-generated issuer profile'],
-            },
-        });
-    }
+    const defaultIssuer = await ensureDefaultVenueIssuer(tx);
 
     const depositThresholdSetting = await systemSettingService.getSetting(
         'DEPOSIT_THRESHOLD'

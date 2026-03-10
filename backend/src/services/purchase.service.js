@@ -14,6 +14,25 @@ const eventService = require('./event.service');
 const paymentService = require('./payment.service');
 const invoiceService = require('./invoice.service');
 
+const ensureDefaultVenueIssuer = async (tx) => {
+    const existingIssuer = await tx.venueIssuer.findFirst();
+    if (existingIssuer) {
+        return existingIssuer;
+    }
+
+    return tx.venueIssuer.create({
+        data: {
+            institutionName: 'Smart Events Default Issuer',
+            institutionAddress: [
+                'Not configured yet',
+            ],
+            otherDetails: [
+                'Auto-created default issuer. Please update issuer details from admin settings.',
+            ],
+        },
+    });
+};
+
 const createPurchase = async (userId, eventId, purchaseBody) => {
     const { ticketDefinitionId, paymentMethod } = purchaseBody;
 
@@ -60,16 +79,7 @@ const createPurchase = async (userId, eventId, purchaseBody) => {
             );
         }
 
-        let defaultIssuer = await tx.venueIssuer.findFirst();
-        if (!defaultIssuer) {
-            defaultIssuer = await tx.venueIssuer.create({
-                data: {
-                    institutionName: 'Default Venue Issuer',
-                    institutionAddress: ['Address not configured'],
-                    otherDetails: ['Auto-generated issuer profile'],
-                },
-            });
-        }
+        const defaultIssuer = await ensureDefaultVenueIssuer(tx);
 
         const purchase = await tx.purchase.create({
             data: {
