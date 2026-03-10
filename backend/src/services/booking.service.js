@@ -89,6 +89,22 @@ const createEventBooking = async (
         bookingStatus = BOOKING_STATUS.PENDING_DEPOSIT;
     }
 
+    // Temporary bypass: allow booking creation without invoice setup when venue issuer is missing.
+    if (!defaultIssuer) {
+        const booking = await tx.booking.create({
+            data: {
+                eventId,
+                organizerId,
+                venueId: venue.id,
+                calculatedCost,
+                depositRequired: null,
+                status: BOOKING_STATUS.CONFIRMED,
+            },
+        });
+
+        return booking;
+    }
+
     const booking = await tx.booking.create({
         data: {
             eventId,

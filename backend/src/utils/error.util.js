@@ -65,6 +65,12 @@ const handlePrismaError = (err) => {
             code = 'UNIQUE_CONSTRAINT_FAILED';
             details = { fields: err.meta.target };
             break;
+        case 'P2003':
+            statusCode = HTTP_STATUS.BAD_REQUEST;
+            message = 'A referenced record does not exist for one of the submitted fields.';
+            code = 'FOREIGN_KEY_CONSTRAINT_FAILED';
+            details = { field: err.meta?.field_name || null };
+            break;
         case 'P2025':
             statusCode = HTTP_STATUS.NOT_FOUND;
             message = 'The requested record was not found.';
