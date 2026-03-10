@@ -22,12 +22,12 @@ router.get(
 );
 router.get(
     '/events/:id',
-    validate(eventValidation.eventIdParam),
+    validate(uuidParam('id')),
     eventController.getEvent
 );
 router.get(
     '/events/:id/tickets',
-    validate(eventValidation.eventIdParam),
+    validate(uuidParam('id')),
     eventController.listTicketDefinitions
 );
 

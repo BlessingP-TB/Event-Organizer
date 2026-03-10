@@ -1,16 +1,18 @@
 // src/components/ModernSidebar.jsx
 
-import React, { useState, useEffect, useRef } from "react";
-import { NavLink } from "react-router-dom";
-import { Bell } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { Bell, CircleHelp, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import "../styles/components/_modernSidebar.scss";
 
 const ModernSidebar = ({ role, links, storageKey }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const popupRef = useRef(null);
+  const roleBasePath = role === "ATTENDEE" ? "/attendee" : role === "ORGANIZER" ? "/organizer" : "/admin";
+
+  const helpPath = role === "ATTENDEE" ? "/attendee/help-support" : null;
 
   /* ---------------- Load Notifications ---------------- */
   useEffect(() => {
@@ -31,22 +33,14 @@ const ModernSidebar = ({ role, links, storageKey }) => {
   /* ---------------- Toggle Sidebar ---------------- */
   const toggleMobile = () => setIsMobileOpen((prev) => !prev);
 
-  /* ---------------- Toggle Notifications ---------------- */
-  const toggleNotifications = () => {
-    setShowNotifications((prev) => !prev);
+  const handleLogout = () => {
+    const confirmed = window.confirm("Are you sure you want to logout?");
+    if (!confirmed) return;
 
-    // Auto-mark all notifications as read
-    const updated = notifications.map((n) => ({ ...n, read: true }));
-    setNotifications(updated);
-    localStorage.setItem(storageKey, JSON.stringify(updated));
-  };
-
-  const handleDismiss = (id) => {
-    const c = window.confirm("Dismiss this notification?");
-    if (!c) return;
-    const updated = notifications.filter((n) => n.id !== id);
-    setNotifications(updated);
-    localStorage.setItem(storageKey, JSON.stringify(updated));
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userProfileImage");
+    navigate("/login");
   };
 
   return (
@@ -100,51 +94,46 @@ const ModernSidebar = ({ role, links, storageKey }) => {
           ))}
 
           {/* Notifications */}
-          <div
-            className={`menu-item notification ${
-              unreadCount > 0 ? "notif-glow" : ""
-            }`}
-            onClick={toggleNotifications}
-            ref={popupRef}
+          <NavLink
+            to={`${roleBasePath}/notifications`}
+            className={({ isActive }) =>
+              `menu-item sidebar-link notification ${isActive ? "active" : ""} ${
+                unreadCount > 0 ? "notif-glow" : ""
+              }`
+            }
           >
             <Bell size={20} />
             <span>Notifications</span>
             {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
+          </NavLink>
 
-            {showNotifications && (
-              <div className="notification-popup">
-                {notifications.length > 0 ? (
-                  <ul>
-                    {notifications.map((note) => (
-                      <li
-                        key={note.id}
-                        className={note.read ? "read" : "unread"}
-                      >
-                        <strong>{note.title}</strong>
-                        <p>{note.message}</p>
-                        <small>{note.timestamp || "Just now"}</small>
-                        <button onClick={() => handleDismiss(note.id)}>
-                          ×
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="empty">No new notifications</p>
-                )}
-              </div>
+          <div className="menu-bottom">
+            {helpPath && (
+              <NavLink
+                to={helpPath}
+                className={({ isActive }) =>
+                  `menu-item sidebar-link ${isActive ? "active" : ""}`
+                }
+              >
+                <CircleHelp size={20} />
+                <span className="text">Help / Support</span>
+              </NavLink>
             )}
+
+            <button className="menu-item logout-item" onClick={handleLogout}>
+              <LogOut size={20} />
+              <span className="text">Logout</span>
+            </button>
           </div>
         </nav>
       </motion.aside>
 
-      {/* ----------- Overlay (close sidebar & popup) ----------- */}
-      {(isMobileOpen || showNotifications) && (
+      {/* ----------- Overlay (close sidebar) ----------- */}
+      {isMobileOpen && (
         <div
           className="sidebar-overlay"
           onClick={() => {
             setIsMobileOpen(false);
-            setShowNotifications(false);
           }}
         />
       )}

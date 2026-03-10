@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Calendar, MapPin, Clock, Users, Building, Tag, Mail, ArrowLeft } from 'lucide-react';
 import { IoInformationCircleOutline, IoLockClosedOutline } from 'react-icons/io5';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useParams } from 'react-router-dom';
 import toast from 'react-hot-toast'; // Import toast
 import api from '../../utils/api'; // Import the centralized API utility
 import '../../styles/pages/_eventregistrations.scss'; // Assuming you create this SCSS file
@@ -25,6 +25,7 @@ const Section = ({ title, children }) => (
 const RegisterForEvent = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { id: routeEventId } = useParams();
 
   const initialEventData = location.state?.eventData; // Event data passed from previous route
   const [eventData, setEventData] = useState(initialEventData || null); // Full event data from API if fetched
@@ -35,7 +36,7 @@ const RegisterForEvent = () => {
   const [loadingEvent, setLoadingEvent] = useState(!initialEventData);
   const [submitting, setSubmitting] = useState(false);
 
-  const eventId = initialEventData?.id; // Get ID from passed data
+  const eventId = initialEventData?.id || routeEventId; // fallback to URL param
   console.log("RegisterForEvent - eventId:", eventId);
   // Fetch event details (even if passed, to ensure freshness)
   const fetchEventDetails = useCallback(async () => {
@@ -50,12 +51,14 @@ const RegisterForEvent = () => {
       setEventData(response.data);
     } catch (err) {
       console.error('Error fetching event details for registration:', err);
-      // toast.error is handled by api.js interceptor
-      setEventData(null); // Clear event data if fetch fails
+      // Keep initial navigation payload if available instead of hard-failing the page.
+      if (!initialEventData) {
+        setEventData(null);
+      }
     } finally {
       setLoadingEvent(false);
     }
-  }, [eventId]);
+  }, [eventId, initialEventData]);
 
   // Fetch existing registration (if any)
   const fetchRegistrationStatus = useCallback(async () => {
@@ -135,12 +138,12 @@ const newNotification = {
   read: false,
 };
 
-// Update localStorage notifications
-const existingNotifications = JSON.parse(localStorage.getItem('attendeeNotifications') || '[]');
-localStorage.setItem('attendeeNotifications', JSON.stringify([newNotification, ...existingNotifications]));
+// Update shared notification feed used by sidebar/notifications page
+const existingNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
+localStorage.setItem('adminNotifications', JSON.stringify([newNotification, ...existingNotifications]));
 
-// Dispatch event so sidebar updates live
-window.dispatchEvent(new Event('attendeeNotificationsUpdated'));
+// Dispatch event so sidebar badge updates live
+window.dispatchEvent(new Event('adminNotificationsUpdated'));
 
   };
 

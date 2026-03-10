@@ -39,11 +39,14 @@ const AdminTools = lazy(() => import("./pages/AdminDashboard/AdminTools"));
 const AdminEvents = lazy(() => import("./pages/AdminDashboard/AdminEvents"));
 
 /* ---------- Attendee Pages ---------- */
+const AttendeeDashboard = lazy(() => import('./pages/AttendeeDashBoard/Dashboard'));
 const Events = lazy(() => import('./pages/AttendeeDashBoard/Events'));
 const AttendeeEventRating = lazy(() => import('./pages/AttendeeDashBoard/EventRating'));
 const CheckInScreen = lazy(() => import('./pages/AttendeeDashBoard/CheckInScreen'));
 const AttendeeRegisterForEvent = lazy(() => import('./pages/AttendeeDashBoard/RegisterForEvent'));
 const ViewEventDetails = lazy(() => import('./pages/AttendeeDashBoard/ViewEventDetails'));
+const HelpSupport = lazy(() => import('./pages/AttendeeDashBoard/HelpSupport'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 
 /* ---------- Auth Pages ---------- */
 const HomePage = lazy(() => import('./pages/Auth/HomePage'));
@@ -107,6 +110,7 @@ function App() {
             <Route path="event-details-modify/:id" element={<EventDetailsModify />} />
             <Route path="confirm-modified-details" element={<ConfirmModifiedDetails />} />
             <Route path="view-event/:id" element={<ViewEventDetails />} />
+            <Route path="notifications" element={<NotificationsPage />} />
 
           </Route>
 
@@ -129,6 +133,7 @@ function App() {
             <Route path="tools" element={<AdminTools />} />
             <Route path="chat" element={<AdminChat />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
            <Route path="events" element={<AdminEvents />} />
           {/* <Route path="events/:id" element={<AdminEventDetails />} />  */}
 
@@ -143,14 +148,17 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Discover/>} />
+            <Route index element={<AttendeeDashboard/>} />
+            <Route path="discover" element={<Discover/>} />
             {/* <Route path="dashboard" element={<Events />} /> */}
             <Route path="qr-code" element={<CheckInScreen />} />
             <Route path="view-event/:id" element={<ViewEventDetails />} />
             <Route path="my-events" element={<Events  />} />
             <Route path="register/:id" element={<AttendeeRegisterForEvent />} />
             <Route path="ratings" element={<AttendeeEventRating />} />
+            <Route path="help-support" element={<HelpSupport />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="notifications" element={<NotificationsPage />} />
           </Route>
 
           {/* ---------- 404 ---------- */}

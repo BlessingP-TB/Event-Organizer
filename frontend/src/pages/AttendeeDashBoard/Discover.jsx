@@ -35,13 +35,19 @@ const Discover = ({ role }) => {
     const fetchEvents = async () => {
       try {
         // Add cache control header to the API request
-        const response = await api.get('events/public', {
+        const response = await api.get('events/public?page=1&pageSize=100', {
           headers: {
             'Cache-Control': 'no-cache'
           }
         });
         console.log(response.data);
-        const apiEvents = response.data.data.map((event) => ({
+        const sourceEvents = Array.isArray(response.data?.data)
+          ? response.data.data
+          : Array.isArray(response.data)
+            ? response.data
+            : [];
+
+        const apiEvents = sourceEvents.map((event) => ({
           id: event.id,
           title: event.name,
           date: event.startDateTime,

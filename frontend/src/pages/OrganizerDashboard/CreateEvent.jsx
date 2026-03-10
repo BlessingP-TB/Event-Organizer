@@ -36,6 +36,27 @@ const getDateStr = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeId = (value) => String(value ?? '');
+
+const getSlotDateStr = (slotDate) => {
+  if (!slotDate) return '';
+  if (typeof slotDate === 'string') return slotDate.substring(0, 10);
+  return getDateStr(new Date(slotDate));
+};
+
+const slotMatchesVenue = (slot, venueId) => {
+  if (!slot || !venueId) return false;
+
+  const normalizedVenueId = normalizeId(venueId);
+
+  const inVenueIds = Array.isArray(slot.venueIds)
+    && slot.venueIds.some((id) => normalizeId(id) === normalizedVenueId);
+
+  const singleVenueMatch = slot.venueId && normalizeId(slot.venueId) === normalizedVenueId;
+
+  return inVenueIds || singleVenueMatch;
+};
+
 const getAvailableTimeSlots = (calendarData, venueId, date) => {
   if (!calendarData || !venueId || !date) return [];
   const selectedDateStr = getDateStr(date);
@@ -234,7 +255,22 @@ export default function CreateEvent() {
       const slots = getAvailableTimeSlots(calendarData, selectedVenue.id, value);
       setAvailableTimeSlots(slots);
       setIsLoadingTimeSlots(false);
-      setDateParts(prev => ({ ...prev, startTime: '', endTime: '' }));
+      setDateParts(prev => {
+        const normalizedStartDate = value ? new Date(value) : null;
+        const currentEndDate = prev.endDate ? new Date(prev.endDate) : null;
+
+        // Same-day events are common; default end date to start date if missing/invalid.
+        const shouldDefaultEndDate =
+          !!normalizedStartDate &&
+          (!currentEndDate || currentEndDate < normalizedStartDate);
+
+        return {
+          ...prev,
+          startTime: '',
+          endTime: '',
+          endDate: shouldDefaultEndDate ? normalizedStartDate : prev.endDate,
+        };
+      });
     }
   }, [calendarData, selectedVenue, errors]);
 
@@ -328,7 +364,10 @@ export default function CreateEvent() {
       const match = availableSlots.some(slot =>
         slot.startTime === dateParts.startTime && slot.endTime === dateParts.endTime
       );
-      if (!match) newErrors.startTime = 'Selected time is not available for this venue';
+
+      if (availableSlots.length > 0 && !match) {
+        newErrors.startTime = 'Selected time is not available for this venue';
+      }
     }
 
     if (!termsAccepted) newErrors.terms = 'You must accept the terms and conditions';
@@ -374,7 +413,7 @@ guestTypes.forEach(type => {
 const finalPayload = {
   ...formData,
   startDateTime: combineDateTime(dateParts.startDate, dateParts.startTime),
-  endDateTime: combineDateTime(dateParts.endDate, dateParts.endTime),
+  endDateTime: combineDateTime(dateParts.endDate || dateParts.startDate, dateParts.endTime),
   expectedAttend: Number(formData.expectedAttend),
   resources: numericResourcesArray,
   services: enhancedServices, // ✅ Now all values are booleans
@@ -588,6 +627,7 @@ const finalPayload = {
                               onClick={() => {
                                 setDateParts(prev => ({
                                   ...prev,
+                                  endDate: prev.endDate || prev.startDate,
                                   startTime: slot.startTime,
                                   endTime: slot.endTime
                                 }));
@@ -650,7 +690,7 @@ const finalPayload = {
                       value={dateParts.endTime}
                       onChange={(e) => handleDateTimeChange('endTime', e.target.value)}
                       className={`form-input ${errors.endTime ? 'error' : ''}`}
-                      disabled={!dateParts.endDate}
+                      disabled={!dateParts.startDate}
                     />
                     {errors.endTime && <p className="error-message">{errors.endTime}</p>}
                   </div>
