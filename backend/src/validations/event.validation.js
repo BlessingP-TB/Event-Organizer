@@ -20,7 +20,9 @@ const listAdminEvents = customJoi.object({
 });
 
 const listOrganizerEvents = customJoi.object({
-    query: basePaginationQuery,
+    query: basePaginationQuery.keys({
+        includeThemeImage: customJoi.boolean().optional(),
+    }),
 });
 
 const ticketDefinitionSchema = customJoi.object({

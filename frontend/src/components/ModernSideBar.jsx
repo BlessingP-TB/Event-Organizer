@@ -1,16 +1,189 @@
 // src/components/ModernSidebar.jsx
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { NavLink } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { motion } from "framer-motion";
 import api from "../utils/api";
 import "../styles/components/_modernSidebar.scss";
 
+const ORGANIZER_EVENT_NOTE_PREFIX = "organizer-event";
+
+const safeParseArray = (rawValue) => {
+  try {
+    const parsed = JSON.parse(rawValue || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const toTimestamp = (value) => {
+  const ms = new Date(value || "").getTime();
+  return Number.isNaN(ms) ? 0 : ms;
+};
+
 const ModernSidebar = ({ role, links, storageKey }) => {
   const [notifications, setNotifications] = useState([]);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const popupRef = useRef(null);
+  const dismissedOrganizerNoteIdsKey = `${storageKey}:dismissed`;
+
+  const readStoredNotifications = useCallback(() => {
+    return safeParseArray(localStorage.getItem(storageKey));
+  }, [storageKey]);
+
+  const readDismissedOrganizerNoteIds = useCallback(() => {
+    return new Set(safeParseArray(localStorage.getItem(dismissedOrganizerNoteIdsKey)));
+  }, [dismissedOrganizerNoteIdsKey]);
+
+  const persistNotifications = useCallback(
+    (nextNotifications) => {
+      setNotifications(nextNotifications);
+      localStorage.setItem(storageKey, JSON.stringify(nextNotifications));
+    },
+    [storageKey]
+  );
+
+  const buildOrganizerNotificationsFromEvents = useCallback((events) => {
+    return events.flatMap((event) => {
+      const latestApproval =
+        Array.isArray(event.approvals) && event.approvals.length > 0
+          ? event.approvals[0]
+          : null;
+      const latestApprovalStatus = latestApproval?.status;
+      const eventName = event?.name || "Untitled Event";
+      const baseTimestamp =
+        latestApproval?.updatedAt ||
+        latestApproval?.createdAt ||
+        event?.updatedAt ||
+        event?.createdAt ||
+        new Date().toISOString();
+
+      if (event.status === "CANCELLED") {
+        return [
+          {
+            id: `${ORGANIZER_EVENT_NOTE_PREFIX}-${event.id}-cancelled`,
+            title: "Event Cancelled",
+            message: `Your event "${eventName}" has been cancelled.`,
+            timestamp: baseTimestamp,
+            read: false,
+          },
+        ];
+      }
+
+      if (event.status === "DRAFT" && latestApprovalStatus === "PENDING") {
+        return [
+          {
+            id: `${ORGANIZER_EVENT_NOTE_PREFIX}-${event.id}-pending`,
+            title: "Waiting For Approval",
+            message: `Your event "${eventName}" is waiting for admin approval.`,
+            timestamp: baseTimestamp,
+            read: false,
+          },
+        ];
+      }
+
+      if (event.status === "PENDING") {
+        return [
+          {
+            id: `${ORGANIZER_EVENT_NOTE_PREFIX}-${event.id}-pending`,
+            title: "Waiting For Approval",
+            message: `Your event "${eventName}" is waiting for admin approval.`,
+            timestamp: baseTimestamp,
+            read: false,
+          },
+        ];
+      }
+
+      if (
+        latestApprovalStatus === "APPROVED" ||
+        event.status === "PUBLISHED" ||
+        event.status === "ONGOING" ||
+        event.status === "COMPLETED"
+      ) {
+        return [
+          {
+            id: `${ORGANIZER_EVENT_NOTE_PREFIX}-${event.id}-approved`,
+            title: "Event Approved",
+            message: `Your event "${eventName}" has been approved by admin.`,
+            timestamp: baseTimestamp,
+            read: false,
+          },
+        ];
+      }
+
+      return [];
+    });
+  }, []);
+
+  const syncOrganizerNotifications = useCallback(async () => {
+    if (role !== "ORGANIZER") return;
+
+    try {
+      const allOrganizerEvents = [];
+      let page = 1;
+      let hasNextPage = true;
+
+      while (hasNextPage) {
+        const response = await api.get("/events/organizer", {
+          params: { page, pageSize: 100 },
+        });
+
+        const pageEvents = Array.isArray(response.data?.data)
+          ? response.data.data
+          : [];
+
+        allOrganizerEvents.push(...pageEvents);
+        hasNextPage = Boolean(response.data?.meta?.hasNextPage);
+        page += 1;
+
+        if (pageEvents.length === 0) break;
+      }
+
+      const existingNotifications = readStoredNotifications();
+      const dismissedOrganizerIds = readDismissedOrganizerNoteIds();
+      const generatedOrganizerNotifications = buildOrganizerNotificationsFromEvents(
+        allOrganizerEvents
+      ).filter((note) => !dismissedOrganizerIds.has(note.id));
+
+      const existingById = new Map(
+        existingNotifications.map((note) => [String(note.id), note])
+      );
+
+      const organizerNotificationsWithReadState = generatedOrganizerNotifications.map(
+        (note) => {
+          const existingNote = existingById.get(String(note.id));
+          return existingNote ? { ...note, read: Boolean(existingNote.read) } : note;
+        }
+      );
+
+      const nonOrganizerGeneratedNotifications = existingNotifications.filter(
+        (note) =>
+          !(
+            typeof note?.id === "string" &&
+            note.id.startsWith(`${ORGANIZER_EVENT_NOTE_PREFIX}-`)
+          )
+      );
+
+      const mergedNotifications = [
+        ...organizerNotificationsWithReadState,
+        ...nonOrganizerGeneratedNotifications,
+      ].sort((a, b) => toTimestamp(b.timestamp) - toTimestamp(a.timestamp));
+
+      persistNotifications(mergedNotifications);
+      window.dispatchEvent(new Event(`${storageKey}Updated`));
+    } catch (error) {
+      console.error("Failed to sync organizer notifications:", error);
+    }
+  }, [
+    role,
+    buildOrganizerNotificationsFromEvents,
+    persistNotifications,
+    readDismissedOrganizerNoteIds,
+    readStoredNotifications,
+    storageKey,
+  ]);
 
   /* ---------------- Load Notifications ---------------- */
   useEffect(() => {

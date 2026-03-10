@@ -20,19 +20,8 @@ const AnalyticsExportScreen = () => {
 
     const fetchAnalyticsData = async () => {
   try {
-<<<<<<< Updated upstream
-    const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
-    const res = await fetch(`${API_BASE}/reports/analytics`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    setVenueReports(data);
-=======
     const res = await api.get("/reports/analytics");
     setVenueReports(res.data);
->>>>>>> Stashed changes
   } catch (error) {
     console.error("Failed to fetch analytics:", error);
     alert("Could not fetch analytics data.");

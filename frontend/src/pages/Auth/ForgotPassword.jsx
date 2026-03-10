@@ -21,6 +21,7 @@ export default function ForgotPassword() {
     setLoading(true);
     try {
       await api.post('/auth/forgot-password', { email });
+
       toast.success(
         `If an account with "${email}" exists, a reset link has been sent. Check your inbox.`
       );

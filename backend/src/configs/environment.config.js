@@ -64,7 +64,11 @@ const envVarsSchema = Joi.object()
     })
     .unknown();
 
-const { value: envVars, error } = envVarsSchema.prefs({ errors: { label: 'key' } }).validate(process.env);
+const normalizedEnvVars = Object.fromEntries(
+    Object.entries(process.env).map(([key, value]) => [key, value === '' ? undefined : value])
+);
+
+const { value: envVars, error } = envVarsSchema.prefs({ errors: { label: 'key' } }).validate(normalizedEnvVars);
 if (error) {
     throw new Error(`Config validation error: ${error.message}`);
 }
