@@ -1,4 +1,4 @@
-@import '../abstracts-auth/_variable';
+@use '../abstracts-auth/_variable' as *;
 
 .dashboard-container {
   padding: 20px;

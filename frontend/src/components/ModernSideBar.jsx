@@ -4,26 +4,39 @@ import React, { useState, useEffect, useRef } from "react";
 import { NavLink } from "react-router-dom";
 import { Bell } from "lucide-react";
 import { motion } from "framer-motion";
+import api from "../utils/api";
 import "../styles/components/_modernSidebar.scss";
 
 const ModernSidebar = ({ role, links, storageKey }) => {
   const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const popupRef = useRef(null);
 
   /* ---------------- Load Notifications ---------------- */
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem(storageKey) || "[]");
-    setNotifications(stored);
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setNotifications([]);
+      return;
+    }
 
-    const handleUpdate = () => {
-      const updated = JSON.parse(localStorage.getItem(storageKey) || "[]");
-      setNotifications(updated);
+    const loadNotifications = async () => {
+      try {
+        const response = await api.get('/notifications');
+        setNotifications(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        setNotifications([]);
+      }
     };
 
-    window.addEventListener(`${storageKey}Updated`, handleUpdate);
-    return () => window.removeEventListener(`${storageKey}Updated`, handleUpdate);
+    loadNotifications();
+
+    const handleUpdate = () => {
+      loadNotifications();
+    };
+
+    window.addEventListener('notificationsUpdated', handleUpdate);
+    return () => window.removeEventListener('notificationsUpdated', handleUpdate);
   }, [storageKey]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
@@ -31,23 +44,7 @@ const ModernSidebar = ({ role, links, storageKey }) => {
   /* ---------------- Toggle Sidebar ---------------- */
   const toggleMobile = () => setIsMobileOpen((prev) => !prev);
 
-  /* ---------------- Toggle Notifications ---------------- */
-  const toggleNotifications = () => {
-    setShowNotifications((prev) => !prev);
-
-    // Auto-mark all notifications as read
-    const updated = notifications.map((n) => ({ ...n, read: true }));
-    setNotifications(updated);
-    localStorage.setItem(storageKey, JSON.stringify(updated));
-  };
-
-  const handleDismiss = (id) => {
-    const c = window.confirm("Dismiss this notification?");
-    if (!c) return;
-    const updated = notifications.filter((n) => n.id !== id);
-    setNotifications(updated);
-    localStorage.setItem(storageKey, JSON.stringify(updated));
-  };
+  const notificationsPath = `/${role.toLowerCase()}/notifications`;
 
   return (
     <>
@@ -99,52 +96,28 @@ const ModernSidebar = ({ role, links, storageKey }) => {
             </div>
           ))}
 
-          {/* Notifications */}
-          <div
-            className={`menu-item notification ${
-              unreadCount > 0 ? "notif-glow" : ""
-            }`}
-            onClick={toggleNotifications}
+          <NavLink
+            to={notificationsPath}
+            className={({ isActive }) =>
+              `menu-item notification sidebar-link ${isActive ? "active" : ""} ${
+                unreadCount > 0 ? "notif-glow" : ""
+              }`
+            }
             ref={popupRef}
           >
             <Bell size={20} />
             <span>Notifications</span>
             {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
-
-            {showNotifications && (
-              <div className="notification-popup">
-                {notifications.length > 0 ? (
-                  <ul>
-                    {notifications.map((note) => (
-                      <li
-                        key={note.id}
-                        className={note.read ? "read" : "unread"}
-                      >
-                        <strong>{note.title}</strong>
-                        <p>{note.message}</p>
-                        <small>{note.timestamp || "Just now"}</small>
-                        <button onClick={() => handleDismiss(note.id)}>
-                          ×
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="empty">No new notifications</p>
-                )}
-              </div>
-            )}
-          </div>
+          </NavLink>
         </nav>
       </motion.aside>
 
       {/* ----------- Overlay (close sidebar & popup) ----------- */}
-      {(isMobileOpen || showNotifications) && (
+      {isMobileOpen && (
         <div
           className="sidebar-overlay"
           onClick={() => {
             setIsMobileOpen(false);
-            setShowNotifications(false);
           }}
         />
       )}

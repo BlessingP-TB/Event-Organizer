@@ -1,0 +1,96 @@
+.notifications-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+.notifications-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.notifications-header h1 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.clear-btn,
+.dismiss-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.notifications-empty {
+  border: 1px solid;
+  border-radius: 12px;
+  padding: 22px;
+  text-align: center;
+}
+
+.notification-create {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.notification-create input,
+.notification-create textarea,
+.notification-main textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid;
+  border-radius: 8px;
+  font: inherit;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notification-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: flex-start;
+  border: 1px solid;
+  border-radius: 12px;
+  padding: 14px;
+}
+
+.notification-main h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+}
+
+.notification-main p {
+  margin: 0 0 6px;
+}
+
+.notification-main small {
+  opacity: 0.8;
+}
+
+.notification-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 100px;
+}
+
+@media (max-width: 640px) {
+  .notifications-page {
+    padding: 14px;
+  }
+
+  .notification-card {
+    flex-direction: column;
+  }
+}

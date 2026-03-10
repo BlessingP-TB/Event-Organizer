@@ -1,5 +1,5 @@
 // frontend/src/styles/components/_sidebar.scss
-@import '../abstracts-auth/_variable';
+@use '../abstracts-auth/_variable' as *;
 
 .sidebar {
   width: 250px;
