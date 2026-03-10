@@ -10,6 +10,7 @@ const ModernSidebar = ({ role, links, storageKey }) => {
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const roleBasePath = role === "ATTENDEE" ? "/attendee" : role === "ORGANIZER" ? "/organizer" : "/admin";
 
   const helpPath = role === "ATTENDEE" ? "/attendee/help-support" : null;
@@ -34,9 +35,6 @@ const ModernSidebar = ({ role, links, storageKey }) => {
   const toggleMobile = () => setIsMobileOpen((prev) => !prev);
 
   const handleLogout = () => {
-    const confirmed = window.confirm("Are you sure you want to logout?");
-    if (!confirmed) return;
-
     localStorage.removeItem("accessToken");
     localStorage.removeItem("user");
     localStorage.removeItem("userProfileImage");
@@ -120,13 +118,37 @@ const ModernSidebar = ({ role, links, storageKey }) => {
               </NavLink>
             )}
 
-            <button className="menu-item logout-item" onClick={handleLogout}>
+            <button className="menu-item logout-item" onClick={() => setShowLogoutModal(true)}>
               <LogOut size={20} />
               <span className="text">Logout</span>
             </button>
           </div>
         </nav>
       </motion.aside>
+
+      {showLogoutModal && (
+        <div className="logout-modal-overlay" onClick={() => setShowLogoutModal(false)}>
+          <div className="logout-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Confirm logout">
+            <h3>Confirm Logout</h3>
+            <p>Are you sure you want to logout?</p>
+            <div className="logout-modal-actions">
+              <button type="button" className="logout-cancel-btn" onClick={() => setShowLogoutModal(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="logout-confirm-btn"
+                onClick={() => {
+                  setShowLogoutModal(false);
+                  handleLogout();
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ----------- Overlay (close sidebar) ----------- */}
       {isMobileOpen && (
