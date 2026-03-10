@@ -1,5 +1,5 @@
 @use 'sass:color';
-@import '../abstracts-auth/_variable';
+@use '../abstracts-auth/_variable' as *;
 
 .chat-container {
   display: flex;

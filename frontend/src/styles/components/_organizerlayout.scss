@@ -1,5 +1,5 @@
-@import "../abstracts-auth/_variable";
-@import "../abstracts-auth/_responsive-variables";
+@use "../abstracts-auth/_variable" as *;
+@use "../abstracts-auth/_responsive-variables" as *;
 
 .organizer-layout-container {
   display: flex;

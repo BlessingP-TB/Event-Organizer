@@ -1,4 +1,4 @@
-@import '../abstracts-auth/variable';
+@use '../abstracts-auth/variable' as *;
 
 .confirm-event-page {
   width: 100%;

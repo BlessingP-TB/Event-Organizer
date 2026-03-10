@@ -1,4 +1,4 @@
-@import '../abstracts-auth/_variable';
+@use '../abstracts-auth/_variable' as *;
 
 // Colors
 $primary-color: #0b4f78;

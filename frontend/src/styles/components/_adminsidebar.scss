@@ -1,5 +1,5 @@
 // frontend/src/styles/components/_adminsidebar.scss
-@import '../abstracts-auth/_variable';
+@use '../abstracts-auth/_variable' as *;
 
 .admin-sidebar-fixed {
   width: 250px;
