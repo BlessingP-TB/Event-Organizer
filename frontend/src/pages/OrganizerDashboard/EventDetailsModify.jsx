@@ -1,11 +1,9 @@
 // EventDetailsModify.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/api";
 import { Trash2 } from "lucide-react";
 import "../../styles/pages/_eventdetails.scss";
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 
 const bytesToDataUrl = (bytes, mimeType = "image/jpeg") => {
   if (!bytes) return null;
@@ -32,10 +30,7 @@ const EventDetailsModify = () => {
 
   const fetchEventById = useCallback(async (eventId) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.get(`${API_BASE}/events/${eventId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/events/${eventId}`);
       setEvent(response.data);
     } catch (err) {
       console.error(err);
@@ -68,10 +63,7 @@ const EventDetailsModify = () => {
     if (!window.confirm("Are you sure?")) return;
     setIsCancelling(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      await axios.delete(`${API_BASE}/events/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/events/${id}`);
       alert("Event cancelled!");
       navigate("/organizer/events");
     } catch (err) {
