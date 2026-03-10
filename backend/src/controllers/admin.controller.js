@@ -342,15 +342,8 @@ const uploadFileToStorage = async (fileBuffer, originalName) => {
         await fs.promises.mkdir(uploadDir, { recursive: true });
         console.log("Upload directory ensured:", uploadDir); // Debug log
 
-        const originalExt = path.extname(originalName || '').toLowerCase();
-        const safeExt = originalExt || '.jpg';
-        const originalBaseName = path.basename(originalName || 'venue-image', originalExt);
-        const safeBaseName = originalBaseName
-            .replace(/[^a-zA-Z0-9._-]+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '') || 'venue-image';
-
-        const uniqueFilename = `${Date.now()}-${safeBaseName}${safeExt}`;
+        // Generate a unique filename (e.g., using timestamp + original name)
+        const uniqueFilename = `${Date.now()}-${originalName}`;
         const filePath = path.join(uploadDir, uniqueFilename);
 
         console.log("Full file path:", filePath); // Debug log
@@ -359,13 +352,13 @@ const uploadFileToStorage = async (fileBuffer, originalName) => {
         await fs.promises.writeFile(filePath, fileBuffer);
         console.log("File written successfully to:", filePath); // Debug log
 
-        const configuredBaseUrl =
-            process.env.API_BASE_URL ||
-            process.env.BACKEND_BASE_URL ||
-            'http://localhost:3000';
-
-        const publicBaseUrl = configuredBaseUrl.replace(/\/api\/v\d+\/?$/i, '');
-        const url = `${publicBaseUrl}/uploads/venues/${encodeURIComponent(uniqueFilename)}`;
+        // --- GENERATE FULL URL FOR WEB ---
+        // Get the API server's base URL from environment variable or default to localhost:3000
+        const apiBaseUrl = process.env.API_BASE_URL || 'http://localhost:3000'; // Adjust if your server runs on a different host/port
+        // Return the full URL path (adjust base URL as needed for your deployment)
+        // This assumes your server serves static files from the 'uploads' directory
+        const url = `${apiBaseUrl}/uploads/venues/${uniqueFilename}`;
+        // --- END OF FULL URL GENERATION ---
         
         console.log("Generated Full URL:", url); // Debug log
         return url;

@@ -24,12 +24,8 @@ const register = catchAsync(async (req, res) => {
 
 const login = catchAsync(async (req, res) => {
     const { email, password } = req.body;
-    // --- FIX ---
-    // Get userAgent from headers and ip from req.ip
-    /* const { 'user-agent': userAgent } = req.headers;
-     const ipAddress = req.ip;*/
-    const { ip: ipAddress, 'user-agent': userAgent } = req.headers;
-    // --- END FIX ---
+    const ipAddress = req.ip;
+    const userAgent = req.headers['user-agent'];
     const { user, tokens } = await authService.login(
         email,
         password,

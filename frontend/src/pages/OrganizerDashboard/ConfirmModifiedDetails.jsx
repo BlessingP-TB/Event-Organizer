@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import "../../styles/pages/_confirmevent.scss";
 import { useNavigate, useLocation } from 'react-router-dom';
+import api from '../../utils/api';
 
 export default function ConfirmModifiedDetails() {
   const navigate = useNavigate();
@@ -62,7 +63,7 @@ export default function ConfirmModifiedDetails() {
   };
 
   // ✅ Handle submission + create admin notification
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // 1️⃣ Update the organizer’s local submitted events
     if (modifiedData) {
       const submittedEvents = JSON.parse(localStorage.getItem('submittedEvents') || '[]');
@@ -74,26 +75,22 @@ export default function ConfirmModifiedDetails() {
       localStorage.setItem('submittedEvents', JSON.stringify(updatedEvents));
     }
 
-    // 2️⃣ Notify ADMIN (not the organizer)
-    const adminNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
-    const newAdminNotification = {
-      id: `admin-notif-${Date.now()}`,
-      title: "Event Modification Pending Review",
-      message: `An organizer has modified the event "${eventData.eventTitle}". Please review the changes.`,
-      timestamp: new Date().toLocaleString(),
-      read: false,
-    };
+    // 2️⃣ Notify ADMINs through backend
+    try {
+      await api.post('/notifications', {
+        role: 'ADMIN',
+        title: 'Event Modification Pending Review',
+        message: `An organizer has modified the event "${eventData.eventTitle}". Please review the changes.`,
+      });
+      window.dispatchEvent(new Event('notificationsUpdated'));
+    } catch (notificationError) {
+      console.error('Failed to create admin notification:', notificationError);
+    }
 
-    const updatedAdminNotifications = [newAdminNotification, ...adminNotifications];
-    localStorage.setItem('adminNotifications', JSON.stringify(updatedAdminNotifications));
-
-    // 3️⃣ Dispatch event so the AdminSidebar updates live
-    window.dispatchEvent(new Event("adminNotificationsUpdated"));
-
-    // 4️⃣ Feedback for the organizer
+    // 3️⃣ Feedback for the organizer
     alert(`✅ Modification for "${eventData.eventTitle}" has been submitted for admin review.`);
 
-    // 5️⃣ Navigate back
+    // 4️⃣ Navigate back
     navigate("/organizer/my-events");
   };
 

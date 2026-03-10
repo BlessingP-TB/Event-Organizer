@@ -25,7 +25,6 @@ const toTimestamp = (value) => {
 
 const ModernSidebar = ({ role, links, storageKey }) => {
   const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const popupRef = useRef(null);
   const dismissedOrganizerNoteIdsKey = `${storageKey}:dismissed`;
@@ -176,74 +175,37 @@ const ModernSidebar = ({ role, links, storageKey }) => {
 
   /* ---------------- Load Notifications ---------------- */
   useEffect(() => {
-    const stored = readStoredNotifications();
-    setNotifications(stored);
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setNotifications([]);
+      return;
+    }
+
+    const loadNotifications = async () => {
+      try {
+        const response = await api.get('/notifications');
+        setNotifications(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        setNotifications([]);
+      }
+    };
+
+    loadNotifications();
 
     const handleUpdate = () => {
-      const updated = readStoredNotifications();
-      setNotifications(updated);
+      loadNotifications();
     };
 
-    window.addEventListener(`${storageKey}Updated`, handleUpdate);
-    return () => window.removeEventListener(`${storageKey}Updated`, handleUpdate);
-  }, [readStoredNotifications, storageKey]);
-
-  useEffect(() => {
-    if (role !== "ORGANIZER") return;
-
-    const refreshNotifications = () => {
-      void syncOrganizerNotifications();
-    };
-
-    refreshNotifications();
-
-    const refreshIntervalId = window.setInterval(refreshNotifications, 60000);
-    window.addEventListener("focus", refreshNotifications);
-    window.addEventListener("organizerEventsUpdated", refreshNotifications);
-
-    return () => {
-      window.clearInterval(refreshIntervalId);
-      window.removeEventListener("focus", refreshNotifications);
-      window.removeEventListener("organizerEventsUpdated", refreshNotifications);
-    };
-  }, [role, syncOrganizerNotifications]);
+    window.addEventListener('notificationsUpdated', handleUpdate);
+    return () => window.removeEventListener('notificationsUpdated', handleUpdate);
+  }, [storageKey]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   /* ---------------- Toggle Sidebar ---------------- */
   const toggleMobile = () => setIsMobileOpen((prev) => !prev);
 
-  /* ---------------- Toggle Notifications ---------------- */
-  const toggleNotifications = () => {
-    setShowNotifications((prev) => !prev);
-
-    // Auto-mark all notifications as read
-    const updated = notifications.map((n) => ({ ...n, read: true }));
-    persistNotifications(updated);
-    window.dispatchEvent(new Event(`${storageKey}Updated`));
-  };
-
-  const handleDismiss = (id) => {
-    const c = window.confirm("Dismiss this notification?");
-    if (!c) return;
-
-    if (
-      role === "ORGANIZER" &&
-      typeof id === "string" &&
-      id.startsWith(`${ORGANIZER_EVENT_NOTE_PREFIX}-`)
-    ) {
-      const dismissedIds = readDismissedOrganizerNoteIds();
-      dismissedIds.add(id);
-      localStorage.setItem(
-        dismissedOrganizerNoteIdsKey,
-        JSON.stringify(Array.from(dismissedIds))
-      );
-    }
-
-    const updated = notifications.filter((n) => n.id !== id);
-    persistNotifications(updated);
-    window.dispatchEvent(new Event(`${storageKey}Updated`));
-  };
+  const notificationsPath = `/${role.toLowerCase()}/notifications`;
 
   return (
     <>
@@ -295,52 +257,28 @@ const ModernSidebar = ({ role, links, storageKey }) => {
             </div>
           ))}
 
-          {/* Notifications */}
-          <div
-            className={`menu-item notification ${
-              unreadCount > 0 ? "notif-glow" : ""
-            }`}
-            onClick={toggleNotifications}
+          <NavLink
+            to={notificationsPath}
+            className={({ isActive }) =>
+              `menu-item notification sidebar-link ${isActive ? "active" : ""} ${
+                unreadCount > 0 ? "notif-glow" : ""
+              }`
+            }
             ref={popupRef}
           >
             <Bell size={20} />
             <span>Notifications</span>
             {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
-
-            {showNotifications && (
-              <div className="notification-popup">
-                {notifications.length > 0 ? (
-                  <ul>
-                    {notifications.map((note) => (
-                      <li
-                        key={note.id}
-                        className={note.read ? "read" : "unread"}
-                      >
-                        <strong>{note.title}</strong>
-                        <p>{note.message}</p>
-                        <small>{note.timestamp || "Just now"}</small>
-                        <button onClick={() => handleDismiss(note.id)}>
-                          ×
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="empty">No new notifications</p>
-                )}
-              </div>
-            )}
-          </div>
+          </NavLink>
         </nav>
       </motion.aside>
 
       {/* ----------- Overlay (close sidebar & popup) ----------- */}
-      {(isMobileOpen || showNotifications) && (
+      {isMobileOpen && (
         <div
           className="sidebar-overlay"
           onClick={() => {
             setIsMobileOpen(false);
-            setShowNotifications(false);
           }}
         />
       )}

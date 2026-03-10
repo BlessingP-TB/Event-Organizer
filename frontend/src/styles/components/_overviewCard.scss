@@ -1,4 +1,4 @@
-@import '../abstracts-auth/_variable';
+@use '../abstracts-auth/_variable' as *;
 
 .overview-card {
   background: $card-bg;
