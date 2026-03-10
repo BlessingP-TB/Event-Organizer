@@ -14,13 +14,7 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const user = (() => {
-    try {
-      return JSON.parse(localStorage.getItem("user") || "null");
-    } catch {
-      return null;
-    }
-  })();
+  const user = JSON.parse(localStorage.getItem("user")); // <-- parse the object
   const organizerId = user?.id; // <-- extract organizer ID
 
   const fetchDashboardStats = useCallback(async () => {
@@ -34,37 +28,21 @@ const Dashboard = () => {
     }
 
     try {
-      // Fetch organizer events for totalEvents (and fallback stats)
+      // Fetch organizer events for totalEvents and aggregate counts
       const responseEvents = await api.get("/events/organizer", {
         params: { page: 1, pageSize: 100 }
       });
 
-      const eventsData = responseEvents?.data || {};
-      const eventsList = Array.isArray(eventsData.data) ? eventsData.data : [];
+      const eventsData = responseEvents.data;
       const meta = eventsData.meta || {};
-      const totalEvents = Number.isFinite(meta.totalItems)
-        ? meta.totalItems
-        : eventsList.length;
+      const totalEvents = meta.totalItems || 0;
 
-      // Start with local sum from loaded events (always available)
-      let totalRegistrations = eventsList.reduce(
-        (sum, event) => sum + (event?._count?.registrations || 0),
+      const eventRows = Array.isArray(eventsData.data) ? eventsData.data : [];
+      const totalRegistrations = eventRows.reduce(
+        (sum, eventItem) => sum + (eventItem?._count?.registrations || 0),
         0
       );
 
-      // Try authoritative registrations endpoint, but do not fail dashboard if it errors
-      try {
-        const responseRegistrations = await api.get("/registrations/total", {
-          params: { organizerId }
-        });
-        if (Number.isFinite(responseRegistrations?.data?.count)) {
-          totalRegistrations = responseRegistrations.data.count;
-        }
-      } catch (registrationErr) {
-        console.warn("Dashboard registrations total unavailable, using fallback.", registrationErr);
-      }
-
-      // You can compute attendance if backend provides it, otherwise keep 0
       setStats({
         totalEvents,
         totalRegistrations,
@@ -77,7 +55,6 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [organizerId]);
   }, [organizerId]);
 
   useEffect(() => {

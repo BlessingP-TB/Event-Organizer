@@ -60,6 +60,13 @@ router.get(
     '/public',
     eventController.listPublicEvents
 );
+
+router.get(
+    '/:eventId',
+    authenticate,
+    validate(eventValidation.eventIdParam),
+    eventController.getEvent
+);
 // --- END OF NEW ROUTE ---
 router.delete(
     '/:eventId',

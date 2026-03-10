@@ -1,3 +1,19 @@
+      // Delete button style
+      .delete-btn {
+        background-color: #fff0f0;
+        color: #c0392b;
+        border: 2px solid #c0392b;
+        border-radius: 6px;
+        padding: 0.5rem 1.2rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-left: 0.5rem;
+        transition: background 0.2s, color 0.2s;
+        &:hover {
+          background-color: #c0392b;
+          color: #fff;
+        }
+      }
 @import '../abstracts-auth/_variable';
 
 $primary-color: #0b4f78; 
@@ -147,6 +163,7 @@ $radius: 8px;
           &.pending { background-color: #cce5ff; color: #0b4f78; } 
           &.approved { background-color: #b3e6ff; color: #0b4f78; } 
           &.cancelled { background-color: #f8d7da; color: #ff4d4f; } 
+          &.deleted { background-color: #dc3545; color: #fff; }
           &.ongoing { background-color: #fff3cd; color: #856404; } 
           &.completed { background-color: #d1e7dd; color: #155724; } 
           &.unknown { background-color: #e2e3e5; color: #6c757d; } 

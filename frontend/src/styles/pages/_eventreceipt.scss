@@ -1,0 +1,226 @@
+// _eventreceipt.scss
+.event-receipt-page {
+  padding: 20px;
+  max-width: 900px;
+  margin: 0 auto;
+
+  .receipt-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f7fafc;
+    border-radius: 8px;
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: #1a365d;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+
+      &:hover {
+        background: #2c5282;
+      }
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 12px;
+
+      .print-btn,
+      .download-btn {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 10px 20px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+
+      .print-btn {
+        background: #e2e8f0;
+        color: #2d3748;
+
+        &:hover {
+          background: #cbd5e0;
+        }
+      }
+
+      .download-btn {
+        background: #38a169;
+        color: white;
+
+        &:hover {
+          background: #2f855a;
+        }
+      }
+    }
+  }
+
+  .receipt-container {
+    border: 2px solid #1a365d;
+    padding: 40px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    .receipt-header {
+      text-align: center;
+      border-bottom: 2px solid #1a365d;
+      padding-bottom: 25px;
+      margin-bottom: 30px;
+
+      h1 {
+        color: #1a365d;
+        margin: 0 0 10px;
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 1px;
+      }
+
+      p {
+        color: #666;
+        margin: 5px 0;
+        font-size: 14px;
+      }
+    }
+
+    .receipt-body {
+      margin-bottom: 30px;
+
+      .receipt-section {
+        margin-bottom: 30px;
+
+        h3 {
+          color: #1a365d;
+          border-bottom: 1px solid #e2e8f0;
+          padding-bottom: 10px;
+          margin-bottom: 15px;
+          font-size: 16px;
+          font-weight: 600;
+        }
+
+        .receipt-row {
+          display: flex;
+          justify-content: space-between;
+          padding: 10px 0;
+          border-bottom: 1px dotted #e2e8f0;
+
+          &:last-child {
+            border-bottom: none;
+          }
+
+          .label {
+            font-weight: 600;
+            color: #4a5568;
+            flex: 0 0 40%;
+          }
+
+          .value {
+            color: #2d3748;
+            text-align: right;
+            flex: 0 0 55%;
+          }
+        }
+      }
+
+      .approval-status {
+        background: #c6f6d5;
+        color: #22543d;
+        padding: 6px 16px;
+        border-radius: 20px;
+        display: inline-block;
+        font-weight: 600;
+        font-size: 14px;
+      }
+
+      .official-stamp {
+        margin-top: 30px;
+        padding: 25px;
+        border: 3px dashed #38a169;
+        text-align: center;
+        background: #f0fff4;
+        border-radius: 8px;
+
+        p {
+          margin: 8px 0;
+          font-size: 14px;
+          color: #22543d;
+
+          &:first-child {
+            font-size: 24px;
+            font-weight: 700;
+            color: #38a169;
+          }
+        }
+      }
+    }
+
+    .receipt-footer {
+      text-align: center;
+      border-top: 2px solid #1a365d;
+      padding-top: 25px;
+      margin-top: 30px;
+
+      p {
+        color: #666;
+        font-size: 12px;
+        margin: 5px 0;
+      }
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .event-receipt-page {
+    padding: 0;
+
+    .receipt-container {
+      border: 2px solid #000;
+      box-shadow: none;
+    }
+  }
+}
+
+// Loading and error states
+.receipt-loading,
+.receipt-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  font-size: 18px;
+  color: #666;
+}
+
+.receipt-error {
+  color: #c53030;
+}
+
+// Button styles for MyEvents page
+.event-action {
+  .receipt-btn {
+    background: #38a169 !important;
+    color: white !important;
+
+    &:hover {
+      background: #2f855a !important;
+    }
+  }
+}

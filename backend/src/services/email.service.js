@@ -67,11 +67,20 @@ const sendEmail = async (to, subject, text, html) => {
     }
 };
 
-const sendVerificationEmail = async (to, token) => {
-    const subject = 'Verify Your Email Address';
-    const verificationUrl = `${clientUrl}/auth/verify-email?token=${token}`;
-    const text = `Please verify your email by clicking the following link: ${verificationUrl}`;
-    const html = `<p>Please verify your email by clicking <a href="${verificationUrl}">here</a>.</p>`;
+const sendVerificationEmail = async (to, code) => {
+    const subject = 'SmartEvents - Verify Your Email Address';
+    const text = `Your verification code is: ${code}\n\nThis code will expire in 10 minutes.`;
+    const html = `
+        <div style="font-family: Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #0b4f78; text-align: center;">SmartEvents</h2>
+            <p style="text-align: center;">Your verification code is:</p>
+            <div style="background-color: #f5f5f5; padding: 20px; text-align: center; border-radius: 8px; margin: 20px 0;">
+                <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #0b4f78;">${code}</span>
+            </div>
+            <p style="text-align: center; color: #666;">This code will expire in 10 minutes.</p>
+            <p style="text-align: center; color: #999; font-size: 12px;">If you didn't request this, please ignore this email.</p>
+        </div>
+    `;
 
     await sendEmail(to, subject, text, html);
 };

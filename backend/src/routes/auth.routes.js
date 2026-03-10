@@ -32,7 +32,7 @@ router.post(
 );
 router.post(
     '/verify-email',
-    //validate(authValidation.verifyEmail),
+    validate(authValidation.verifyEmail),
     authController.verifyEmail
 );
 router.post(
