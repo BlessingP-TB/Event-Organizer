@@ -84,6 +84,18 @@ const ModernSidebar = ({ role, links, storageKey }) => {
         ];
       }
 
+      if (event.status === "PENDING") {
+        return [
+          {
+            id: `${ORGANIZER_EVENT_NOTE_PREFIX}-${event.id}-pending`,
+            title: "Waiting For Approval",
+            message: `Your event "${eventName}" is waiting for admin approval.`,
+            timestamp: baseTimestamp,
+            read: false,
+          },
+        ];
+      }
+
       if (
         latestApprovalStatus === "APPROVED" ||
         event.status === "PUBLISHED" ||

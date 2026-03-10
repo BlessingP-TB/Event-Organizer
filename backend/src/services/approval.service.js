@@ -11,12 +11,19 @@ const {
     EVENT_STATUS,
 } = require('../constants/index.constants');
 const eventService = require('./event.service');
+const notificationService = require('./notification.service');
 
 const createEventApproval = async (eventId, adminId, approvalBody) => {
     const { type, status, notes } = approvalBody;
 
     // Use a transaction to ensure both the Approval is created AND the Event status is updated
     return prisma.$transaction(async (tx) => {
+        // Fetch the event to get organizer info
+        const event = await tx.event.findUnique({ where: { id: eventId } });
+        if (!event) {
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
+        }
+
         // 1. Create the approval record
         const approval = await tx.approval.create({
             data: {
@@ -33,18 +40,33 @@ const createEventApproval = async (eventId, adminId, approvalBody) => {
 
         // 2. Automatically update the Event status based on the Approval decision
         let newEventStatus = null;
+        let notificationTitle = '';
+        let notificationMessage = '';
 
         if (status === APPROVAL_STATUS.APPROVED) {
             newEventStatus = EVENT_STATUS.PUBLISHED;
+            notificationTitle = 'Event Approved';
+            notificationMessage = `Your event "${event.name}" has been approved and is now published.`;
         } else if (status === APPROVAL_STATUS.REJECTED) {
-            // If rejected, we mark the event as CANCELLED (or you could stick to DRAFT/REJECTED depending on your flow)
             newEventStatus = EVENT_STATUS.CANCELLED;
+            notificationTitle = 'Event Rejected';
+            notificationMessage = `Your event "${event.name}" has been rejected.${notes ? ` Reason: ${notes}` : ''}`;
         }
 
         if (newEventStatus) {
             await tx.event.update({
                 where: { id: eventId },
                 data: { status: newEventStatus },
+            });
+        }
+
+        // 3. Notify the organizer
+        if (notificationTitle) {
+            await notificationService.createSystemNotification({
+                userId: event.organizerId,
+                title: notificationTitle,
+                message: notificationMessage,
+                tx,
             });
         }
 
@@ -120,19 +142,37 @@ const updateApprovalStatus = async (approvalId, adminId, updateBody) => {
       include: { event: true }
     });
 
-    // 2. If event exists, update its status
+    // 2. If event exists, update its status and notify organizer
     if (updatedApproval.eventId) {
+      const event = updatedApproval.event;
       let newEventStatus = null;
+      let notificationTitle = '';
+      let notificationMessage = '';
+
       if (status === APPROVAL_STATUS.APPROVED) {
         newEventStatus = EVENT_STATUS.PUBLISHED;
+        notificationTitle = 'Event Approved';
+        notificationMessage = `Your event "${event.name}" has been approved and is now published.`;
       } else if (status === APPROVAL_STATUS.REJECTED) {
         newEventStatus = EVENT_STATUS.CANCELLED;
+        notificationTitle = 'Event Rejected';
+        notificationMessage = `Your event "${event.name}" has been rejected.${notes ? ` Reason: ${notes}` : ''}`;
       }
 
       if (newEventStatus) {
         await tx.event.update({
           where: { id: updatedApproval.eventId },
           data: { status: newEventStatus }
+        });
+      }
+
+      // Notify the organizer
+      if (notificationTitle && event.organizerId) {
+        await notificationService.createSystemNotification({
+          userId: event.organizerId,
+          title: notificationTitle,
+          message: notificationMessage,
+          tx,
         });
       }
     }

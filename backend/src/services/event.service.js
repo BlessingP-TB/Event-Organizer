@@ -36,6 +36,7 @@ const checkVenueAvailability = async (
         venueId,
         status: {
             in: [
+                EVENT_STATUS.DRAFT,
                 EVENT_STATUS.PUBLISHED,
                 EVENT_STATUS.ONGOING,
                 EVENT_STATUS.COMPLETED,
@@ -129,7 +130,7 @@ const createEvent = async (organizerId, eventBody) => {
         const event = await tx.event.create({
             data: {
                 ...rest,
-                status: EVENT_STATUS.PUBLISHED,
+                status: EVENT_STATUS.DRAFT,
                 organizerId,
                 venueId,
                 themeId,
@@ -169,8 +170,8 @@ const createEvent = async (organizerId, eventBody) => {
                 targetType: 'Event',
                 targetId: event.id,
                 type: APPROVAL_TYPE.GENERAL,
-                status: APPROVAL_STATUS.APPROVED,
-                notes: 'Auto-approved on creation for immediate attendee visibility.',
+                status: APPROVAL_STATUS.PENDING,
+                notes: 'Awaiting admin approval.',
                 event: {
                     connect: { id: event.id },
                 },
@@ -182,6 +183,13 @@ const createEvent = async (organizerId, eventBody) => {
                       }
                     : {}),
             },
+        });
+
+        await notificationService.createSystemNotification({
+            userId: organizerId,
+            title: 'Event Submitted',
+            message: `Your event "${event.name}" has been submitted and is pending admin approval.`,
+            tx,
         });
 
         return event;

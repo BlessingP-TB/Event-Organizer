@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/api";
 import { FaArrowLeft, FaUpload, FaCheck, FaFileImage, FaRedo } from "react-icons/fa";
 import { MdError } from "react-icons/md";
 import "../../styles/pages/_eventdetails.scss";
@@ -74,9 +74,7 @@ const EventDetails = () => {
       }
 
       try {
-        const response = await axios.get(`${API_BASE}/events/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await api.get(`/events/${id}`);
 
         setEvent(response.data);
 
@@ -185,31 +183,26 @@ const EventDetails = () => {
       };
 
       if (themeId) {
-        await axios.patch(
-          `${API_BASE}/themes/${themeId}`,
+        await api.patch(
+          `/themes/${themeId}`,
           {
             description: `Uploaded by organizer for event ${event.name}`,
             image: base64Image,
-          },
-          { headers }
+          }
         );
       } else {
-        await axios.post(
-          `${API_BASE}/themes`,
+        await api.post(
+          "/themes",
           {
             name: `Theme for ${event.name} ${Date.now()}`,
             description: `Uploaded by organizer for event ${event.name}`,
             image: base64Image,
             eventId: event.id,
-          },
-          { headers }
+          }
         );
       }
 
-      const eventRes = await axios.get(`${API_BASE}/events/${event.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        "Cache-Control": "no-cache",
-      });
+      const eventRes = await api.get(`/events/${event.id}`);
       setEvent(eventRes.data);
       setSelectedFile(null);
       setPreviewUrl("");

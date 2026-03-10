@@ -20,10 +20,13 @@ const organizerRoutes = require('./organizer.routes');
 const purchaseRoutes = require('./purchase.routes');
 const themeRoutes = require('./theme.routes');
 const ticketRoutes = require('./ticket.routes');
+const notificationRoutes = require('./notification.routes');
 const toolRoutes = require('./tool.routes');
 const venueRoutes = require('./venue.routes');
 const publicRoutes = require('./public.routes');
 const attendeeRoutes = require('./attendee.routes');
+const supportRoutes = require('./support.routes');
+const ratingRoutes = require('./rating.routes');
 
 const router = express.Router();
 
@@ -48,8 +51,11 @@ const appRoutes = [
     { path: '/purchases', route: purchaseRoutes },
     { path: '/themes', route: themeRoutes },
     { path: '/tickets', route: ticketRoutes },
+    { path: '/notifications', route: notificationRoutes },
     { path: '/tools', route: toolRoutes },
     { path: '/venues', route: venueRoutes },
+    { path: '/support', route: supportRoutes },
+    { path: '/ratings', route: ratingRoutes },
     { path: '/notifications', route: notificationRoutes },
     { path: '/', route: publicRoutes },
 ];
