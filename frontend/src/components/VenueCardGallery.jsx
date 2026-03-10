@@ -20,6 +20,7 @@ export default function VenueCardGallery({
   const fetchVenues = async () => {
     try {
       setLoading(true);
+<<<<<<< Updated upstream
       setError("");
       const response = await api.get("/venues");
       const payload = response?.data;
@@ -33,6 +34,13 @@ export default function VenueCardGallery({
         payload?.results?.data,
       ];
       const venuesArray = candidates.find(Array.isArray) || [];
+=======
+      const response = await api.get("/venues");
+      // Handle both array response and paginated response
+      const venuesArray = Array.isArray(response.data)
+        ? response.data
+        : response.data.data || [];
+>>>>>>> Stashed changes
       setVenues(venuesArray);
       setLoading(false);
     } catch (err) {
@@ -108,7 +116,6 @@ export default function VenueCardGallery({
                     alt={venue.name} 
                     onError={(e) => {
                       e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
                     }}
                   />
                 ) : (

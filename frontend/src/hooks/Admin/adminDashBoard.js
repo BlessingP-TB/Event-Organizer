@@ -33,12 +33,16 @@ const useAdminDashboard = () => {
   // Fetch functions - return data instead of setting state directly
   const fetchDashboardData = async () => {
     try {
+<<<<<<< Updated upstream
       const token = getToken();
       if (!token) throw new Error('Authentication token missing.');
 
       const response = await api.get('/admin/dashboard', {
         headers: { 'Cache-Control': 'no-cache' },
       });
+=======
+      const response = await api.get('/admin/dashboard');
+>>>>>>> Stashed changes
 
       return response.data;
     } catch (err) {
@@ -50,12 +54,16 @@ const useAdminDashboard = () => {
 
   const fetchTopVenues = async () => {
     try {
+<<<<<<< Updated upstream
       const token = getToken();
       if (!token) throw new Error('Authentication token missing.');
 
       const response = await api.get('/admin/venues/top-booked', {
         headers: { 'Cache-Control': 'no-cache' },
       });
+=======
+      const response = await api.get('/admin/venues/top-booked');
+>>>>>>> Stashed changes
 
       return response.data || [];
     } catch (err) {
@@ -67,12 +75,16 @@ const useAdminDashboard = () => {
 
   const fetchRevenueData = async () => {
     try {
+<<<<<<< Updated upstream
       const token = getToken();
       if (!token) throw new Error('Authentication token missing.');
 
       const response = await api.get('/admin/analytics/revenue', {
         headers: { 'Cache-Control': 'no-cache' },
       });
+=======
+      const response = await api.get('/admin/analytics/revenue');
+>>>>>>> Stashed changes
 
       return response.data || [];
     } catch (err) {

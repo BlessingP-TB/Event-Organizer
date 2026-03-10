@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/api";
 import { FaArrowLeft, FaUpload, FaCheck, FaFileImage, FaRedo } from "react-icons/fa";
 import { MdError } from "react-icons/md";
 import "../../styles/pages/_eventdetails.scss";
@@ -65,9 +65,7 @@ const EventDetails = () => {
       }
 
       try {
-        const response = await axios.get(`http://localhost:3000/events/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await api.get(`/events/${id}`);
 
         setEvent(response.data);
 
@@ -126,9 +124,17 @@ const EventDetails = () => {
 
   const statsAvailable = event._count && typeof event._count.registrations !== "undefined";
 
+<<<<<<< Updated upstream
   const bannerSrc = event?.Theme?.image
     ? bytesToDataUrl(event.Theme.image, 'image/jpeg') || DEFAULT_BANNER
     : DEFAULT_BANNER;
+=======
+  // ✅ CORRECT IMAGE RESOLUTION: use imageUrl OR convert image bytes to data URL
+// Use the event-level image URL (uploaded banner)
+const bannerSrc = event?.Theme?.image
+  ? bytesToDataUrl(event.Theme.image, 'image/jpeg')
+  : DEFAULT_BANNER;
+>>>>>>> Stashed changes
 
   // For demo/testing, always show upload section
   const canUpload = true;
@@ -176,17 +182,9 @@ const EventDetails = () => {
         eventId: event.id,
       };
 
-      await axios.post("http://localhost:3000/themes/", payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      await api.post("/themes/", payload);
 
-      const eventRes = await axios.get(`http://localhost:3000/events/${event.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        "Cache-Control": "no-cache",
-      });
+      const eventRes = await api.get(`/events/${event.id}`);
       setEvent(eventRes.data);
       setSelectedFile(null);
       setPreviewUrl("");

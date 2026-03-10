@@ -7,6 +7,7 @@ import VenueCardGallery from '../../components/VenueCardGallery';
 import TermsCheckbox from '../../components/TermsCheckbox';
 import "../../styles/pages/_createevent.scss";
 import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api';
 
 /**
  * Constants
@@ -155,6 +156,7 @@ export default function CreateEvent() {
   useEffect(() => {
     const fetchCalendarData = async () => {
       try {
+<<<<<<< Updated upstream
         const token = localStorage.getItem('accessToken');
         if (!token) throw new Error('Authentication token missing.');
         const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/admin/calendars`, {
@@ -165,6 +167,10 @@ export default function CreateEvent() {
         });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const json = await res.json();
+=======
+        const res = await api.get('/admin/calendars');
+        const json = res.data;
+>>>>>>> Stashed changes
         setCalendarData(json.data || json || []);
       } catch (err) {
         console.error('Failed to fetch calendar data:', err);
@@ -178,6 +184,7 @@ export default function CreateEvent() {
     const fetchTools = async () => {
       setIsLoadingTools(true);
       try {
+<<<<<<< Updated upstream
         const token = localStorage.getItem('accessToken');
         if (!token) throw new Error('Authentication token missing.');
         const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/tools`, {
@@ -188,6 +195,10 @@ export default function CreateEvent() {
         });
         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
         const json = await res.json();
+=======
+        const res = await api.get('/tools');
+        const json = res.data;
+>>>>>>> Stashed changes
         const tools = json.data || json || [];
         const toolNames = Array.isArray(tools) ? tools.map(t => t.name).filter(Boolean) : [];
 

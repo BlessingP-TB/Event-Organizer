@@ -29,8 +29,13 @@ const Dashboard = () => {
 
     try {
       // Fetch organizer events for totalEvents
+<<<<<<< Updated upstream
       const responseEvents = await api.get("/events/organizer", {
         params: { page: 1, limit: 1 }
+=======
+      const responseEvents = await api.get("/events", {
+        params: { page: 1, limit: 1, organizerId }
+>>>>>>> Stashed changes
       });
 
       const eventsData = responseEvents.data;
