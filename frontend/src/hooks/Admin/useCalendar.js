@@ -1,6 +1,6 @@
 // src/hooks/Admin/useCalendar.js
 import { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../../utils/api';
 import { useNavigate } from 'react-router-dom';
 // import { refreshToken } from '../../utils/auth';
 
@@ -29,8 +29,8 @@ const useAdminCalendar = () => {
       const token = getToken();
       if (!token) throw new Error('Authentication token missing.');
 
-      const response = await axios.get('http://localhost:3000/venues', {
-        headers: { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache' },
+      const response = await api.get('/venues', {
+        headers: { 'Cache-Control': 'no-cache' },
       });
 
       setVenues(response.data.data || []);
@@ -48,11 +48,11 @@ const useAdminCalendar = () => {
 
     const requestFn = async (token) => {
       return Promise.all([
-        axios.get('http://localhost:3000/admin/calendars', {
-          headers: { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache' },
+        api.get('/admin/calendars', {
+          headers: { 'Cache-Control': 'no-cache' },
         }),
-        axios.get('http://localhost:3000/bookings/bookings', {
-          headers: { Authorization: `Bearer ${token}`, 'Cache-Control': 'no-cache' },
+        api.get('/bookings/bookings', {
+          headers: { 'Cache-Control': 'no-cache' },
         }),
       ]);
     };
@@ -132,7 +132,7 @@ const useAdminCalendar = () => {
 
       await Promise.all(
         slots.map(slot =>
-          axios.post('http://localhost:3000/admin/calendars', slot, {
+          api.post('/admin/calendars', slot, {
             headers: { Authorization: `Bearer ${token}` },
           })
         )
@@ -176,7 +176,7 @@ const useAdminCalendar = () => {
       // Log the request to help with debugging
       console.log('Updating slot:', slot.id, updatedSlot);
 
-      await axios.patch(`http://localhost:3000/admin/calendars/${slot.id}`, updatedSlot, {
+      await api.patch(`/admin/calendars/${slot.id}`, updatedSlot, {
         headers: { 
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -208,7 +208,7 @@ const useAdminCalendar = () => {
         return;
       }
 
-      await axios.delete(`http://localhost:3000/admin/calendars/${slot.id}`, {
+      await api.delete(`/admin/calendars/${slot.id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

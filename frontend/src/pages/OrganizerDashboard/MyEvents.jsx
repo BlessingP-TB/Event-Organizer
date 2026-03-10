@@ -1,7 +1,7 @@
 // src/pages/OrganizerDashboard/MyEvents.jsx
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../../utils/api';
 import '../../styles/pages/_myevents.scss';
 
 const MyEvents = () => {
@@ -22,10 +22,7 @@ const MyEvents = () => {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get("http://localhost:3000/events/organizer", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        },
+      const response = await api.get("/events/organizer", {
         params: {
           page: 1,
           pageSize: 100
@@ -41,9 +38,7 @@ const MyEvents = () => {
       const docIds = {};
       for (const event of eventsArray) {
         try {
-          const userDocsResponse = await axios.get("http://localhost:3000/documents/me/documents", { // Ensure this endpoint is correct
-            headers: { Authorization: `Bearer ${token}` }
-          });
+          const userDocsResponse = await api.get("/documents/me/documents");
           // Filter for documents of type 'OTHER' that are linked to the current event
           const relevantDoc = userDocsResponse.data.find(
             doc => doc.type === 'OTHER' && doc.eventId === event.id // Changed from 'PROOF_OF_PAYMENT' to 'OTHER'
@@ -97,10 +92,8 @@ const MyEvents = () => {
     }
 
     try {
-      const response = await axios.get(`http://localhost:3000/documents/documents/${documentId}`, { // Ensure this endpoint is correct
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await api.get(`/documents/documents/${documentId}`, {
         responseType: 'blob' // Important: Receive the response as a Blob
-
       });
 
       const contentDisposition = response.headers['content-disposition'];

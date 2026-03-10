@@ -55,6 +55,11 @@ const authorize = (roles) => (req, res, next) => {
 };
 
 const enforceEmailVerification = (req, res, next) => {
+    // Skip email verification in development
+    if (process.env.NODE_ENV === 'development') {
+        return next();
+    }
+    
     if (!req.user || !req.user.account || !req.user.account.emailVerified) {
         return next(
             new ApiError(
