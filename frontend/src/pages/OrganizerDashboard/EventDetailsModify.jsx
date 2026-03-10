@@ -70,6 +70,7 @@ const EventDetailsModify = () => {
     setIsCancelling(true);
     try {
       await api.delete(`/events/${id}`);
+      window.dispatchEvent(new Event("organizerEventsUpdated"));
       alert("Event cancelled!");
       navigate("/organizer/events");
     } catch (err) {

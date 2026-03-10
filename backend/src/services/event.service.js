@@ -181,7 +181,13 @@ const listPublicEvents = async (queryOptions) => {
     const { name, location, themeName } = queryOptions;
     const { skip, take, page, pageSize } = getPagination(queryOptions);
     const whereClause = {
-        status: EVENT_STATUS.PUBLISHED,
+        status: {
+            in: [
+                EVENT_STATUS.PUBLISHED,
+                EVENT_STATUS.ONGOING,
+                EVENT_STATUS.COMPLETED,
+            ],
+        },
         deletedAt: null,
     };
 
@@ -207,7 +213,7 @@ const listPublicEvents = async (queryOptions) => {
         include: {
             venue: { select: { name: true, location: true } },
             organizer: { select: { id: true, name: true } },
-            Theme: { select: { name: true } },
+            Theme: { select: { name: true, imageUrl: true } },
             ticketDefinitions: {
                 where: { deletedAt: null },
                 select: { id: true, name: true, price: true, quantity: true },
@@ -224,11 +230,23 @@ const listPublicEvents = async (queryOptions) => {
 };
 
 const listOrganizerEvents = async (organizerId, queryOptions) => {
+    const { includeThemeImage = false } = queryOptions;
     const { skip, take, page, pageSize } = getPagination(queryOptions);
     // Include all events (including soft-deleted) so frontend can filter by status
     const whereClause = {
         organizerId,
     };
+
+    const themeInclude = includeThemeImage
+        ? {
+              select: {
+                  id: true,
+                  name: true,
+                  imageUrl: true,
+                  image: true,
+              },
+          }
+        : undefined;
 
     const query = {
         where: whereClause,
@@ -237,6 +255,7 @@ const listOrganizerEvents = async (organizerId, queryOptions) => {
         orderBy: { createdAt: 'desc' },
         include: {
             venue: { select: { name: true, location: true } },
+            ...(themeInclude ? { Theme: themeInclude } : {}),
             booking: { include: { invoice: true } },
             _count: {
                 select: { registrations: true, tickets: true, purchases: true },

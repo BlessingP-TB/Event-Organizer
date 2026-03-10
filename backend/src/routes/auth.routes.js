@@ -42,12 +42,12 @@ router.post(
 );
 router.post(
     '/forgot-password',
-    // validate(authValidation.forgotPassword),
+    validate(authValidation.forgotPassword),
     authController.forgotPassword
 );
 router.post(
     '/reset-password',
-    //validate(authValidation.resetPassword),
+    validate(authValidation.resetPassword),
     authController.resetPassword
 );
 

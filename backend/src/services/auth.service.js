@@ -511,14 +511,15 @@ const resetPassword = async (token, newPassword) => {
         TOKEN_TYPE.RESET_PASSWORD
     );
 
+    const account = await prisma.account.findUnique({
+        where: { id: tokenRecord.accountId },
+    });
+
     const newPasswordHash = await bcrypt.hash(
         newPassword,
         authConfig.bcryptSaltRounds
     );
 
-    const account = await prisma.account.findUnique({
-        where: { id: tokenRecord.accountId },
-    });
     if (!account) {
         throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Account not found.');
     }

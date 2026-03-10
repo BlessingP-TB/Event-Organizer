@@ -743,11 +743,6 @@ const finalPayload = {
                 )}
               </section>
 
-<<<<<<< Updated upstream
-=======
-              {/* Event Gallery removed per request */}
-
->>>>>>> Stashed changes
               {/* Terms */}
               <section className="form-section">
                 <TermsCheckbox onDecision={(accepted) => { setTermsAccepted(accepted); if (errors.terms) setErrors(prev => ({ ...prev, terms: '' })); }} />
@@ -768,5 +763,8 @@ const finalPayload = {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
 }
-                {/* Event Gallery removed per request */}
