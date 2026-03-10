@@ -225,6 +225,16 @@ const MyEvents = () => {
             const formattedStartDate = new Date(event.startDateTime).toLocaleDateString();
             const hasDocument = !!popDocuments[event.id]; // Check if a document ID exists for this event
             const displayStatus = event.deletedAt ? 'DELETED' : (event.status || 'NO STATUS');
+            const canModifyOrDelete = ["DRAFT", "PENDING"].includes(event.status);
+            const canViewDoc = hasDocument;
+            const showActionsMenu = canModifyOrDelete || canViewDoc;
+
+            const closeActionsMenu = (clickedElement) => {
+              const actionsMenu = clickedElement?.closest('.actions-menu');
+              if (actionsMenu) {
+                actionsMenu.removeAttribute('open');
+              }
+            };
 
             return (
               <div
@@ -239,37 +249,67 @@ const MyEvents = () => {
                   <p className={`status ${displayStatus.toLowerCase()}`}>{displayStatus}</p>
                 </div>
                 <div className="event-action">
-                  {/* Modify Button */}
-                  {["DRAFT", "PENDING"].includes(event.status) && (
-                    <button
-                      className="action-btn modify-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/organizer/event-details-modify/${event.id}`, { state: { eventData: event } });
-                      }}
+                  {/* Collapsed actions menu for Modify/Delete/View-Doc */}
+                  {showActionsMenu && (
+                    <details
+                      className="actions-menu"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      Modify
-                    </button>
+                      <summary className="action-btn actions-toggle">Actions</summary>
+                      <div className="actions-dropdown">
+                        {canModifyOrDelete && (
+                          <button
+                            type="button"
+                            className="menu-item modify-item"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              closeActionsMenu(e.currentTarget);
+                              navigate(`/organizer/event-details-modify/${event.id}`, {
+                                state: { eventData: event },
+                              });
+                            }}
+                          >
+                            Modify
+                          </button>
+                        )}
+
+                        {canModifyOrDelete && (
+                          <button
+                            type="button"
+                            className="menu-item delete-item"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              closeActionsMenu(e.currentTarget);
+                              if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+                                try {
+                                  await deleteEvent(event.id);
+                                  fetchEvents();
+                                } catch (err) {
+                                  alert('Failed to delete event: ' + (err?.response?.data?.message || err.message));
+                                }
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
+                        )}
+
+                        {canViewDoc && (
+                          <button
+                            type="button"
+                            className="menu-item view-doc-item"
+                            onClick={(e) => {
+                              closeActionsMenu(e.currentTarget);
+                              handleDownloadDoc(e, event.id);
+                            }}
+                          >
+                            View-Doc
+                          </button>
+                        )}
+                      </div>
+                    </details>
                   )}
-                  {/* Delete Button for DRAFT and PENDING events */}
-                  {['DRAFT', 'PENDING'].includes(event.status) && (
-                    <button
-                      className="action-btn delete-btn"
-                      onClick={async (e) => {
-                        e.stopPropagation();
-                        if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
-                          try {
-                            await deleteEvent(event.id);
-                            fetchEvents();
-                          } catch (err) {
-                            alert('Failed to delete event: ' + (err?.response?.data?.message || err.message));
-                          }
-                        }
-                      }}
-                    >
-                      Delete
-                    </button>
-                  )}
+
                   {/* Upload Document Button */}
                   {["DRAFT", "PENDING"].includes(event.status) && (
                     <button
@@ -280,15 +320,6 @@ const MyEvents = () => {
                       }}
                     >
                       Upload-PoP
-                    </button>
-                  )}
-                  {/* Download Document Button */}
-                  {hasDocument && ( // Only show if a document exists for this event
-                    <button
-                      className="action-btn download-pop-btn"
-                      onClick={(e) => handleDownloadDoc(e, event.id)} // Use the generic download handler
-                    >
-                      View-Doc
                     </button>
                   )}
                   {/* Receipt Button for approved/published events */}
