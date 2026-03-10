@@ -39,7 +39,7 @@ export default function ApprovalScreen() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/admin/approvals?page=1&pageSize=100&status=ALL`, {
+      const res = await fetch(`${API_BASE}/approvals?page=1&pageSize=100&status=ALL`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Cache-Control": "no-cache",

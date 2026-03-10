@@ -12,6 +12,7 @@ const invoiceService = require('./invoice.service.js');
 const liquorRequestService = require('./liquorRequest.service');
 const notificationService = require('./notification.service');
 const organizerService = require('./organizer.service');
+const notificationService = require('./notification.service');
 const paymentService = require('./payment.service');
 const purchaseService = require('./purchase.service');
 const registrationService = require('./registration.service');
@@ -41,6 +42,7 @@ module.exports = {
     liquorRequestService,
     notificationService,
     organizerService,
+    notificationService,
     paymentService,
     purchaseService,
     registrationService,
