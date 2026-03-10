@@ -4,7 +4,21 @@ import { FaCalendarAlt, FaTag } from "react-icons/fa";
 import { FiSearch } from "react-icons/fi";
 import { useNavigate } from 'react-router-dom';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 const tabs = ["All", "PENDING", "APPROVED", "REJECTED"];
+
+const isRenderableApproval = (item) => {
+  // Render if we have an eventId or any non-placeholder detail
+  const hasEventId = Boolean(item?.eventId);
+  const hasMeaningfulField =
+    (item?.title && item.title !== `Event N/A`) ||
+    (item?.venue && item.venue !== 'Loading...') ||
+    (item?.organizer && item.organizer !== 'Loading...') ||
+    (item?.date && item.date !== 'Date not set');
+
+  return hasEventId || hasMeaningfulField;
+};
 
 export default function ApprovalScreen() {
   const [approvals, setApprovals] = useState([]);
@@ -25,14 +39,23 @@ export default function ApprovalScreen() {
     }
 
     try {
-      const res = await fetch("http://localhost:3000/approvals", {
+      const res = await fetch(`${API_BASE}/admin/approvals?page=1&pageSize=100&status=ALL`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Cache-Control": "no-cache",
         },
       });
 
+      // Explicitly handle auth errors so we can redirect to login
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403) {
+          // clear stored credentials and force login
+          localStorage.removeItem("accessToken");
+          localStorage.removeItem("user");
+          window.location.href = "/login";
+          return;
+        }
+
         const err = await res.json().catch(() => ({}));
         throw new Error(err.message || `HTTP ${res.status}`);
       }
@@ -46,19 +69,25 @@ export default function ApprovalScreen() {
       else approvalArray = [];
 
       // Normalize base data
-      const normalized = approvalArray.map(item => ({
-        id: String(item.id),
-        eventId: String(item.eventId || item.event?.id || ""),
-        title: item.event?.name || `Event ${item.eventId || "N/A"}`,
-        venue: item.event?.venue?.name || "Loading...",
-        organizer: item.event?.organizer?.name || "Loading...",
-        status: (item.status || "PENDING").toUpperCase(),
-        cost: Number(item.calculatedCost ?? 0),
-        totalPaid: Number(item.totalPaid ?? 0),
-        date: item.event?.startDateTime
-          ? new Date(item.event.startDateTime).toLocaleString()
-          : "Date not set",
-      }));
+      const normalized = approvalArray
+        .filter(item => {
+          const targetType = String(item.targetType || '').toLowerCase();
+          return !targetType || targetType === 'event';
+        })
+        .map(item => ({
+          id: String(item.id),
+          eventId: String(item.eventId || item.targetId || item.event?.id || ""),
+          title: item.event?.name || `Event ${item.eventId || item.targetId || "N/A"}`,
+          venue: item.event?.venue?.name || "Loading...",
+          organizer: item.event?.organizer?.name || "Loading...",
+          status: (item.status || "PENDING").toUpperCase(),
+          cost: Number(item.calculatedCost ?? 0),
+          totalPaid: Number(item.totalPaid ?? 0),
+          date: item.event?.startDateTime
+            ? new Date(item.event.startDateTime).toLocaleString()
+            : "Date not set",
+        }))
+        .filter(isRenderableApproval);
 
       setApprovals(normalized);
 
@@ -85,14 +114,21 @@ export default function ApprovalScreen() {
         if (!item.eventId) return item;
 
         try {
-          const res = await fetch(`http://localhost:3000/admin/events/${item.eventId}`, {
+          const res = await fetch(`${API_BASE}/admin/events/${item.eventId}`, {
             headers: {
               Authorization: `Bearer ${token}`,
               "Cache-Control": "no-cache",
             },
           });
 
-          if (!res.ok) throw new Error(`Failed to fetch event ${item.eventId}`);
+          if (!res.ok) {
+            if (res.status === 401 || res.status === 403) {
+              console.warn('Unauthorized fetching event', item.eventId);
+              // let the caller handle auth (no redirect loop here)
+              return item;
+            }
+            throw new Error(`Failed to fetch event ${item.eventId} (status ${res.status})`);
+          }
 
           const eventData = await res.json();
           const event = eventData.event || eventData || {};
@@ -114,7 +150,7 @@ export default function ApprovalScreen() {
       })
     );
 
-    setApprovals(updated);
+    setApprovals(updated.filter(isRenderableApproval));
   };
 
   useEffect(() => {

@@ -1,3 +1,5 @@
+@use 'sass:color';
+
 // ===============================
 // VARIABLES
 // ===========================git====
@@ -102,7 +104,7 @@ body {
     transition: background-color 0.2s;
 
     &:hover {
-      background-color: darken(#03045e, 5%);
+      background-color: color.adjust(#03045e, $lightness: -5%);
     }
   }
 }

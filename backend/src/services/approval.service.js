@@ -53,10 +53,20 @@ const createEventApproval = async (eventId, adminId, approvalBody) => {
 };
 
 const listApprovals = async (queryOptions) => {
-    const { status = APPROVAL_STATUS.PENDING } = queryOptions;
+    const { status } = queryOptions;
     const { skip, take, page, pageSize } = getPagination(queryOptions);
 
-    const whereClause = { status };
+    const whereClause = {};
+    const normalizedStatus =
+        typeof status === 'string' ? status.toUpperCase() : undefined;
+
+    if (
+        normalizedStatus &&
+        normalizedStatus !== 'ALL' &&
+        Object.values(APPROVAL_STATUS).includes(normalizedStatus)
+    ) {
+        whereClause.status = normalizedStatus;
+    }
 
     const query = {
         where: whereClause,
@@ -65,6 +75,15 @@ const listApprovals = async (queryOptions) => {
         orderBy: { createdAt: 'asc' },
         include: {
             approver: { select: { id: true, name: true } },
+            event: {
+                select: {
+                    id: true,
+                    name: true,
+                    startDateTime: true,
+                    venue: { select: { name: true } },
+                    organizer: { select: { name: true } },
+                },
+            },
         },
     };
 
