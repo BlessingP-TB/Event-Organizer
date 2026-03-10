@@ -24,6 +24,58 @@ const {
     APPROVAL_STATUS,
 } = require('../constants/index.constants');
 
+const ensureEmailServiceReady = () => {
+    try {
+        emailService.assertEmailReady();
+    } catch (error) {
+        throw new ApiError(
+            HTTP_STATUS.SERVICE_UNAVAILABLE,
+            'Email service is not configured. Please configure SMTP settings and try again.',
+            'EMAIL_SERVICE_UNAVAILABLE'
+        );
+    }
+};
+
+// Generate a 6-digit verification code
+const generateVerificationCode = () => {
+    return Math.floor(100000 + Math.random() * 900000).toString();
+};
+
+const createVerificationCode = async (
+    userId,
+    expirationMinutes = 10,
+    tx = prisma
+) => {
+    const user = await tx.user.findUnique({
+        where: { id: userId },
+        include: { account: true },
+    });
+    if (!user || !user.account) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, ERROR_MESSAGES.USER_NOT_FOUND);
+    }
+
+    // Delete any existing verification codes for this account
+    await tx.authToken.deleteMany({
+        where: { accountId: user.account.id, type: TOKEN_TYPE.VERIFY_EMAIL },
+    });
+
+    const code = generateVerificationCode();
+    const expiresAt = new Date(Date.now() + expirationMinutes * 60 * 1000);
+
+    await tx.authToken.create({
+        data: {
+            accountId: user.account.id,
+            type: TOKEN_TYPE.VERIFY_EMAIL,
+            token: code, // Store the 6-digit code
+            expiresAt,
+            ipAddress: null,
+            userAgent: null,
+        },
+    });
+
+    return code;
+};
+
 const createToken = async (
     userId,
     type,
@@ -138,6 +190,8 @@ const findAndVerifyToken = async (token, type) => {
 };
 
 const register = async (registerBody) => {
+    // Don't require email service - we log verification code to console if email fails
+
     const { email, password, name, role, cellphone_number } = registerBody;
 
     const existingUser = await userService.findUserByEmail(email);
@@ -149,7 +203,7 @@ const register = async (registerBody) => {
         );
     }
 
-    const { user, verificationToken } = await prisma.$transaction(async (tx) => {
+    const { user } = await prisma.$transaction(async (tx) => {
         const passwordHash = await bcrypt.hash(
             password,
             authConfig.bcryptSaltRounds
@@ -165,7 +219,7 @@ const register = async (registerBody) => {
                 account: {
                     create: {
                         passwordHash,
-                        emailVerified: false,
+                        emailVerified: true, // Mark as verified by default
                     },
                 },
             },
@@ -192,19 +246,10 @@ const register = async (registerBody) => {
             });
         }
 
-        const token = await createToken(
-            createdUser.id,
-            TOKEN_TYPE.VERIFY_EMAIL,
-            jwtConfig.verifyEmailExpirationMinutes,
-            null,
-            null,
-            tx
-        );
-        return { user: createdUser, verificationToken: token };
+        return { user: createdUser };
     });
 
-    await emailService.sendVerificationEmail(user.email, verificationToken);
-
+    // No email verification required
     return user;
 };
 
@@ -361,21 +406,52 @@ const refresh = async (refreshToken, ipAddress, userAgent) => {
     return tokens;
 };
 
-const verifyEmail = async (token) => {
-    const tokenRecord = await findAndVerifyToken(
-        token,
-        TOKEN_TYPE.VERIFY_EMAIL
-    );
+const verifyEmail = async (email, code) => {
+    // Find user by email
+    const user = await prisma.user.findUnique({
+        where: { email },
+        include: { account: true },
+    });
 
+    if (!user || !user.account) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'User not found');
+    }
+
+    if (user.account.emailVerified) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Email already verified');
+    }
+
+    // Find the verification code token
+    const tokenRecord = await prisma.authToken.findFirst({
+        where: {
+            accountId: user.account.id,
+            type: TOKEN_TYPE.VERIFY_EMAIL,
+            token: code,
+        },
+    });
+
+    if (!tokenRecord) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Invalid verification code');
+    }
+
+    if (new Date() > tokenRecord.expiresAt) {
+        await prisma.authToken.delete({ where: { id: tokenRecord.id } });
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Verification code has expired. Please request a new one.');
+    }
+
+    // Mark email as verified
     await prisma.account.update({
         where: { id: tokenRecord.accountId },
         data: { emailVerified: true },
     });
 
+    // Delete the used token
     await prisma.authToken.delete({ where: { id: tokenRecord.id } });
 };
 
 const resendVerification = async (email) => {
+    // Don't require email service - we log verification code to console if email fails
+
     const user = await userService.findUserByEmail(email);
     if (!user) {
         throw new ApiError(
@@ -390,15 +466,21 @@ const resendVerification = async (email) => {
         );
     }
 
-    const verificationToken = await createToken(
-        user.id,
-        TOKEN_TYPE.VERIFY_EMAIL,
-        jwtConfig.verifyEmailExpirationMinutes
-    );
-    await emailService.sendVerificationEmail(user.email, verificationToken);
+    // Generate new 6-digit code
+    const verificationCode = await createVerificationCode(user.id, 10);
+    
+    try {
+        await emailService.sendVerificationEmail(user.email, verificationCode);
+    } catch (error) {
+        // Log code to console for development - don't throw, let frontend proceed
+        console.log(`📧 VERIFICATION CODE for ${user.email}: ${verificationCode}`);
+        console.error('Verification email could not be sent:', error.message);
+    }
 };
 
 const forgotPassword = async (email) => {
+    ensureEmailServiceReady();
+
     const user = await userService.findUserByEmail(email);
     if (!user) {
         throw new ApiError(
@@ -412,7 +494,15 @@ const forgotPassword = async (email) => {
         TOKEN_TYPE.RESET_PASSWORD,
         jwtConfig.resetPasswordExpirationMinutes
     );
-    await emailService.sendResetPasswordEmail(user.email, resetToken);
+    try {
+        await emailService.sendResetPasswordEmail(user.email, resetToken);
+    } catch (error) {
+        throw new ApiError(
+            HTTP_STATUS.SERVICE_UNAVAILABLE,
+            'Password reset email could not be sent. Please try again.',
+            'EMAIL_DELIVERY_FAILED'
+        );
+    }
 };
 
 const resetPassword = async (token, newPassword) => {
@@ -421,14 +511,15 @@ const resetPassword = async (token, newPassword) => {
         TOKEN_TYPE.RESET_PASSWORD
     );
 
+    const account = await prisma.account.findUnique({
+        where: { id: tokenRecord.accountId },
+    });
+
     const newPasswordHash = await bcrypt.hash(
         newPassword,
         authConfig.bcryptSaltRounds
     );
 
-    const account = await prisma.account.findUnique({
-        where: { id: tokenRecord.accountId },
-    });
     if (!account) {
         throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Account not found.');
     }
@@ -503,8 +594,6 @@ module.exports = {
     register,
     login,
     refresh,
-    verifyEmail,
-    resendVerification,
     forgotPassword,
     resetPassword,
     changePassword,

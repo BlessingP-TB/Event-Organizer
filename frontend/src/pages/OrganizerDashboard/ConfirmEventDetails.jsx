@@ -102,7 +102,7 @@ export default function ConfirmEventDetails() {
         resources: formData.resources || [],
         services: formData.services || {}, // ✅ Already has boolean flags
         themeId: themeId ?? null,
-        status: formData.status ?? "DRAFT",
+        status: formData.status ?? "PENDING",
       };
 
       console.log("DEBUG: Submitting formData to backend:", submissionData);

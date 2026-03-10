@@ -105,6 +105,7 @@ $radius: 8px;
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
+      gap: 1rem;
       cursor: pointer;
       transition: transform 0.2s ease, box-shadow 0.3s ease;
       box-shadow: 0 10px 20px rgba(9, 71, 95, 0.22);
@@ -112,6 +113,22 @@ $radius: 8px;
       &:hover {
         transform: translateY(-2px);
         box-shadow: 0 14px 28px rgba(0, 0, 0, 0.28);
+      }
+
+      .event-poster {
+        width: 120px;
+        height: 90px;
+        border-radius: 10px;
+        overflow: hidden;
+        flex-shrink: 0;
+        border: 1px solid #dbe2ea;
+
+        img {
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+        }
       }
 
       .event-info {
@@ -147,6 +164,7 @@ $radius: 8px;
           &.pending { background-color: #cce5ff; color: #0b4f78; } 
           &.approved { background-color: #b3e6ff; color: #0b4f78; } 
           &.cancelled { background-color: #f8d7da; color: #ff4d4f; } 
+          &.deleted { background-color: #dc3545; color: #fff; }
           &.ongoing { background-color: #fff3cd; color: #856404; } 
           &.completed { background-color: #d1e7dd; color: #155724; } 
           &.unknown { background-color: #e2e3e5; color: #6c757d; } 
@@ -160,8 +178,9 @@ $radius: 8px;
         gap: 0.5rem;
         align-items: flex-end;
         flex-shrink: 0;
+        position: relative;
 
-        button {
+        .action-btn {
           padding: 0.5rem 1rem;
           border-radius: 25px;
           font-weight: 600;
@@ -171,41 +190,100 @@ $radius: 8px;
           text-align: center;
           white-space: nowrap;
           box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
 
-          &.modify-btn {
-            background-color: $primary-color;
-            color: white;
-            border: 2px solid $primary-color;
+        .actions-menu {
+          position: relative;
+          min-width: 120px;
+
+          summary {
+            list-style: none;
+          }
+
+          summary::-webkit-details-marker {
+            display: none;
+          }
+
+          .actions-toggle {
+            width: 100%;
+            background-color: #eef2f7;
+            color: $primary-color;
+            border: 2px solid #d8e1ea;
+          }
+
+          .actions-dropdown {
+            position: absolute;
+            top: calc(100% + 0.35rem);
+            right: 0;
+            min-width: 150px;
+            background: #fff;
+            border: 1px solid #d5dee8;
+            border-radius: 12px;
+            box-shadow: 0 8px 18px rgba(0,0,0,0.16);
+            padding: 0.35rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+            z-index: 30;
+          }
+
+          .menu-item {
+            border-radius: 10px;
+            border: 1px solid transparent;
+            background: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.82rem;
+            padding: 0.45rem 0.65rem;
+            text-align: left;
+            cursor: pointer;
+            transition: all 0.2s ease;
 
             &:hover {
-              background-color: darken($primary-color, 10%);
-              transform: translateY(-2px);
-              box-shadow: 0 4px 10px rgba(0,0,0,0.12);
+              transform: translateY(-1px);
             }
           }
 
-          &.upload-pop-btn {
-            background-color: #f0f0f0;
-            color: #333;
-            border: 2px solid #ddd;
-
-            &:hover {
-              background-color: #e0e0e0;
-              transform: translateY(-2px);
-              box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-            }
+          .modify-item {
+            background: #e6f0fa;
+            color: #0b4f78;
+            border-color: #c7dbed;
           }
 
-          &.download-pop-btn {
-            background-color: #d4edda;
-            color: #155724;
-            border: 2px solid #c3e6cb;
+          .delete-item {
+            background: #fff1f2;
+            color: #be123c;
+            border-color: #fecdd3;
+          }
 
-            &:hover {
-              background-color: #c3e6cb;
-              transform: translateY(-2px);
-              box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-            }
+          .view-doc-item {
+            background: #ecfdf3;
+            color: #166534;
+            border-color: #bbf7d0;
+          }
+        }
+
+        .upload-pop-btn {
+          background-color: #f0f0f0;
+          color: #333;
+          border: 2px solid #ddd;
+
+          &:hover {
+            background-color: #e0e0e0;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+          }
+        }
+
+        .receipt-btn {
+          background-color: #e7f5ff;
+          color: #1d4ed8;
+          border: 2px solid #bfdbfe;
+
+          &:hover {
+            background-color: #dbeafe;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
           }
         }
       }
@@ -281,6 +359,11 @@ $radius: 8px;
         align-items: flex-start;
         gap: 1rem;
 
+        .event-poster {
+          width: 90px;
+          height: 68px;
+        }
+
         .event-info {
           flex: 1;
         }
@@ -290,7 +373,15 @@ $radius: 8px;
           align-items: flex-end;
           gap: 0.5rem;
 
-          button {
+          .actions-menu {
+            min-width: 110px;
+
+            .actions-dropdown {
+              min-width: 140px;
+            }
+          }
+
+          .action-btn {
             width: auto;
           }
         }

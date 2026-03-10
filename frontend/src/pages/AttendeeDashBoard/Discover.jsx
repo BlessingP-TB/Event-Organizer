@@ -1,63 +1,97 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import "../../styles/pages/_discover.scss";
 import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 
-// Helper: Map backend/registration status → frontend label
-const getFrontendStatus = (eventStatus, registrationStatus) => {
-  if (registrationStatus === "PENDING") return "Pending Approval";
+const STATUS_FILTERS = ["All", "Upcoming", "Ongoing", "Attended"];
 
-  switch (eventStatus) {
-    case "PUBLISHED": return "Upcoming";
-    case "ONGOING": return "Ongoing";
-    case "COMPLETED": return "Attended";
-    case "CANCELLED": return "Cancelled";
-    case "DRAFT": return "Draft";
-    default: return "Unknown";
-  }
+const parseDate = (value) => {
+  const d = new Date(value);
+  return Number.isNaN(d.getTime()) ? null : d;
 };
 
-const Discover = ({ role }) => {
+// Derive user-facing status from date window with backend status fallback.
+const getFrontendStatus = (event) => {
+  const nowMs = Date.now();
+  const start = parseDate(event.startDateTime);
+  const end = parseDate(event.endDateTime);
+
+  if (event.status === "CANCELLED") return "Cancelled";
+  if (start && nowMs < start.getTime()) return "Upcoming";
+  if (start && end && nowMs >= start.getTime() && nowMs <= end.getTime()) {
+    return "Ongoing";
+  }
+  if (end && nowMs > end.getTime()) return "Attended";
+
+  if (event.status === "ONGOING") return "Ongoing";
+  if (event.status === "COMPLETED") return "Attended";
+
+  return "Upcoming";
+};
+
+const Discover = () => {
   const [events, setEvents] = useState([]);
-  const [filteredEvents, setFilteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("All");
   const [showSharePopup, setShowSharePopup] = useState(null);
 
   const navigate = useNavigate();
 
-  // Helper: Check if an event is past
-  const isPastEvent = (eventDate) => new Date(eventDate) < new Date();
+  const normalizeEvent = (event) => ({
+    id: event.id,
+    title: event.name,
+    date: event.startDateTime,
+    endDate: event.endDateTime,
+    location: event.venue?.location || "TUT Polokwane Campus",
+    image:
+      event.Theme?.imageUrl ||
+      "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80",
+    tags: [event.Theme?.name || "Event"],
+    backendStatus: event.status,
+    frontendStatus: getFrontendStatus(event),
+    rawEventData: event,
+  });
 
-  // Fetch events
   useEffect(() => {
     const fetchEvents = async () => {
-      try {
-        // Add cache control header to the API request
-        const response = await api.get('events/public', {
-          headers: {
-            'Cache-Control': 'no-cache'
-          }
-        });
-        console.log(response.data);
-        const apiEvents = response.data.data.map((event) => ({
-          id: event.id,
-          title: event.name,
-          date: event.startDateTime,
-          location: event.venue?.location || "TUT Polokwane Campus",
-          image: event.Theme?.imageUrl ||
-            "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80",
-          tags: [event.Theme?.name || "Event"],
-          backendStatus: event.status,
-          registrationStatus: event.registrationStatus ?? null,
-          frontendStatus: getFrontendStatus(event.status, event.registrationStatus),
-        }));
+      setLoading(true);
+      setError(null);
 
-        setEvents(apiEvents);
-        setFilteredEvents(apiEvents);
+      try {
+        const collectedEvents = [];
+        let page = 1;
+        let hasNextPage = true;
+
+        while (hasNextPage) {
+          const response = await api.get("/events/public", {
+            params: { page, pageSize: 100 },
+            headers: { "Cache-Control": "no-cache" },
+          });
+
+          const pageEvents = Array.isArray(response.data?.data)
+            ? response.data.data
+            : [];
+
+          collectedEvents.push(...pageEvents);
+
+          hasNextPage = Boolean(response.data?.meta?.hasNextPage);
+          page += 1;
+
+          if (pageEvents.length === 0) {
+            break;
+          }
+        }
+
+        const normalizedEvents = collectedEvents
+          .map(normalizeEvent)
+          .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+        setEvents(normalizedEvents);
       } catch (error) {
-        console.error("Failed to fetch events:", error.message);
+        console.error("Failed to fetch events:", error);
+        setError("Could not load discover events. Please try again.");
       } finally {
         setLoading(false);
       }
@@ -66,40 +100,25 @@ const Discover = ({ role }) => {
     fetchEvents();
   }, []);
 
-  // Define role-based filters
-  const statusFilters =
-    role === "organiser"
-      ? ["All", "Upcoming", "Ongoing"]
-      : ["All", "Upcoming", "Ongoing", "Attended"];
+  const filteredEvents = useMemo(() => {
+    const searchText = search.trim().toLowerCase();
 
-  // Filtering logic
-  useEffect(() => {
-    let filtered = [...events];
+    return events.filter((event) => {
+      if (selectedStatus !== "All" && event.frontendStatus !== selectedStatus) {
+        return false;
+      }
 
-    // Filter out past events
-    filtered = filtered.filter((event) => !isPastEvent(event.date));
+      if (!searchText) {
+        return true;
+      }
 
-    // Filter by status
-    if (selectedStatus !== "All") {
-      filtered = filtered.filter(
-        (event) => event.frontendStatus === selectedStatus
+      return (
+        event.title.toLowerCase().includes(searchText) ||
+        event.location.toLowerCase().includes(searchText) ||
+        event.tags.some((tag) => tag.toLowerCase().includes(searchText))
       );
-    }
-
-    // Filter by search
-    if (search.trim()) {
-      filtered = filtered.filter((event) => {
-        const text = search.toLowerCase();
-        return (
-          event.title.toLowerCase().includes(text) ||
-          event.location.toLowerCase().includes(text) ||
-          event.tags.some((tag) => tag.toLowerCase().includes(text))
-        );
-      });
-    }
-
-    setFilteredEvents(filtered);
-  }, [search, selectedStatus, events]);
+    });
+  }, [events, search, selectedStatus]);
 
   // Navigation: organisers should only view event details (no registration)
   const handleCardClick = (event) => {
@@ -120,11 +139,20 @@ const Discover = ({ role }) => {
     console.log("User role:", storedRole, "Is organiser:", isOrganiser);
 
     if (isOrganiser) {
-      // Navigate to the view-only event details page
-      navigate(`/organizer/view-event/${event.id}`, { state: { eventData: event } });
+      navigate(`/organizer/view-event/${event.id}`, {
+        state: { eventData: event.rawEventData },
+      });
     } else {
-      // Normal attendee flow — go to registration page
-      navigate(`/attendee/register/${event.id}`, { state: { eventData: event } });
+      if (event.frontendStatus === "Attended") {
+        navigate(`/attendee/view-event/${event.id}`, {
+          state: { eventData: event.rawEventData },
+        });
+        return;
+      }
+
+      navigate(`/attendee/register/${event.id}`, {
+        state: { eventData: event.rawEventData },
+      });
     }
   };
 
@@ -147,6 +175,7 @@ const Discover = ({ role }) => {
   };
 
   if (loading) return <div>Loading events...</div>;
+  if (error) return <div className="empty-container"><p className="empty-text">{error}</p></div>;
 
   return (
     <div className="discover-container">
@@ -179,7 +208,7 @@ const Discover = ({ role }) => {
       {/* Status Filter Buttons */}
       <div className="categories-container">
         <div className="categories-scroll">
-          {statusFilters.map((status) => (
+          {STATUS_FILTERS.map((status) => (
             <button
               key={status}
               className={`category-button ${selectedStatus === status ? "active" : ""

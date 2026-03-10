@@ -50,6 +50,7 @@ const appRoutes = [
     { path: '/tickets', route: ticketRoutes },
     { path: '/tools', route: toolRoutes },
     { path: '/venues', route: venueRoutes },
+    { path: '/notifications', route: notificationRoutes },
     { path: '/', route: publicRoutes },
 ];
 

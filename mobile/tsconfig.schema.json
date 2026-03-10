@@ -1,0 +1,26 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "TypeScript Config",
+  "type": "object",
+  "properties": {
+    "$schema": { "type": "string" },
+    "extends": { "type": "string" },
+    "compilerOptions": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "include": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "exclude": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "files": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  },
+  "additionalProperties": true
+}

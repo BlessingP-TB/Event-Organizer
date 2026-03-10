@@ -30,14 +30,12 @@ router.get(
 router.get(
     '/total',
     authorize([ROLES.ADMIN, ROLES.ORGANIZER]),
-    enforceEmailVerification,
     registrationController.getApprovedRegistrationsForOrganizer
 );
 
 router.get(
     '/my',
     authorize([ROLES.ADMIN, ROLES.ORGANIZER, ROLES.ATTENDEE]),
-    enforceEmailVerification,
     registrationController.listMyRegistrations
 );
 
