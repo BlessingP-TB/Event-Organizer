@@ -1,5 +1,14 @@
 const { cors: corsEnv } = require('./environment.config');
 
+function isLoopbackOrigin(origin) {
+    try {
+        const { hostname } = new URL(origin);
+        return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1';
+    } catch (_) {
+        return false;
+    }
+}
+
 const corsOptions = {
     origin: (origin, callback) => {
         // Allow requests with no origin (e.g., mobile apps, Postman)
@@ -8,7 +17,7 @@ const corsOptions = {
         const normalizedOrigin = origin.toLowerCase().replace(/\/$/, '');
         const normalizedAllowedOrigins = corsEnv.allowedOrigins.map(o => o.toLowerCase().trim());
 
-        if (normalizedOrigin.startsWith('http://localhost')) return callback(null, true);
+        if (isLoopbackOrigin(normalizedOrigin)) return callback(null, true);
 
         if (normalizedAllowedOrigins.includes(normalizedOrigin)) {
             return callback(null, true);

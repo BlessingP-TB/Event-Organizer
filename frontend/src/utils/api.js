@@ -37,7 +37,20 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.warn('🔒 Unauthorized - token may have expired');
-      // Example: redirect or clear storage if needed
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('role');
+      localStorage.removeItem('user');
+
+      const currentPath = window.location.pathname;
+      const isAuthPage =
+        currentPath.startsWith('/login') ||
+        currentPath.startsWith('/register') ||
+        currentPath.startsWith('/forgot-password') ||
+        currentPath.startsWith('/reset-password');
+
+      if (!isAuthPage) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

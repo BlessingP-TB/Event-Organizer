@@ -21,6 +21,7 @@ const userValidation = require('./user.validation');
 const venueValidation = require('./venue.validation');
 const venueIssuerValidation = require('./venueIssuer.validation');
 const calendarValidation = require('./calendar.validation');
+const supportValidation = require('./support.validation');
 const {
     customJoi,
     uuidParam,
@@ -56,4 +57,5 @@ module.exports = {
     basePaginationQuery,
     paginationQuery,
     calendarValidation,
+    supportValidation,
 };
