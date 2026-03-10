@@ -2,9 +2,9 @@
 // Events Page – FIXED, CLEAN, MODERNIZED VERSION
 // --------------------------------------------------
 
-@import '../abstracts-auth/_mixins';
-@import '../abstracts-auth/_variable';
-@import '../abstracts-auth/_responsive-variables';
+@use '../abstracts-auth/_mixins' as *;
+@use '../abstracts-auth/_variable' as *;
+@use '../abstracts-auth/_responsive-variables' as *;
 
 // Sidebar width from ModernSidebar
 $sidebar-width: 260px;

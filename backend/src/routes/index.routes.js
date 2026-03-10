@@ -9,6 +9,7 @@ const facilityManagerRoutes = require('./facilityManager.routes');
 const userRoutes = require('./user.routes');
 const registrationRoutes = require('./registration.routes');
 const liquorRequestRoutes = require('./liquorRequest.routes');
+const notificationRoutes = require('./notification.routes');
 const reportRoutes = require('./report.routes');
 const bookingRoutes = require('./booking.routes');
 const invoiceRoutes = require('./invoice.routes');
@@ -36,6 +37,7 @@ const appRoutes = [
     { path: '/users', route: userRoutes },
     { path: '/registrations', route: registrationRoutes },
     { path: '/liquor-requests', route: liquorRequestRoutes },
+    { path: '/notifications', route: notificationRoutes },
     { path: '/reports', route: reportRoutes },
     { path: '/bookings', route: bookingRoutes },
     { path: '/invoices', route: invoiceRoutes },

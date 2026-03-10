@@ -10,6 +10,7 @@ const eventService = require('./event.service');
 const facilityManagerService = require('./facilityManager.service');
 const invoiceService = require('./invoice.service.js');
 const liquorRequestService = require('./liquorRequest.service');
+const notificationService = require('./notification.service');
 const organizerService = require('./organizer.service');
 const paymentService = require('./payment.service');
 const purchaseService = require('./purchase.service');
@@ -38,6 +39,7 @@ module.exports = {
     facilityManagerService,
     invoiceService,
     liquorRequestService,
+    notificationService,
     organizerService,
     paymentService,
     purchaseService,
