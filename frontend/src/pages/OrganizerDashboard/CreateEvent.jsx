@@ -36,6 +36,27 @@ const getDateStr = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeId = (value) => String(value ?? '');
+
+const getSlotDateStr = (slotDate) => {
+  if (!slotDate) return '';
+  if (typeof slotDate === 'string') return slotDate.substring(0, 10);
+  return getDateStr(new Date(slotDate));
+};
+
+const slotMatchesVenue = (slot, venueId) => {
+  if (!slot || !venueId) return false;
+
+  const normalizedVenueId = normalizeId(venueId);
+
+  const inVenueIds = Array.isArray(slot.venueIds)
+    && slot.venueIds.some((id) => normalizeId(id) === normalizedVenueId);
+
+  const singleVenueMatch = slot.venueId && normalizeId(slot.venueId) === normalizedVenueId;
+
+  return inVenueIds || singleVenueMatch;
+};
+
 const getAvailableTimeSlots = (calendarData, venueId, date) => {
   if (!calendarData || !venueId || !date) return [];
   const selectedDateStr = getDateStr(date);
@@ -343,7 +364,10 @@ export default function CreateEvent() {
       const match = availableSlots.some(slot =>
         slot.startTime === dateParts.startTime && slot.endTime === dateParts.endTime
       );
-      if (!match) newErrors.startTime = 'Selected time is not available for this venue';
+
+      if (availableSlots.length > 0 && !match) {
+        newErrors.startTime = 'Selected time is not available for this venue';
+      }
     }
 
     if (!termsAccepted) newErrors.terms = 'You must accept the terms and conditions';
@@ -735,8 +759,5 @@ const finalPayload = {
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </div>
-  );
 }
+                {/* Event Gallery removed per request */}

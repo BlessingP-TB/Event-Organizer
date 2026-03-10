@@ -412,9 +412,10 @@ const deleteEvent = async (eventId) => {
     }
 
     try {
+        // Set status to CANCELLED instead of soft delete so it shows in Cancelled filter
         await prisma.event.update({
             where: { id: eventId },
-            data: { deletedAt: new Date() },
+            data: { status: EVENT_STATUS.CANCELLED },
         });
     } catch (error) {
         if (error.code === 'P2025') {
