@@ -15,6 +15,7 @@ const {
 } = require('../constants/index.constants');
 const venueService = require('./venue.service.js');
 const bookingService = require('./booking.service.js');
+const notificationService = require('./notification.service');
 
 const checkVenueAvailability = async (
     venueId,
@@ -448,13 +449,15 @@ const publishEvent = async (eventId) => {
 
 // --- REPAIRED SERVICE FUNCTION ---
 const setEventStatus = async (eventId, status, adminId, notes) => {
-    if (status === EVENT_STATUS.PUBLISHED) {
-        return prisma.$transaction(async (tx) => {
-            const event = await tx.event.findUnique({ where: { id: eventId } });
-            if (!event) {
-                throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
-            }
+    return prisma.$transaction(async (tx) => {
+        const event = await tx.event.findUnique({ where: { id: eventId } });
+        if (!event) {
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
+        }
 
+        let updatedEvent;
+
+        if (status === EVENT_STATUS.PUBLISHED) {
             await checkVenueAvailability(
                 event.venueId,
                 event.startDateTime,
@@ -466,7 +469,7 @@ const setEventStatus = async (eventId, status, adminId, notes) => {
             const approvalNote =
                 notes || `Admin override: immediate publish by ${adminId}`;
 
-            return tx.event.update({
+            updatedEvent = await tx.event.update({
                 where: { id: eventId },
                 data: {
                     status: EVENT_STATUS.PUBLISHED,
@@ -482,12 +485,21 @@ const setEventStatus = async (eventId, status, adminId, notes) => {
                     },
                 },
             });
-        });
-    }
+        } else {
+            updatedEvent = await tx.event.update({
+                where: { id: eventId },
+                data: { status },
+            });
+        }
 
-    return prisma.event.update({
-        where: { id: eventId },
-        data: { status },
+        await notificationService.createSystemNotification({
+            userId: event.organizerId,
+            title: 'Event Status Updated',
+            message: `Your event "${event.name}" status is now ${status}.`,
+            tx,
+        });
+
+        return updatedEvent;
     });
 };
 // --------------------------------

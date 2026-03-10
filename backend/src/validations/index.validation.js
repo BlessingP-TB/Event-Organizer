@@ -7,6 +7,7 @@ const documentValidation = require('./document.validation');
 const eventValidation = require('./event.validation');
 const invoiceValidation = require('./invoice.validation');
 const liquorRequestValidation = require('./liquorRequest.validation');
+const notificationValidation = require('./notification.validation');
 const organizerValidation = require('./organizer.validation');
 const purchaseValidation = require('./purchase.validation');
 const registrationValidation = require('./registration.validation');
@@ -37,6 +38,7 @@ module.exports = {
     eventValidation,
     invoiceValidation,
     liquorRequestValidation,
+    notificationValidation,
     organizerValidation,
     purchaseValidation,
     registrationValidation,

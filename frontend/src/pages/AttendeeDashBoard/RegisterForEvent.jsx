@@ -114,6 +114,16 @@ const RegisterForEvent = () => {
         { subscribeUpdates }
       );
 
+      try {
+        await api.post('/notifications', {
+          title: 'Registration Successful',
+          message: `You have successfully registered for ${eventData?.name || 'this event'}. You will be reminded when the event is close.`,
+        });
+        window.dispatchEvent(new Event('notificationsUpdated'));
+      } catch (notificationError) {
+        console.error('Failed to create registration notification:', notificationError);
+      }
+
       // Success message handled by api.js interceptor
       setIsRegistered(true); // Update UI immediately
       toast.success(`Successfully registered for ${eventData?.name || 'the event'}!`);
@@ -125,23 +135,6 @@ const RegisterForEvent = () => {
     } finally {
       setSubmitting(false);
     }
-
-    // After registration succeeds
-const newNotification = {
-  id: Date.now(),
-  title: "Registration Successful",
-  message: `You have successfully registered for ${eventData.name}. You will be reminded when the event is close.`,
-  timestamp: new Date().toLocaleString(),
-  read: false,
-};
-
-// Update localStorage notifications
-const existingNotifications = JSON.parse(localStorage.getItem('attendeeNotifications') || '[]');
-localStorage.setItem('attendeeNotifications', JSON.stringify([newNotification, ...existingNotifications]));
-
-// Dispatch event so sidebar updates live
-window.dispatchEvent(new Event('attendeeNotificationsUpdated'));
-
   };
 
   // Derived fields (ensure they handle null/undefined gracefully, using `eventData` state)

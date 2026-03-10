@@ -1,5 +1,7 @@
 // frontend/src/styles/abstracts-auth/_mixins.scss
 
+@use './_variable' as *;
+
 // Generic button style
 @mixin button-base {
   background-color: $primary-color;

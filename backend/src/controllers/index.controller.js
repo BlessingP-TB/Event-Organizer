@@ -7,6 +7,7 @@ const documentController = require('./document.controller');
 const eventController = require('./event.controller');
 const invoiceController = require('./invoice.controller');
 const liquorRequestController = require('./liquorRequest.controller');
+const notificationController = require('./notification.controller');
 const organizerController = require('./organizer.controller');
 const purchaseController = require('./purchase.controller');
 const registrationController = require('./registration.controller');
@@ -32,6 +33,7 @@ module.exports = {
     eventController,
     invoiceController,
     liquorRequestController,
+    notificationController,
     organizerController,
     purchaseController,
     registrationController,

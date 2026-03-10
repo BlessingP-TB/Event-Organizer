@@ -8,6 +8,7 @@ const emailService = require('./email.service');
 const eventService = require('./event.service');
 const invoiceService = require('./invoice.service.js');
 const liquorRequestService = require('./liquorRequest.service');
+const notificationService = require('./notification.service');
 const organizerService = require('./organizer.service');
 const paymentService = require('./payment.service');
 const purchaseService = require('./purchase.service');
@@ -33,6 +34,7 @@ module.exports = {
     eventService,
     invoiceService,
     liquorRequestService,
+    notificationService,
     organizerService,
     paymentService,
     purchaseService,

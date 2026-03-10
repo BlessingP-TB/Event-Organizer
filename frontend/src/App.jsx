@@ -55,6 +55,7 @@ const ResetPasswordForm = lazy(() => import('./pages/Auth/ResetPasswordForm'));
 /* ---------- Shared Pages ---------- */
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const Discover = lazy(() => import('./pages/AttendeeDashBoard/Discover'));
+const Notifications = lazy(() => import('./pages/Shared/Notifications'));
 
 /* ---------- Utility Components ---------- */
 function LoadingFallback() {
@@ -107,6 +108,7 @@ function App() {
             <Route path="event-details-modify/:id" element={<EventDetailsModify />} />
             <Route path="confirm-modified-details" element={<ConfirmModifiedDetails />} />
             <Route path="view-event/:id" element={<ViewEventDetails />} />
+            <Route path="notifications" element={<Notifications />} />
 
           </Route>
 
@@ -129,6 +131,7 @@ function App() {
             <Route path="tools" element={<AdminTools />} />
             <Route path="chat" element={<AdminChat />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="notifications" element={<Notifications />} />
            <Route path="events" element={<AdminEvents />} />
           {/* <Route path="events/:id" element={<AdminEventDetails />} />  */}
 
@@ -151,6 +154,7 @@ function App() {
             <Route path="register/:id" element={<AttendeeRegisterForEvent />} />
             <Route path="ratings" element={<AttendeeEventRating />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="notifications" element={<Notifications />} />
           </Route>
 
           {/* ---------- 404 ---------- */}
