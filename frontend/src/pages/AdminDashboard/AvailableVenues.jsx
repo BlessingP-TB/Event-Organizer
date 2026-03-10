@@ -144,7 +144,8 @@ export default function AvailableVenues() {
       fetchVenues();
     } catch (err) {
       console.error("Save error:", err);
-      alert("Failed to save venue. Check console.");
+      const errorMessage = err.response?.data?.message || "Failed to save venue.";
+      alert(errorMessage);
     }
   };
 

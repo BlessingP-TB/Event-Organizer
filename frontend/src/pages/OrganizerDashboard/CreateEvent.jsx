@@ -286,13 +286,24 @@ export default function CreateEvent() {
   };
 
   const filterDate = (date) => {
-    if (!selectedVenue) return true;
+    // Always allow future dates if no venue selected or no calendar data
+    if (!selectedVenue || calendarData.length === 0) {
+      return date >= new Date(new Date().setHours(0, 0, 0, 0));
+    }
     const selectedDateStr = getDateStr(date);
-    return calendarData.some(slot =>
+    const hasSlot = calendarData.some(slot =>
       Array.isArray(slot.venueIds) &&
       slot.venueIds.includes(selectedVenue.id) &&
       slot.date.substring(0, 10) === selectedDateStr
     );
+    // If venue has calendar slots, only allow those dates; otherwise allow all future dates
+    const venueHasAnySlots = calendarData.some(slot =>
+      Array.isArray(slot.venueIds) && slot.venueIds.includes(selectedVenue.id)
+    );
+    if (venueHasAnySlots) {
+      return hasSlot;
+    }
+    return date >= new Date(new Date().setHours(0, 0, 0, 0));
   };
 
   const validateForm = () => {
@@ -309,32 +320,40 @@ export default function CreateEvent() {
     if (selectedEventTypes.length === 0) newErrors.eventType = 'Please select at least one type of function';
     if (selectedGuestTypes.length === 0) newErrors.guestType = 'Please select at least one type of guest';
 
-    if (selectedVenue && dateParts.startDate) {
+    if (selectedVenue && dateParts.startDate && calendarData.length > 0) {
       const selectedDateStr = getDateStr(dateParts.startDate);
-      const isAvailable = calendarData.some(slot =>
-        Array.isArray(slot.venueIds) &&
-        slot.venueIds.includes(selectedVenue.id) &&
-        slot.date.substring(0, 10) === selectedDateStr
+      const venueHasAnySlots = calendarData.some(slot =>
+        Array.isArray(slot.venueIds) && slot.venueIds.includes(selectedVenue.id)
       );
-      if (!isAvailable) newErrors.startDate = 'Selected date is not available for this venue';
+      if (venueHasAnySlots) {
+        const isAvailable = calendarData.some(slot =>
+          Array.isArray(slot.venueIds) &&
+          slot.venueIds.includes(selectedVenue.id) &&
+          slot.date.substring(0, 10) === selectedDateStr
+        );
+        if (!isAvailable) newErrors.startDate = 'Selected date is not available for this venue';
+      }
     }
 
     if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime) {
-      const availableSlots = getAvailableTimeSlots(calendarData, selectedVenue.id, dateParts.startDate);
       const selectedStart = timeToMinutes(dateParts.startTime);
       const selectedEnd = timeToMinutes(dateParts.endTime);
 
       if (selectedStart === null || selectedEnd === null || selectedEnd <= selectedStart) {
         newErrors.startTime = 'Please select a valid time range';
-      } else {
-        const match = availableSlots.some((slot) => {
-          const slotStart = timeToMinutes(slot.startTime);
-          const slotEnd = timeToMinutes(slot.endTime);
-          if (slotStart === null || slotEnd === null) return false;
-          return selectedStart >= slotStart && selectedEnd <= slotEnd;
-        });
+      } else if (calendarData.length > 0) {
+        const availableSlots = getAvailableTimeSlots(calendarData, selectedVenue.id, dateParts.startDate);
+        // Only validate against calendar slots if venue has any slots defined
+        if (availableSlots.length > 0) {
+          const match = availableSlots.some((slot) => {
+            const slotStart = timeToMinutes(slot.startTime);
+            const slotEnd = timeToMinutes(slot.endTime);
+            if (slotStart === null || slotEnd === null) return false;
+            return selectedStart >= slotStart && selectedEnd <= slotEnd;
+          });
 
-        if (!match) newErrors.startTime = 'Selected time is not available for this venue';
+          if (!match) newErrors.startTime = 'Selected time is not available for this venue';
+        }
       }
     }
 
@@ -651,8 +670,13 @@ const finalPayload = {
                       className={`form-input ${errors.endDate ? 'error' : ''}`}
                       placeholderText="Select end date"
                       filterDate={(date) => {
-                        if (!selectedVenue) return true;
+                        const minDateCheck = date >= (dateParts.startDate || new Date(new Date().setHours(0, 0, 0, 0)));
+                        if (!selectedVenue || calendarData.length === 0) return minDateCheck;
                         const selectedDateStr = getDateStr(date);
+                        const venueHasAnySlots = calendarData.some(slot =>
+                          Array.isArray(slot.venueIds) && slot.venueIds.includes(selectedVenue.id)
+                        );
+                        if (!venueHasAnySlots) return minDateCheck;
                         return calendarData.some(slot =>
                           Array.isArray(slot.venueIds) &&
                           slot.venueIds.includes(selectedVenue.id) &&

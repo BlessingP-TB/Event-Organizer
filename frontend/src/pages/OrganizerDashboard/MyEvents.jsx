@@ -262,6 +262,18 @@ const MyEvents = () => {
                       View-Doc
                     </button>
                   )}
+                  {/* Receipt Button for approved/published events */}
+                  {["PUBLISHED", "ONGOING", "COMPLETED"].includes(event.status) && (
+                    <button
+                      className="action-btn receipt-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/organizer/event-receipt/${event.id}`, { state: { eventData: event } });
+                      }}
+                    >
+                      Receipt
+                    </button>
+                  )}
                 </div>
               </div>
             );

@@ -26,6 +26,7 @@ const EventDetailsModify = lazy(() => import('./pages/OrganizerDashboard/EventDe
 const ConfirmModifiedDetails = lazy(() => import('./pages/OrganizerDashboard/ConfirmModifiedDetails'));
 const RegisterForEvent = lazy(() => import('./pages/OrganizerDashboard/RegisterForEvent'));
 const UploadProofOfPayment = lazy(() => import('./pages/OrganizerDashboard/UploadProofOfPayment'));
+const EventReceipt = lazy(() => import('./pages/OrganizerDashboard/EventReceipt'));
 /* ---------- Admin Pages ---------- */
 const AnalyticsDashboard = lazy(() => import("./pages/AdminDashboard/AnalyticsDashboard"));
 const AnalyticsExportScreen = lazy(() => import("./pages/AdminDashboard/AnalyticsExportScreen"));
@@ -109,6 +110,7 @@ function App() {
             <Route path="event-details-modify/:id" element={<EventDetailsModify />} />
             <Route path="confirm-modified-details" element={<ConfirmModifiedDetails />} />
             <Route path="view-event/:id" element={<ViewEventDetails />} />
+            <Route path="event-receipt/:eventId" element={<EventReceipt />} />
 
           </Route>
 

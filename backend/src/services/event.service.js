@@ -245,6 +245,9 @@ const listOrganizerEvents = async (organizerId, queryOptions) => {
                 orderBy: {
                     createdAt: 'desc',
                 },
+                include: {
+                    approver: { select: { id: true, name: true, email: true } }
+                }
             },
         },
     };
@@ -273,6 +276,9 @@ const listAdminEvents = async (queryOptions) => {
                 orderBy: {
                     createdAt: 'desc',
                 },
+                include: {
+                    approver: { select: { id: true, name: true, email: true } }
+                }
             },
         },
     };
@@ -305,7 +311,10 @@ const getEventById = async (eventId) => {
       },
       booking: { include: { invoice: true } },
       approvals: {
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        include: {
+          approver: { select: { id: true, name: true, email: true } }
+        }
       },
     },
   });
