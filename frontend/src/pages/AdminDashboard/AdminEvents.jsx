@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 const AdminEvents = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -12,7 +14,7 @@ const AdminEvents = () => {
       const token = localStorage.getItem("accessToken");
 
       const res = await axios.get(
-        `${import.meta.env.VITE_API_URL}/events/organizer/${organizerId}`,
+        `${API_BASE}/events/organizer/${organizerId}`,
         {
           headers: { Authorization: `Bearer ${token}` }
         }

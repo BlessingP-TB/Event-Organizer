@@ -26,6 +26,7 @@ const EventDetailsModify = lazy(() => import('./pages/OrganizerDashboard/EventDe
 const ConfirmModifiedDetails = lazy(() => import('./pages/OrganizerDashboard/ConfirmModifiedDetails'));
 const RegisterForEvent = lazy(() => import('./pages/OrganizerDashboard/RegisterForEvent'));
 const UploadProofOfPayment = lazy(() => import('./pages/OrganizerDashboard/UploadProofOfPayment'));
+const EventReceipt = lazy(() => import('./pages/OrganizerDashboard/EventReceipt'));
 /* ---------- Admin Pages ---------- */
 const AnalyticsDashboard = lazy(() => import("./pages/AdminDashboard/AnalyticsDashboard"));
 const AnalyticsExportScreen = lazy(() => import("./pages/AdminDashboard/AnalyticsExportScreen"));
@@ -51,6 +52,7 @@ const Login = lazy(() => import('./pages/Auth/Login'));
 const Register = lazy(() => import('./pages/Auth/Register'));
 const ForgotPassword = lazy(() => import('./pages/Auth/ForgotPassword'));
 const ResetPasswordForm = lazy(() => import('./pages/Auth/ResetPasswordForm'));
+const VerifyEmail = lazy(() => import('./pages/Auth/VerifyEmail'));
 
 /* ---------- Shared Pages ---------- */
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
@@ -83,6 +85,7 @@ function App() {
           <Route path="/register" element={<AuthLayout><Register /></AuthLayout>} />
           <Route path="/forgot-password" element={<AuthLayout><ForgotPassword /></AuthLayout>} />
           <Route path="/reset-password" element={<AuthLayout><ResetPasswordForm /></AuthLayout>} />
+          <Route path="/auth/verify-email" element={<AuthLayout><VerifyEmail /></AuthLayout>} />
           <Route path="/unauthorized" element={<Unauthorized />} />
 
           {/* ---------- Organizer Routes ---------- */}
@@ -107,6 +110,7 @@ function App() {
             <Route path="event-details-modify/:id" element={<EventDetailsModify />} />
             <Route path="confirm-modified-details" element={<ConfirmModifiedDetails />} />
             <Route path="view-event/:id" element={<ViewEventDetails />} />
+            <Route path="event-receipt/:eventId" element={<EventReceipt />} />
 
           </Route>
 

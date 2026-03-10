@@ -181,7 +181,13 @@ const listPublicEvents = async (queryOptions) => {
     const { name, location, themeName } = queryOptions;
     const { skip, take, page, pageSize } = getPagination(queryOptions);
     const whereClause = {
-        status: EVENT_STATUS.PUBLISHED,
+        status: {
+            in: [
+                EVENT_STATUS.PUBLISHED,
+                EVENT_STATUS.ONGOING,
+                EVENT_STATUS.COMPLETED,
+            ],
+        },
         deletedAt: null,
     };
 
@@ -207,7 +213,7 @@ const listPublicEvents = async (queryOptions) => {
         include: {
             venue: { select: { name: true, location: true } },
             organizer: { select: { id: true, name: true } },
-            Theme: { select: { name: true } },
+            Theme: { select: { name: true, imageUrl: true } },
             ticketDefinitions: {
                 where: { deletedAt: null },
                 select: { id: true, name: true, price: true, quantity: true },
@@ -224,11 +230,23 @@ const listPublicEvents = async (queryOptions) => {
 };
 
 const listOrganizerEvents = async (organizerId, queryOptions) => {
+    const { includeThemeImage = false } = queryOptions;
     const { skip, take, page, pageSize } = getPagination(queryOptions);
+    // Include all events (including soft-deleted) so frontend can filter by status
     const whereClause = {
         organizerId,
-        deletedAt: null,
     };
+
+    const themeInclude = includeThemeImage
+        ? {
+              select: {
+                  id: true,
+                  name: true,
+                  imageUrl: true,
+                  image: true,
+              },
+          }
+        : undefined;
 
     const query = {
         where: whereClause,
@@ -237,6 +255,7 @@ const listOrganizerEvents = async (organizerId, queryOptions) => {
         orderBy: { createdAt: 'desc' },
         include: {
             venue: { select: { name: true, location: true } },
+            ...(themeInclude ? { Theme: themeInclude } : {}),
             booking: { include: { invoice: true } },
             _count: {
                 select: { registrations: true, tickets: true, purchases: true },
@@ -245,6 +264,9 @@ const listOrganizerEvents = async (organizerId, queryOptions) => {
                 orderBy: {
                     createdAt: 'desc',
                 },
+                include: {
+                    approver: { select: { id: true, name: true, email: true } }
+                }
             },
         },
     };
@@ -273,6 +295,9 @@ const listAdminEvents = async (queryOptions) => {
                 orderBy: {
                     createdAt: 'desc',
                 },
+                include: {
+                    approver: { select: { id: true, name: true, email: true } }
+                }
             },
         },
     };
@@ -305,7 +330,10 @@ const getEventById = async (eventId) => {
       },
       booking: { include: { invoice: true } },
       approvals: {
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        include: {
+          approver: { select: { id: true, name: true, email: true } }
+        }
       },
     },
   });
@@ -394,18 +422,18 @@ const updateEvent = async (eventId, updateBody) => {
 
 const deleteEvent = async (eventId) => {
     const event = await getEventById(eventId);
-    if (event.status !== EVENT_STATUS.DRAFT) {
+    if (![EVENT_STATUS.DRAFT, EVENT_STATUS.PENDING].includes(event.status)) {
         throw new ApiError(
             HTTP_STATUS.BAD_REQUEST,
-            'Only DRAFT events can be deleted. Published events must be CANCELLED.'
+            'Only DRAFT or PENDING events can be deleted.'
         );
     }
 
     try {
-        // Set status to CANCELLED instead of soft delete so it shows in Cancelled filter
+        // Soft delete: set deletedAt timestamp
         await prisma.event.update({
             where: { id: eventId },
-            data: { status: EVENT_STATUS.CANCELLED },
+            data: { deletedAt: new Date() },
         });
     } catch (error) {
         if (error.code === 'P2025') {
@@ -413,6 +441,16 @@ const deleteEvent = async (eventId) => {
         }
         throw error;
     }
+};
+
+// Cleanup function to permanently delete events soft-deleted for over 24 hours
+const cleanupDeletedEvents = async () => {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+    await prisma.event.deleteMany({
+        where: {
+            deletedAt: { not: null, lte: cutoff },
+        },
+    });
 };
 
 const publishEvent = async (eventId) => {

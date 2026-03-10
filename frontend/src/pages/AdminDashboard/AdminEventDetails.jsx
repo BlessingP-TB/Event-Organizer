@@ -9,6 +9,8 @@ import api from '../../utils/api';
 import eventPic from "../../assets/images/eventPic.PNG";
 import "../../styles/pages/EventDetails.scss";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 export default function AdminEventDetails() {
   const { id: eventId } = useParams();
   const navigate = useNavigate();

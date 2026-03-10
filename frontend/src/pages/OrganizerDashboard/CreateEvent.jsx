@@ -106,7 +106,7 @@ export default function CreateEvent() {
     campus: '',
     venueType: '',
     themeId: null,
-    status: "DRAFT",
+    status: "PENDING",
     isFree: true,
     ticketRequired: true,
     autoDistribute: true,
@@ -269,6 +269,23 @@ export default function CreateEvent() {
         ? prev.filter(t => t !== type)
         : [...prev, type]
     );
+  };
+
+  const handleThemeImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToastMessage('Please select a valid image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData(prev => ({ ...prev, themeImage: reader.result }));
+    };
+    reader.onerror = () => showToastMessage('Failed to read selected image.');
+    reader.readAsDataURL(file);
   };
 
   const showToastMessage = (message) => {
@@ -548,6 +565,23 @@ const finalPayload = {
                     className="form-textarea"
                   />
                 </div>
+
+                <div className="form-group">
+                  <label className="form-label">Upload Event Picture</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThemeImageChange}
+                    className="form-input"
+                  />
+                  {formData.themeImage && (
+                    <img
+                      src={formData.themeImage}
+                      alt="Event preview"
+                      style={{ marginTop: '10px', maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+                    />
+                  )}
+                </div>
               </section>
 
               {/* Venue Gallery */}
@@ -709,11 +743,6 @@ const finalPayload = {
                 )}
               </section>
 
-<<<<<<< Updated upstream
-=======
-              {/* Event Gallery removed per request */}
-
->>>>>>> Stashed changes
               {/* Terms */}
               <section className="form-section">
                 <TermsCheckbox onDecision={(accepted) => { setTermsAccepted(accepted); if (errors.terms) setErrors(prev => ({ ...prev, terms: '' })); }} />
@@ -734,5 +763,8 @@ const finalPayload = {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
 }
-                {/* Event Gallery removed per request */}

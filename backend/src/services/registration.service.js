@@ -234,7 +234,7 @@ const getApprovedRegistrationsForOrganizer = async (organizerId) => {
         select: { id: true },
     });
     console.log(events);
-    if (!events.length) return 1000; // No events, return 0
+    if (!events.length) return 0;
 
     const eventIds = events.map(e => e.id);
 

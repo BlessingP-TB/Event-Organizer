@@ -18,7 +18,7 @@ const Dashboard = () => {
   const organizerId = user?.id; // <-- extract organizer ID
 
   const fetchDashboardStats = useCallback(async () => {
-    setLoading(prev => !stats.totalEvents && prev);
+    setLoading(true);
     setError(null);
 
     if (!organizerId) {
@@ -28,25 +28,21 @@ const Dashboard = () => {
     }
 
     try {
-      // Fetch organizer events for totalEvents
+      // Fetch organizer events for totalEvents and aggregate counts
       const responseEvents = await api.get("/events/organizer", {
-        params: { page: 1, limit: 1 }
+        params: { page: 1, pageSize: 100 }
       });
 
       const eventsData = responseEvents.data;
       const meta = eventsData.meta || {};
       const totalEvents = meta.totalItems || 0;
 
-      // Fetch total registrations for this organizer
-      const responseRegistrations = await api.get(
-        "/registrations/total",
-        {
-          params: { page: 1, limit: 1, organizerId }
-        }
+      const eventRows = Array.isArray(eventsData.data) ? eventsData.data : [];
+      const totalRegistrations = eventRows.reduce(
+        (sum, eventItem) => sum + (eventItem?._count?.registrations || 0),
+        0
       );
 
-      const totalRegistrations = responseRegistrations.data.count || 0;
-      // You can compute attendance if backend provides it, otherwise keep 0
       setStats({
         totalEvents,
         totalRegistrations,
@@ -59,7 +55,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, [organizerId, stats.totalEvents]);
+  }, [organizerId]);
 
   useEffect(() => {
     fetchDashboardStats();

@@ -33,7 +33,9 @@ const refresh = customJoi.object({});
 
 const verifyEmail = customJoi.object({
     body: customJoi.object({
-        token: customJoi.string().required(),
+        email: customJoi.string().email().required(),
+        code: customJoi.string().length(6).pattern(/^[0-9]+$/).required()
+            .messages({ 'string.pattern.base': 'Code must be a 6-digit number' }),
     }),
 });
 
