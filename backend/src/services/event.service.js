@@ -403,18 +403,17 @@ const updateEvent = async (eventId, updateBody) => {
 
 const deleteEvent = async (eventId) => {
     const event = await getEventById(eventId);
-    if (event.status !== EVENT_STATUS.DRAFT) {
+    if (![EVENT_STATUS.DRAFT, EVENT_STATUS.PENDING].includes(event.status)) {
         throw new ApiError(
             HTTP_STATUS.BAD_REQUEST,
-            'Only DRAFT events can be deleted. Published events must be CANCELLED.'
+            'Only DRAFT or PENDING events can be deleted.'
         );
     }
 
     try {
-        // Set status to CANCELLED instead of soft delete so it shows in Cancelled filter
-        await prisma.event.update({
+        // Perform a real delete
+        await prisma.event.delete({
             where: { id: eventId },
-            data: { status: EVENT_STATUS.CANCELLED },
         });
     } catch (error) {
         if (error.code === 'P2025') {

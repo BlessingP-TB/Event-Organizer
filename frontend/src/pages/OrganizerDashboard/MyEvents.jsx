@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
+import { deleteEvent } from '../../utils/eventDelete';
 import '../../styles/pages/_myevents.scss';
 
 const MyEvents = () => {
@@ -239,6 +240,25 @@ const MyEvents = () => {
                       }}
                     >
                       Modify
+                    </button>
+                  )}
+                  {/* Delete Button for DRAFT and PENDING events */}
+                  {['DRAFT', 'PENDING'].includes(event.status) && (
+                    <button
+                      className="action-btn delete-btn"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+                          try {
+                            await deleteEvent(event.id);
+                            fetchEvents();
+                          } catch (err) {
+                            alert('Failed to delete event: ' + (err?.response?.data?.message || err.message));
+                          }
+                        }
+                      }}
+                    >
+                      Delete
                     </button>
                   )}
                   {/* Upload Document Button */}
