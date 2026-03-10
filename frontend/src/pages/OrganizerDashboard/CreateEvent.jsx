@@ -36,15 +36,32 @@ const getDateStr = (date) => {
   return `${year}-${month}-${day}`;
 };
 
+const normalizeId = (value) => String(value ?? '');
+
+const getSlotDateStr = (slotDate) => {
+  if (!slotDate) return '';
+  if (typeof slotDate === 'string') return slotDate.substring(0, 10);
+  return getDateStr(new Date(slotDate));
+};
+
+const slotMatchesVenue = (slot, venueId) => {
+  if (!slot || !venueId) return false;
+
+  const normalizedVenueId = normalizeId(venueId);
+
+  const inVenueIds = Array.isArray(slot.venueIds)
+    && slot.venueIds.some((id) => normalizeId(id) === normalizedVenueId);
+
+  const singleVenueMatch = slot.venueId && normalizeId(slot.venueId) === normalizedVenueId;
+
+  return inVenueIds || singleVenueMatch;
+};
+
 const getAvailableTimeSlots = (calendarData, venueId, date) => {
   if (!calendarData || !venueId || !date) return [];
   const selectedDateStr = getDateStr(date);
   return calendarData
-    .filter(slot =>
-      Array.isArray(slot.venueIds) &&
-      slot.venueIds.includes(venueId) &&
-      slot.date.substring(0, 10) === selectedDateStr
-    )
+    .filter(slot => slotMatchesVenue(slot, venueId) && getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr)
     .map(slot => ({
       startTime: slot.startTime,
       endTime: slot.endTime
@@ -261,14 +278,23 @@ export default function CreateEvent() {
     toastTimerRef.current = setTimeout(() => setShowToast(false), 5000);
   };
 
+  const venueHasCalendarAvailability = selectedVenue && calendarData.some((slot) => {
+    return slotMatchesVenue(slot, selectedVenue.id);
+  });
+
   const filterDate = (date) => {
     if (!selectedVenue) return true;
+
+    const venueSlots = Array.isArray(calendarData)
+      ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
+      : [];
+
+    if (venueSlots.length === 0) {
+      return true;
+    }
+
     const selectedDateStr = getDateStr(date);
-    return calendarData.some(slot =>
-      Array.isArray(slot.venueIds) &&
-      slot.venueIds.includes(selectedVenue.id) &&
-      slot.date.substring(0, 10) === selectedDateStr
-    );
+    return venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
   };
 
   const validateForm = () => {
@@ -285,22 +311,30 @@ export default function CreateEvent() {
     if (selectedEventTypes.length === 0) newErrors.eventType = 'Please select at least one type of function';
     if (selectedGuestTypes.length === 0) newErrors.guestType = 'Please select at least one type of guest';
 
-    if (selectedVenue && dateParts.startDate) {
+    if (selectedVenue && dateParts.startDate && venueHasCalendarAvailability) {
       const selectedDateStr = getDateStr(dateParts.startDate);
-      const isAvailable = calendarData.some(slot =>
-        Array.isArray(slot.venueIds) &&
-        slot.venueIds.includes(selectedVenue.id) &&
-        slot.date.substring(0, 10) === selectedDateStr
-      );
-      if (!isAvailable) newErrors.startDate = 'Selected date is not available for this venue';
+
+      const venueSlots = Array.isArray(calendarData)
+        ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
+        : [];
+
+      const hasVenueAvailabilityData = venueSlots.length > 0;
+      const isAvailable = venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
+
+      if (hasVenueAvailabilityData && !isAvailable) {
+        newErrors.startDate = 'Selected date is not available for this venue';
+      }
     }
 
-    if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime) {
+    if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime && venueHasCalendarAvailability) {
       const availableSlots = getAvailableTimeSlots(calendarData, selectedVenue.id, dateParts.startDate);
       const match = availableSlots.some(slot =>
         slot.startTime === dateParts.startTime && slot.endTime === dateParts.endTime
       );
-      if (!match) newErrors.startTime = 'Selected time is not available for this venue';
+
+      if (availableSlots.length > 0 && !match) {
+        newErrors.startTime = 'Selected time is not available for this venue';
+      }
     }
 
     if (!termsAccepted) newErrors.terms = 'You must accept the terms and conditions';
@@ -600,12 +634,17 @@ const finalPayload = {
                       placeholderText="Select end date"
                       filterDate={(date) => {
                         if (!selectedVenue) return true;
+
+                        const venueSlots = Array.isArray(calendarData)
+                          ? calendarData.filter(slot => slotMatchesVenue(slot, selectedVenue.id))
+                          : [];
+
+                        if (venueSlots.length === 0) {
+                          return true;
+                        }
+
                         const selectedDateStr = getDateStr(date);
-                        return calendarData.some(slot =>
-                          Array.isArray(slot.venueIds) &&
-                          slot.venueIds.includes(selectedVenue.id) &&
-                          slot.date.substring(0, 10) === selectedDateStr
-                        );
+                        return venueSlots.some(slot => getSlotDateStr(slot?.date || slot?.startDateTime) === selectedDateStr);
                       }}
                       minDate={dateParts.startDate || new Date()}
                       dateFormat="yyyy-MM-dd"
@@ -670,6 +709,11 @@ const finalPayload = {
                 )}
               </section>
 
+<<<<<<< Updated upstream
+=======
+              {/* Event Gallery removed per request */}
+
+>>>>>>> Stashed changes
               {/* Terms */}
               <section className="form-section">
                 <TermsCheckbox onDecision={(accepted) => { setTermsAccepted(accepted); if (errors.terms) setErrors(prev => ({ ...prev, terms: '' })); }} />
@@ -690,8 +734,5 @@ const finalPayload = {
               </div>
             )}
           </div>
-        </div>
-      </div>
-    </div>
-  );
 }
+                {/* Event Gallery removed per request */}
