@@ -18,6 +18,7 @@ enum Role {
 
 enum EventStatus {
   DRAFT
+  PENDING
   PUBLISHED
   ONGOING
   COMPLETED

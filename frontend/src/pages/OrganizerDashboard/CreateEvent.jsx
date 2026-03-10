@@ -96,7 +96,7 @@ export default function CreateEvent() {
     campus: '',
     venueType: '',
     themeId: null,
-    status: "DRAFT",
+    status: "PENDING",
     isFree: true,
     ticketRequired: true,
     autoDistribute: true,

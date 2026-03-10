@@ -25,7 +25,12 @@ const bytesToDataUrl = (bytes, mimeType = 'image/jpeg') => {
   const byteArray = Array.isArray(bytes) ? bytes : Object.values(bytes);
   try {
     const uint8Array = new Uint8Array(byteArray);
-    const binary = String.fromCharCode(...uint8Array);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let index = 0; index < uint8Array.length; index += chunkSize) {
+      const chunk = uint8Array.subarray(index, index + chunkSize);
+      binary += String.fromCharCode.apply(null, chunk);
+    }
     const base64 = btoa(binary);
     return `data:${mimeType};base64,${base64}`;
   } catch {

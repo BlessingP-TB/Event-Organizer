@@ -160,7 +160,7 @@ const MyEvents = () => {
         <h2>My Events</h2>
         <div className="filter-sort">
           <div className="filters">
-            {["All", "DRAFT", "PUBLISHED", "ONGOING", "CANCELLED", "COMPLETED"].map(btn => (
+            {["All", "DRAFT", "PENDING", "PUBLISHED", "ONGOING", "CANCELLED", "COMPLETED"].map(btn => (
               <button
                 key={btn}
                 className={filter === btn ? 'active' : ''}
@@ -215,7 +215,7 @@ const MyEvents = () => {
                 </div>
                 <div className="event-action">
                   {/* Modify Button */}
-                  {event.status === "DRAFT" && (
+                  {["DRAFT", "PENDING"].includes(event.status) && (
                     <button
                       className="action-btn modify-btn"
                       onClick={(e) => {
@@ -227,7 +227,7 @@ const MyEvents = () => {
                     </button>
                   )}
                   {/* Upload Document Button */}
-                  {event.status === "DRAFT" && (
+                  {["DRAFT", "PENDING"].includes(event.status) && (
                     <button
                       className="action-btn upload-pop-btn"
                       onClick={(e) => {

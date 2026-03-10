@@ -113,7 +113,7 @@ CREATE TABLE `Event` (
     `description` TEXT NOT NULL,
     `startDateTime` DATETIME(3) NOT NULL,
     `endDateTime` DATETIME(3) NOT NULL,
-    `status` ENUM('DRAFT', 'PUBLISHED', 'ONGOING', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'DRAFT',
+    `status` ENUM('DRAFT', 'PENDING', 'PUBLISHED', 'ONGOING', 'COMPLETED', 'CANCELLED') NOT NULL DEFAULT 'DRAFT',
     `expectedAttend` INTEGER NULL,
     `totalTickets` INTEGER NULL,
     `isFree` BOOLEAN NOT NULL DEFAULT true,
