@@ -34,6 +34,15 @@ const KNOWN_SERVICES = ['Liquor', 'Kitchen Facilities', 'Cleaning Services', 'Ex
 const eventTypes = ["Official", "Academic related", "Private", "External", "Student"];
 const guestTypes = ["VIP", "Media", "Staff", "Student", "Special protocol required"];
 
+const timeToMinutes = (timeStr) => {
+  if (!timeStr || typeof timeStr !== 'string') return null;
+  const [hourPart, minutePart] = timeStr.split(':');
+  const hours = Number(hourPart);
+  const minutes = Number(minutePart);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return (hours * 60) + minutes;
+};
+
 const termsText = `VENUE BOOKING APPLICATION
 The institution may grant the APPLICANT permission to use the following in terms of the conditions set out:
 • Facilities for sport are booked through the Sport Division (012) 382-5399/4121
@@ -297,12 +306,19 @@ export default function Create() {
 
   const isVenueAvailableLocal = (venueId, dateStr, startT, endT) => {
     if (!venueId || !dateStr) return false;
+    const selectedStart = timeToMinutes(startT);
+    const selectedEnd = timeToMinutes(endT);
+    if (selectedStart === null || selectedEnd === null || selectedEnd <= selectedStart) return false;
+
     return (availableDates || []).some(entry => {
       if (!entry?.date) return false;
       const entryDate = entry.date.split('T')[0];
       const matchesDate = entryDate === dateStr;
       const matchesVenue = entry.venueIds?.includes(String(venueId)) || String(entry.venueId) === String(venueId);
-      const matchesTime = (startT >= (entry.startTime || "00:00")) && (endT <= (entry.endTime || "23:59"));
+      const slotStart = timeToMinutes(entry.startTime || "00:00");
+      const slotEnd = timeToMinutes(entry.endTime || "23:59");
+      if (slotStart === null || slotEnd === null) return false;
+      const matchesTime = selectedStart >= slotStart && selectedEnd <= slotEnd;
       return matchesDate && matchesVenue && matchesTime;
     });
   };
@@ -318,6 +334,10 @@ export default function Create() {
     }
     if (!startTime || !endTime) {
       setAvailabilityError("Please select start and end time.");
+      return false;
+    }
+    if (timeToMinutes(endTime) <= timeToMinutes(startTime)) {
+      setAvailabilityError("End time must be later than start time.");
       return false;
     }
     const available = isVenueAvailableLocal(selectedVenue, date, startTime, endTime);

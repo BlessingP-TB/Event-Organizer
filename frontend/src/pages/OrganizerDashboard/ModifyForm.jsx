@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { ArrowLeft } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import VenueCardGallery from '../../components/VenueCardGallery';
 import TermsCheckbox from '../../components/TermsCheckbox';
-import api from '../../utils/api';
 import "../../styles/pages/_createevent.scss";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 
 const padTo2Digits = (num) => num.toString().padStart(2, '0');
 
@@ -16,6 +18,24 @@ const deconstructISOString = (isoString) => {
   if (isNaN(d.getTime())) return { date: null, time: '' };
   const time = `${padTo2Digits(d.getHours())}:${padTo2Digits(d.getMinutes())}`;
   return { date: d, time };
+};
+
+const bytesToDataUrl = (bytes, mimeType = 'image/jpeg') => {
+  if (!bytes) return null;
+  const byteArray = Array.isArray(bytes) ? bytes : Object.values(bytes);
+  try {
+    const uint8Array = new Uint8Array(byteArray);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let index = 0; index < uint8Array.length; index += chunkSize) {
+      const chunk = uint8Array.subarray(index, index + chunkSize);
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    const base64 = btoa(binary);
+    return `data:${mimeType};base64,${base64}`;
+  } catch {
+    return null;
+  }
 };
 
 export default function ModifyForm() {
@@ -33,13 +53,18 @@ export default function ModifyForm() {
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const toastTimerRef = useRef(null);
+  const [themeImage, setThemeImage] = useState(null);
+  const [themePreview, setThemePreview] = useState('');
 
   useEffect(() => {
     const fetchEventForEditing = async () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await api.get(`/events/${eventId}`);
+        const token = localStorage.getItem("accessToken");
+        const response = await axios.get(`${API_BASE}/events/${eventId}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
 
         const eventData = response.data;
 
@@ -48,10 +73,16 @@ export default function ModifyForm() {
           description: eventData.description,
           expectedAttend: eventData.expectedAttend || '',
           venueId: eventData.venueId,
+          themeId: eventData.themeId || null,
           campus: eventData.venue?.campus || '',
           venueType: eventData.venue?.type || '',
           requestedResourcesAndServices: eventData.requestedResourcesAndServices || {}
         });
+
+        const existingThemePreview = eventData?.Theme?.image
+          ? bytesToDataUrl(eventData.Theme.image, 'image/jpeg')
+          : (eventData?.Theme?.imageUrl || '');
+        setThemePreview(existingThemePreview);
 
         setDateParts({
           startDate: deconstructISOString(eventData.startDateTime).date,
@@ -94,6 +125,23 @@ export default function ModifyForm() {
     toastTimerRef.current = setTimeout(() => setShowToast(false), 5000);
   };
 
+  const handleThemeImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      showToastMessage('Please select a valid image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setThemeImage(reader.result);
+      setThemePreview(reader.result);
+    };
+    reader.onerror = () => showToastMessage('Failed to read selected image.');
+    reader.readAsDataURL(file);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -120,7 +168,43 @@ export default function ModifyForm() {
 
     setLoading(true);
     try {
-      await api.patch(`/events/${eventId}`, updatePayload);
+      const token = localStorage.getItem("accessToken");
+      if (themeImage) {
+        const base64Image = themeImage.split(',')[1];
+        const imageType = themeImage.split(';')[0].split('/')[1];
+        const existingThemeId = formData.themeId;
+
+        if (existingThemeId) {
+          await axios.patch(
+            `${API_BASE}/themes/${existingThemeId}`,
+            {
+              description: `Theme for event: ${formData.name}`,
+              image: base64Image,
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          updatePayload.themeId = existingThemeId;
+        } else {
+          const themeResponse = await axios.post(
+            `${API_BASE}/themes`,
+            {
+              name: `Theme for ${formData.name} ${Date.now()}`,
+              description: `Theme for event: ${formData.name}`,
+              image: base64Image,
+              filename: `theme-${Date.now()}.${imageType}`
+            },
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+
+          const createdTheme = themeResponse.data;
+          updatePayload.themeId = createdTheme.id || createdTheme.data?.id || null;
+        }
+      }
+
+      await axios.patch(`${API_BASE}/events/${eventId}`, updatePayload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       showToastMessage("Event updated successfully!");
       setTimeout(() => navigate(`/organizer/event-details-modify/${eventId}`), 2000);
     } catch (err) {
@@ -190,6 +274,15 @@ export default function ModifyForm() {
                 <div className="form-group">
                   <label className="form-label">Description</label>
                   <textarea name="description" value={formData.description} onChange={handleInputChange} rows="4" className="form-textarea" />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Change Event Picture</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThemeImageChange}
+                    className="form-input"
+                  />
                 </div>
               </section>
 

@@ -36,36 +36,25 @@ const getDateStr = (date) => {
   return `${year}-${month}-${day}`;
 };
 
-const normalizeDateStr = (value) => {
-  if (!value) return '';
-  if (typeof value === 'string') return value.includes('T') ? value.split('T')[0] : value;
-  const dateObj = new Date(value);
-  if (Number.isNaN(dateObj.getTime())) return '';
-  return getDateStr(dateObj);
-};
-
-const normalizeTimeStr = (value) => (typeof value === 'string' ? value.slice(0, 5) : '');
-
-const getVenueCalendarSlots = (calendarData, venueId) => {
-  if (!calendarData || !venueId) return [];
-  const targetVenueId = String(venueId);
-  return calendarData.filter(slot => {
-    const venueIds = Array.isArray(slot.venueIds) ? slot.venueIds.map(String) : [];
-    const singleVenueId = slot.venueId ? String(slot.venueId) : null;
-    return venueIds.includes(targetVenueId) || singleVenueId === targetVenueId;
-  });
+const timeToMinutes = (timeStr) => {
+  if (!timeStr) return null;
+  const [hours, minutes] = timeStr.split(':').map(Number);
+  if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+  return (hours * 60) + minutes;
 };
 
 const getAvailableTimeSlots = (calendarData, venueId, date) => {
-  if (!date) return [];
-  const venueSlots = getVenueCalendarSlots(calendarData, venueId);
-  if (venueSlots.length === 0) return [];
+  if (!calendarData || !venueId || !date) return [];
   const selectedDateStr = getDateStr(date);
-  return venueSlots
-    .filter(slot => normalizeDateStr(slot.date) === selectedDateStr)
+  return calendarData
+    .filter(slot =>
+      Array.isArray(slot.venueIds) &&
+      slot.venueIds.includes(venueId) &&
+      slot.date.substring(0, 10) === selectedDateStr
+    )
     .map(slot => ({
-      startTime: normalizeTimeStr(slot.startTime),
-      endTime: normalizeTimeStr(slot.endTime)
+      startTime: slot.startTime,
+      endTime: slot.endTime
     }));
 };
 
@@ -107,7 +96,7 @@ export default function CreateEvent() {
     campus: '',
     venueType: '',
     themeId: null,
-    status: "DRAFT",
+    status: "PENDING",
     isFree: true,
     ticketRequired: true,
     autoDistribute: true,
@@ -272,6 +261,23 @@ export default function CreateEvent() {
     );
   };
 
+  const handleThemeImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToastMessage('Please select a valid image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData(prev => ({ ...prev, themeImage: reader.result }));
+    };
+    reader.onerror = () => showToastMessage('Failed to read selected image.');
+    reader.readAsDataURL(file);
+  };
+
   const showToastMessage = (message) => {
     setToastMessage(message);
     setShowToast(true);
@@ -281,10 +287,12 @@ export default function CreateEvent() {
 
   const filterDate = (date) => {
     if (!selectedVenue) return true;
-    const venueSlots = getVenueCalendarSlots(calendarData, selectedVenue.id);
-    if (venueSlots.length === 0) return true;
     const selectedDateStr = getDateStr(date);
-    return venueSlots.some(slot => normalizeDateStr(slot.date) === selectedDateStr);
+    return calendarData.some(slot =>
+      Array.isArray(slot.venueIds) &&
+      slot.venueIds.includes(selectedVenue.id) &&
+      slot.date.substring(0, 10) === selectedDateStr
+    );
   };
 
   const validateForm = () => {
@@ -302,21 +310,30 @@ export default function CreateEvent() {
     if (selectedGuestTypes.length === 0) newErrors.guestType = 'Please select at least one type of guest';
 
     if (selectedVenue && dateParts.startDate) {
-      const venueSlots = getVenueCalendarSlots(calendarData, selectedVenue.id);
       const selectedDateStr = getDateStr(dateParts.startDate);
-      if (venueSlots.length > 0) {
-        const isAvailable = venueSlots.some(slot => normalizeDateStr(slot.date) === selectedDateStr);
-        if (!isAvailable) newErrors.startDate = 'Selected date is not available for this venue';
-      }
+      const isAvailable = calendarData.some(slot =>
+        Array.isArray(slot.venueIds) &&
+        slot.venueIds.includes(selectedVenue.id) &&
+        slot.date.substring(0, 10) === selectedDateStr
+      );
+      if (!isAvailable) newErrors.startDate = 'Selected date is not available for this venue';
     }
 
     if (selectedVenue && dateParts.startDate && dateParts.startTime && dateParts.endTime) {
       const availableSlots = getAvailableTimeSlots(calendarData, selectedVenue.id, dateParts.startDate);
-      if (availableSlots.length > 0) {
-        const match = availableSlots.some(slot =>
-          normalizeTimeStr(slot.startTime) === normalizeTimeStr(dateParts.startTime) &&
-          normalizeTimeStr(slot.endTime) === normalizeTimeStr(dateParts.endTime)
-        );
+      const selectedStart = timeToMinutes(dateParts.startTime);
+      const selectedEnd = timeToMinutes(dateParts.endTime);
+
+      if (selectedStart === null || selectedEnd === null || selectedEnd <= selectedStart) {
+        newErrors.startTime = 'Please select a valid time range';
+      } else {
+        const match = availableSlots.some((slot) => {
+          const slotStart = timeToMinutes(slot.startTime);
+          const slotEnd = timeToMinutes(slot.endTime);
+          if (slotStart === null || slotEnd === null) return false;
+          return selectedStart >= slotStart && selectedEnd <= slotEnd;
+        });
+
         if (!match) newErrors.startTime = 'Selected time is not available for this venue';
       }
     }
@@ -532,6 +549,23 @@ const finalPayload = {
                     className="form-textarea"
                   />
                 </div>
+
+                <div className="form-group">
+                  <label className="form-label">Upload Event Picture</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThemeImageChange}
+                    className="form-input"
+                  />
+                  {formData.themeImage && (
+                    <img
+                      src={formData.themeImage}
+                      alt="Event preview"
+                      style={{ marginTop: '10px', maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+                    />
+                  )}
+                </div>
               </section>
 
               {/* Venue Gallery */}
@@ -616,7 +650,15 @@ const finalPayload = {
                       onChange={(date) => handleDateTimeChange('endDate', date)}
                       className={`form-input ${errors.endDate ? 'error' : ''}`}
                       placeholderText="Select end date"
-                      filterDate={filterDate}
+                      filterDate={(date) => {
+                        if (!selectedVenue) return true;
+                        const selectedDateStr = getDateStr(date);
+                        return calendarData.some(slot =>
+                          Array.isArray(slot.venueIds) &&
+                          slot.venueIds.includes(selectedVenue.id) &&
+                          slot.date.substring(0, 10) === selectedDateStr
+                        );
+                      }}
                       minDate={dateParts.startDate || new Date()}
                       dateFormat="yyyy-MM-dd"
                     />

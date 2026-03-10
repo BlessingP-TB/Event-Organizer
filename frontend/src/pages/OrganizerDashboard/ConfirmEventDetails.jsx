@@ -49,12 +49,14 @@ export default function ConfirmEventDetails() {
       let themeId = null;
       if (themeImage) {
           const base64Image = themeImage.split(',')[1];
-        const themeResponse = await api.post('/themes', {
-          name: `Theme for ${formData.name}`,
-          description: `Theme for event: ${formData.name}`,
-          image: base64Image,
-        });
-        const themeResult = themeResponse.data;
+          const imageType = themeImage.split(';')[0].split('/')[1];
+          const themeResponse = await api.post('/themes', {
+            name: `Theme for ${formData.name}`,
+            description: `Theme for event: ${formData.name}`,
+            image: base64Image,
+            filename: `theme-${Date.now()}.${imageType}`
+          });
+          const themeResult = themeResponse.data;
           themeId = themeResult.id || themeResult.data?.id;
           if (!themeId) {
               throw new Error('Failed to get theme ID from response');
@@ -84,12 +86,12 @@ export default function ConfirmEventDetails() {
         resources: formData.resources || [],
         services: formData.services || {}, // ✅ Already has boolean flags
         themeId: themeId ?? null,
-        status: formData.status ?? "DRAFT",
+        status: formData.status ?? "PENDING",
       };
 
       console.log("DEBUG: Submitting formData to backend:", submissionData);
 
-      const response = await api.post('/events', submissionData);
+      const response = await api.post("/events", submissionData);
       console.log("Event submitted successfully:", response.data);
       showToastMessage("Event booking request submitted successfully!");
       setTimeout(() => navigate("/organizer/events"), 2000);

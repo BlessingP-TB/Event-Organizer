@@ -105,7 +105,7 @@ router
 router
     .route('/events/:id')
     .get(
-        validate(eventValidation.listAdminEvents),
+        validate(uuidParam('id')),
         eventController.getEvent
     );
 
