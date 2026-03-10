@@ -45,6 +45,7 @@ const AttendeeEventRating = lazy(() => import('./pages/AttendeeDashBoard/EventRa
 const CheckInScreen = lazy(() => import('./pages/AttendeeDashBoard/CheckInScreen'));
 const AttendeeRegisterForEvent = lazy(() => import('./pages/AttendeeDashBoard/RegisterForEvent'));
 const ViewEventDetails = lazy(() => import('./pages/AttendeeDashBoard/ViewEventDetails'));
+const HelpSupport = lazy(() => import('./pages/AttendeeDashBoard/HelpSupport'));
 
 /* ---------- Auth Pages ---------- */
 const HomePage = lazy(() => import('./pages/Auth/HomePage'));
@@ -152,6 +153,7 @@ function App() {
             <Route path="my-events" element={<Events  />} />
             <Route path="register/:id" element={<AttendeeRegisterForEvent />} />
             <Route path="ratings" element={<AttendeeEventRating />} />
+            <Route path="help-support" element={<HelpSupport />} />
             <Route path="profile" element={<ProfilePage />} />
           </Route>
 

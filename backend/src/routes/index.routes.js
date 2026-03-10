@@ -17,7 +17,6 @@ const organizerRoutes = require('./organizer.routes');
 const purchaseRoutes = require('./purchase.routes');
 const themeRoutes = require('./theme.routes');
 const ticketRoutes = require('./ticket.routes');
-const notificationRoutes = require('./notification.routes');
 const toolRoutes = require('./tool.routes');
 const venueRoutes = require('./venue.routes');
 const publicRoutes = require('./public.routes');
@@ -43,7 +42,6 @@ const appRoutes = [
     { path: '/purchases', route: purchaseRoutes },
     { path: '/themes', route: themeRoutes },
     { path: '/tickets', route: ticketRoutes },
-    { path: '/notifications', route: notificationRoutes },
     { path: '/tools', route: toolRoutes },
     { path: '/venues', route: venueRoutes },
     { path: '/', route: publicRoutes },
