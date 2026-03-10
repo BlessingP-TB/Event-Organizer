@@ -160,6 +160,20 @@ const Discover = ({ role }) => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+
+        <div className="support-cta" role="region" aria-label="Help and support">
+          <div>
+            <h3>Help / Support</h3>
+            <p>Contact organizers or report issues.</p>
+          </div>
+          <button
+            type="button"
+            className="support-cta-btn"
+            onClick={() => navigate('/attendee/help-support')}
+          >
+            Open Support
+          </button>
+        </div>
       </div>
 
       {/* Status Filter Buttons */}

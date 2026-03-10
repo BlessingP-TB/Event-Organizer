@@ -21,8 +21,14 @@ const getMyOrganizerStats = catchAsync(async (req, res) => {
     res.status(HTTP_STATUS.OK).send(stats);
 });
 
+const getMyAttendeeStats = catchAsync(async (req, res) => {
+    const stats = await statsService.getAttendeeStats(req.user.id);
+    res.status(HTTP_STATUS.OK).send(stats);
+});
+
 module.exports = {
     getAdminStats,
     getFinancialStats,
     getMyOrganizerStats,
+    getMyAttendeeStats,
 };

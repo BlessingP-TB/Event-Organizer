@@ -10,6 +10,8 @@ datasource db {
 
 enum Role {
   ADMIN
+  CAMPUS_ADMIN
+  FACILITY_MANAGER
   ORGANIZER
   ATTENDEE
 }
@@ -266,10 +268,11 @@ model Venue {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  imageUrls Json?     // Was String[] in PostgreSQL — store as JSON array e.g. ["url1","url2"]
-  events    Event[]
-  tools     Tool[]
-  bookings  Booking[]
+  imageUrls    Json?              // Was String[] in PostgreSQL — store as JSON array e.g. ["url1","url2"]
+  events       Event[]
+  tools        Tool[]
+  bookings     Booking[]
+  maintenance  VenueMaintenance[]
 }
 
 model Purchase {
@@ -569,4 +572,119 @@ model Calendar {
 
   @@unique([date, startTime, endTime])
   @@index([createdById])
+}
+
+// Maintenance Schedule Enum
+enum MaintenanceStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MaintenanceType {
+  ROUTINE
+  REPAIR
+  UPGRADE
+  INSPECTION
+  CLEANING
+  EMERGENCY
+}
+
+// Venue Maintenance Scheduling
+model VenueMaintenance {
+  id          String            @id @default(uuid()) @db.VarChar(36)
+  venueId     String            @db.VarChar(36)
+  title       String            @db.VarChar(255)
+  description String?           @db.Text
+  type        MaintenanceType   @default(ROUTINE)
+  status      MaintenanceStatus @default(SCHEDULED)
+  scheduledAt DateTime
+  startedAt   DateTime?
+  completedAt DateTime?
+  scheduledBy String            @db.VarChar(36)
+  assignedTo  String?           @db.VarChar(255)
+  notes       String?           @db.Text
+  cost        Decimal?          @db.Decimal(10, 2)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  venue Venue @relation(fields: [venueId], references: [id])
+
+  @@index([venueId])
+  @@index([scheduledBy])
+  @@index([status])
+}
+
+// Policy Category Enum
+enum PolicyCategory {
+  EVENT_APPROVAL
+  VENUE_BOOKING
+  SAFETY_COMPLIANCE
+  LIQUOR_POLICY
+  NOISE_POLICY
+  CAPACITY_POLICY
+  GENERAL
+}
+
+// Institutional Policy Management
+model Policy {
+  id             String         @id @default(uuid()) @db.VarChar(36)
+  name           String         @unique @db.VarChar(255)
+  category       PolicyCategory @default(GENERAL)
+  description    String         @db.Text
+  content        String         @db.Text
+  isActive       Boolean        @default(true)
+  effectiveFrom  DateTime       @default(now())
+  effectiveUntil DateTime?
+  createdById    String         @db.VarChar(36)
+  updatedById    String?        @db.VarChar(36)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([category])
+  @@index([isActive])
+}
+
+// Campus definition for multi-campus support
+model Campus {
+  id          String   @id @default(uuid()) @db.VarChar(36)
+  name        String   @unique @db.VarChar(255)
+  code        String   @unique @db.VarChar(20)
+  address     String?  @db.Text
+  description String?  @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  adminAssignments CampusAdminAssignment[]
+  venueAssignments CampusVenueAssignment[]
+}
+
+// Admin-Campus Assignment for multi-campus coordination
+model CampusAdminAssignment {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  campusId  String   @db.VarChar(36)
+  userId    String   @db.VarChar(36)
+  isPrimary Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campus Campus @relation(fields: [campusId], references: [id])
+
+  @@unique([campusId, userId])
+  @@index([userId])
+}
+
+// Venue-Campus Assignment
+model CampusVenueAssignment {
+  id        String   @id @default(uuid()) @db.VarChar(36)
+  campusId  String   @db.VarChar(36)
+  venueId   String   @db.VarChar(36)
+  createdAt DateTime @default(now())
+
+  campus Campus @relation(fields: [campusId], references: [id])
+
+  @@unique([campusId, venueId])
+  @@index([venueId])
 }
