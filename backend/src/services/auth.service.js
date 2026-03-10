@@ -203,7 +203,7 @@ const register = async (registerBody) => {
         );
     }
 
-    const { user, verificationCode } = await prisma.$transaction(async (tx) => {
+    const { user } = await prisma.$transaction(async (tx) => {
         const passwordHash = await bcrypt.hash(
             password,
             authConfig.bcryptSaltRounds
@@ -219,7 +219,7 @@ const register = async (registerBody) => {
                 account: {
                     create: {
                         passwordHash,
-                        emailVerified: false,
+                        emailVerified: true, // Mark as verified by default
                     },
                 },
             },
@@ -246,24 +246,10 @@ const register = async (registerBody) => {
             });
         }
 
-        // Generate 6-digit verification code instead of JWT token
-        const verificationCode = await createVerificationCode(
-            createdUser.id,
-            10, // 10 minutes expiration
-            tx
-        );
-        return { user: createdUser, verificationCode };
+        return { user: createdUser };
     });
 
-    try {
-        await emailService.sendVerificationEmail(user.email, verificationCode);
-    } catch (error) {
-        // Don't throw - let user proceed and resend later if needed
-        // Log the code to console for development/testing
-        console.log(`📧 VERIFICATION CODE for ${user.email}: ${verificationCode}`);
-        console.error('Verification email could not be sent:', error.message);
-    }
-
+    // No email verification required
     return user;
 };
 
@@ -607,8 +593,6 @@ module.exports = {
     register,
     login,
     refresh,
-    verifyEmail,
-    resendVerification,
     forgotPassword,
     resetPassword,
     changePassword,

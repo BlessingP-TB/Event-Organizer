@@ -411,9 +411,10 @@ const deleteEvent = async (eventId) => {
     }
 
     try {
-        // Perform a real delete
-        await prisma.event.delete({
+        // Soft delete: set deletedAt timestamp
+        await prisma.event.update({
             where: { id: eventId },
+            data: { deletedAt: new Date() },
         });
     } catch (error) {
         if (error.code === 'P2025') {
@@ -421,6 +422,16 @@ const deleteEvent = async (eventId) => {
         }
         throw error;
     }
+};
+
+// Cleanup function to permanently delete events soft-deleted for over 24 hours
+const cleanupDeletedEvents = async () => {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+    await prisma.event.deleteMany({
+        where: {
+            deletedAt: { not: null, lte: cutoff },
+        },
+    });
 };
 
 const publishEvent = async (eventId) => {

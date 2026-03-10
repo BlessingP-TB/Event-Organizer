@@ -123,9 +123,23 @@ const MyEvents = () => {
   }, [token, popDocuments]);
 
   // --- FILTERING AND SORTING ---
-  // Helper to get effective status (soft-deleted events treated as DELETED)
+
+  // Helper to get effective status for filtering tabs
   const getEffectiveStatus = (event) => {
     if (event.deletedAt) return "DELETED";
+    // DRAFT: Not completed, not published, not pending approval, not cancelled
+    if (event.status === "DRAFT") return "DRAFT";
+    // PENDING: Waiting for approval (status is PENDING or has a pending approval)
+    if (event.status === "PENDING" || event.approvals?.some(a => a.status === "PENDING")) return "PENDING";
+    // ONGOING: Event is currently taking place
+    const now = new Date();
+    if (event.status === "ONGOING" || (event.status === "PUBLISHED" && new Date(event.startDateTime) <= now && new Date(event.endDateTime) >= now)) return "ONGOING";
+    // PUBLISHED: Approved and upcoming
+    if (event.status === "PUBLISHED" && new Date(event.startDateTime) > now) return "PUBLISHED";
+    // COMPLETED: End date in the past
+    if (event.status === "COMPLETED" || (event.status === "PUBLISHED" && new Date(event.endDateTime) < now)) return "COMPLETED";
+    // CANCELLED: Cancelled or soft-deleted
+    if (event.status === "CANCELLED") return "CANCELLED";
     return event.status;
   };
 
@@ -133,27 +147,22 @@ const MyEvents = () => {
     return events
       .filter(event => {
         const effectiveStatus = getEffectiveStatus(event);
-        if (filter === "All") return true;
-        // Show DELETED events under CANCELLED filter as well
-        if (filter === "CANCELLED") {
-          return effectiveStatus === "CANCELLED" || effectiveStatus === "DELETED";
-        }
+        if (filter === "All") return effectiveStatus !== "DELETED";
+        if (filter === "CANCELLED") return effectiveStatus === "CANCELLED" || effectiveStatus === "DELETED";
         return effectiveStatus === filter;
       })
       .sort((a, b) => {
         let aValue, bValue;
-
         if (sortBy === "name") {
           aValue = a.name.toLowerCase();
           bValue = b.name.toLowerCase();
-        } else { // Default to sorting by date
+        } else {
           aValue = new Date(a.startDateTime);
           bValue = new Date(b.startDateTime);
         }
-
         if (sortOrder === "asc") {
           return aValue > bValue ? 1 : (aValue < bValue ? -1 : 0);
-        } else { // desc
+        } else {
           return aValue < bValue ? 1 : (aValue > bValue ? -1 : 0);
         }
       });

@@ -16,7 +16,7 @@ router
     .route('/me/documents')
     .get(documentController.listMyDocuments)
     .post(
-        enforceEmailVerification,
+        // enforceEmailVerification,
         // validate(documentValidation.uploadUserDocument),
         documentController.uploadUserDocument
     );
