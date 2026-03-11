@@ -12,7 +12,7 @@ const OrganizerLayout = () => {
       <ModernSideBar
         role="ORGANIZER"
         links={organizerLinks}
-        storageKey="organizerNotifications"
+        storageKey="adminNotifications"
       />
       <main className="organizer-layout-content">
         <Outlet />
