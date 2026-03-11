@@ -18,6 +18,55 @@ const MyEvents = () => {
   const navigate = useNavigate();
   const token = localStorage.getItem("accessToken");
 
+  const bytesToDataUrl = (bytes, mimeType = 'image/jpeg') => {
+    if (!bytes) return null;
+
+    if (typeof bytes === 'string') {
+      if (bytes.startsWith('data:image/')) return bytes;
+      return `data:${mimeType};base64,${bytes}`;
+    }
+
+    let byteArray;
+    if (Array.isArray(bytes)) {
+      byteArray = bytes;
+    } else if (bytes?.type === 'Buffer' && Array.isArray(bytes.data)) {
+      byteArray = bytes.data;
+    } else if (typeof bytes === 'object') {
+      byteArray = Object.values(bytes);
+    } else {
+      return null;
+    }
+
+    try {
+      // Convert in chunks to avoid call stack errors on large images.
+      const chunkSize = 0x8000;
+      const uint8 = Uint8Array.from(byteArray);
+      let binary = '';
+
+      for (let i = 0; i < uint8.length; i += chunkSize) {
+        const chunk = uint8.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, chunk);
+      }
+
+      const base64 = btoa(binary);
+      return `data:${mimeType};base64,${base64}`;
+    } catch (conversionError) {
+      console.warn('Could not convert theme image bytes:', conversionError);
+      return null;
+    }
+  };
+
+  const getThemeImageSrc = (event) => {
+    const theme = event?.Theme;
+    if (!theme) return null;
+
+    if (theme.image) {
+      return bytesToDataUrl(theme.image, theme.mimeType || 'image/jpeg');
+    }
+
+    return theme.imageUrl || null;
+  };
+
   // --- DATA FETCHING ---
   const fetchEvents = useCallback(async () => {
     setLoading(true);
@@ -26,7 +75,8 @@ const MyEvents = () => {
       const response = await api.get("/events/organizer", {
         params: {
           page: 1,
-          pageSize: 100
+          pageSize: 100,
+          includeThemeImage: true,
         }
       });
 
@@ -228,6 +278,7 @@ const MyEvents = () => {
             const canModifyOrDelete = ["DRAFT", "PENDING"].includes(event.status);
             const canViewDoc = hasDocument;
             const showActionsMenu = canModifyOrDelete || canViewDoc;
+            const eventImage = getThemeImageSrc(event);
 
             const closeActionsMenu = (clickedElement) => {
               const actionsMenu = clickedElement?.closest('.actions-menu');
@@ -244,6 +295,13 @@ const MyEvents = () => {
                 tabIndex="0"
               >
                 <div className="event-info">
+                  <div className="event-poster">
+                    {eventImage ? (
+                      <img src={eventImage} alt={`${event.name} theme`} loading="lazy" />
+                    ) : (
+                      <div className="event-poster-placeholder">No image</div>
+                    )}
+                  </div>
                   <h4>{event.name}</h4>
                   <p className="date">Starts: {formattedStartDate}</p>
                   <p className={`status ${displayStatus.toLowerCase()}`}>{displayStatus}</p>
