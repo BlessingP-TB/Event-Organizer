@@ -60,7 +60,6 @@ const VerifyEmail = lazy(() => import('./pages/Auth/VerifyEmail'));
 
 /* ---------- Shared Pages ---------- */
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
-const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const Discover = lazy(() => import('./pages/AttendeeDashBoard/Discover'));
 const Notifications = lazy(() => import('./pages/Shared/Notifications'));
 

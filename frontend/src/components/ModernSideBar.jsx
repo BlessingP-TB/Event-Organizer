@@ -29,6 +29,9 @@ const ModernSidebar = ({ role, links, storageKey }) => {
   const [notifications, setNotifications] = useState([]);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [activeNote, setActiveNote] = useState(null);
+  const [showNotifications, setShowNotifications] = useState(false);
   const roleBasePath = role === "ATTENDEE" ? "/attendee" : role === "ORGANIZER" ? "/organizer" : "/admin";
 
   const helpPath = role === "ATTENDEE" ? "/attendee/help-support" : null;
@@ -61,7 +64,6 @@ const ModernSidebar = ({ role, links, storageKey }) => {
   }, [storageKey]);
 
   const unreadCount = parseInt(localStorage.getItem(`${storageKey}:unreadCount`) || String(notifications.filter((n) => !n.read).length), 10);
-  const navigate = useNavigate();
 
   /* ---------------- Toggle Sidebar ---------------- */
   const toggleMobile = () => setIsMobileOpen((prev) => !prev);

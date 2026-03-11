@@ -318,23 +318,6 @@ export default function CreateEvent() {
     );
   };
 
-  const handleThemeImageChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      showToastMessage('Please select a valid image file.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData(prev => ({ ...prev, themeImage: reader.result }));
-    };
-    reader.onerror = () => showToastMessage('Failed to read selected image.');
-    reader.readAsDataURL(file);
-  };
-
   const showToastMessage = (message) => {
     setToastMessage(message);
     setShowToast(true);

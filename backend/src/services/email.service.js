@@ -27,9 +27,9 @@ if (emailConfigured) {
         },
     });
 
-    await smtpTransporter.verify();
-    logger.info('SMTP email transporter is configured and ready.');
-    return smtpTransporter;
+    transporter.verify()
+        .then(() => logger.info('SMTP email transporter is configured and ready.'))
+        .catch((err) => logger.warn('SMTP transporter verification failed:', err.message));
 };
 
 const getTransporter = async () => {
