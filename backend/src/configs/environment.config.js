@@ -17,11 +17,12 @@ const envVarsSchema = Joi.object()
         CLIENT_URL: Joi.string().when('NODE_ENV', { is: 'development', then: Joi.optional().default('http://localhost:3001'), otherwise: Joi.required() }),
         CORS_ALLOWED_ORIGINS: Joi.string().when('NODE_ENV', { is: 'development', then: Joi.optional().default('http://localhost:3000,http://localhost:3001,http://localhost:8081'), otherwise: Joi.required() }),
         ENABLE_EMAILS: Joi.boolean().default(false),
-        EMAIL_HOST: Joi.string().when('ENABLE_EMAILS', { is: true, then: Joi.required() }),
-        EMAIL_PORT: Joi.number().when('ENABLE_EMAILS', { is: true, then: Joi.required() }),
-        EMAIL_USER: Joi.string().when('ENABLE_EMAILS', { is: true, then: Joi.required() }),
-        EMAIL_PASS: Joi.string().when('ENABLE_EMAILS', { is: true, then: Joi.required() }),
-        EMAIL_FROM: Joi.string().when('ENABLE_EMAILS', { is: true, then: Joi.required() }),
+        EMAIL_USE_ETHEREAL: Joi.boolean().default(false),
+        EMAIL_HOST: Joi.string().allow('').optional(),
+        EMAIL_PORT: Joi.number().optional(),
+        EMAIL_USER: Joi.string().allow('').optional(),
+        EMAIL_PASS: Joi.string().allow('').optional(),
+        EMAIL_FROM: Joi.string().allow('').default('no-reply@smartevents.local'),
         ENABLE_FILE_UPLOAD: Joi.boolean().default(true),
         MAX_FILE_SIZE: Joi.number().default(5 * 1024 * 1024),
         ALLOWED_FILE_TYPES: Joi.string().default('image/jpeg,image/png,image/jpg,application/pdf'),
@@ -59,6 +60,8 @@ const envVarsSchema = Joi.object()
         ENABLE_RATE_LIMITING: Joi.boolean().default(true),
         RATE_LIMIT_WINDOW_MS: Joi.number().default(15 * 60 * 1000),
         RATE_LIMIT_MAX_REQUESTS: Joi.number().default(200),
+        AUTH_RATE_LIMIT_WINDOW_MS: Joi.number().default(15 * 60 * 1000),
+        AUTH_RATE_LIMIT_MAX_REQUESTS: Joi.number().default(10),
         PAYSTACK_SECRET_KEY: Joi.string().when('NODE_ENV', { is: 'production', then: Joi.required(), otherwise: Joi.optional() }),
         PAYSTACK_PUBLIC_KEY: Joi.string().when('NODE_ENV', { is: 'production', then: Joi.required(), otherwise: Joi.optional() })
     })
@@ -117,6 +120,7 @@ module.exports = {
     },
     email: {
         enabled: envVars.ENABLE_EMAILS,
+        useEthereal: envVars.EMAIL_USE_ETHEREAL,
         host: envVars.EMAIL_HOST,
         port: envVars.EMAIL_PORT,
         user: envVars.EMAIL_USER,
@@ -147,7 +151,9 @@ module.exports = {
     rateLimit: {
         enabled: envVars.ENABLE_RATE_LIMITING,
         windowMs: envVars.RATE_LIMIT_WINDOW_MS,
-        maxRequests: envVars.RATE_LIMIT_MAX_REQUESTS
+        maxRequests: envVars.RATE_LIMIT_MAX_REQUESTS,
+        authWindowMs: envVars.AUTH_RATE_LIMIT_WINDOW_MS,
+        authMaxRequests: envVars.AUTH_RATE_LIMIT_MAX_REQUESTS
     },
     payment: {
         paystackSecretKey: envVars.PAYSTACK_SECRET_KEY,

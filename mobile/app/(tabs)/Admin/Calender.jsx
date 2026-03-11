@@ -17,8 +17,8 @@ import { Calendar } from "react-native-calendars";
 
 // Config and Hooks
 import API_URL from "@/config";
-import { useAdminCalendar } from "../../hooks/Admin/useCalender";
-import { useAdminVenue } from "../../hooks/Admin/useVanue";
+import { useAdminCalendar } from "../../../hooks/Admin/useCalender";
+import { useAdminVenue } from "../../../hooks/Admin/useVanue";
 
 // ==========================================
 // === 1. HELPERS & UTILS

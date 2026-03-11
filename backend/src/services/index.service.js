@@ -10,6 +10,7 @@ const eventService = require('./event.service');
 const facilityManagerService = require('./facilityManager.service');
 const invoiceService = require('./invoice.service.js');
 const liquorRequestService = require('./liquorRequest.service');
+const notificationService = require('./notification.service');
 const organizerService = require('./organizer.service');
 const paymentService = require('./payment.service');
 const purchaseService = require('./purchase.service');
@@ -24,6 +25,7 @@ const venueService = require('./venue.service');
 const venueIssuerService = require('./venueIssuer.service');
 const calendarService = require('./calendar.service');
 const statsService = require('./stats.service');
+const supportService = require('./support.service');
 module.exports = {
     adminService,
     approvalService,
@@ -37,6 +39,7 @@ module.exports = {
     facilityManagerService,
     invoiceService,
     liquorRequestService,
+    notificationService,
     organizerService,
     paymentService,
     purchaseService,
@@ -51,4 +54,5 @@ module.exports = {
     venueIssuerService,
     calendarService,
     statsService,
+    supportService,
 };

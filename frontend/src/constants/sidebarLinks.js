@@ -1,5 +1,5 @@
 // frontend/src/constants/sidebarLinks.js
-import { Home, Calendar, Star, Ticket, User, Plus, ListOrdered } from "lucide-react";
+import { Home, Calendar, Star, Ticket, User, Plus, ListOrdered, CircleHelp, Search } from "lucide-react";
 
 export const attendeeLinks = [
   {
@@ -12,7 +12,9 @@ export const attendeeLinks = [
   {
     category: "Events",
     items: [
+      { name: "Discover Events", path: "/attendee/discover", icon: Search },
       { name: "My Events", path: "/attendee/my-events", icon: Ticket },
+      { name: "Help / Support", path: "/attendee/help-support", icon: CircleHelp },
     ]
   }
 ];

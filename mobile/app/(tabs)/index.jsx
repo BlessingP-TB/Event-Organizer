@@ -18,7 +18,7 @@ import {
 } from "react-native";
 
 // Ensure this path matches your folder structure
-import { getApprovedEventsPublic } from "../data/Organiser/myEvents";
+import { getApprovedEventsPublic } from "../../data/Organiser/myEvents";
 
 const { width, height } = Dimensions.get('window');
 

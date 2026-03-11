@@ -1,5 +1,5 @@
-@import "../abstracts-auth/_variable";
-@import "../abstracts-auth/_responsive-variables";
+@use "../abstracts-auth/_variable" as *;
+@use "../abstracts-auth/_responsive-variables" as *;
 
 /* ----------------------------------------------
    MAIN LAYOUT WRAPPER
@@ -22,6 +22,8 @@
 ---------------------------------------------- */
 .attendee-layout-content {
   flex: 1;
+  display: flex;
+  flex-direction: column;
   width: 100%;
   min-height: 100vh;
   // padding: 1.5rem;
@@ -36,16 +38,9 @@
   @media (min-width: $breakpoint-sm) {
     // padding: 2rem 2.5rem;
   }
-}
 
-/* ----------------------------------------------
-   FOOTER ALWAYS STAYS AT BOTTOM
----------------------------------------------- */
-.attendee-layout-container {
-  display: flex;
-  flex-direction: row;
-
-  .footer {
+  .footer,
+  footer {
     margin-top: auto;
   }
 }

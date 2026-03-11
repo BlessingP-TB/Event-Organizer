@@ -1,5 +1,5 @@
 // frontend/src/styles/components/_sidebar.scss
-@import '../abstracts-auth/_variable';
+@use '../abstracts-auth/_variable' as *;
 
 .sidebar {
   width: 250px;
@@ -52,14 +52,15 @@
         position: absolute;
         top: 100%;
         left: 0;
-        width: 250px;
+        width: min(360px, 80vw);
+        min-width: 220px;
         background: transparent;
-        padding: 10px;
-        margin-top: 5px;
+        padding: 8px;
+        margin-top: 6px;
         z-index: 999;
 
-        // 🔹 Add scrolling
-        max-height: 300px; // adjust as needed
+        // Scrolling and size limits
+        max-height: 420px;
         overflow-y: auto;
 
         ul {
@@ -67,24 +68,78 @@
           padding: 0;
           margin: 0;
 
-          li {
-            background-color: $primary-color;
-            color: white;
-            border-radius: 8px;
-            padding: 10px;
-            font-size: 14px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
+            li {
+              background-color: $primary-color;
+              color: white;
+              border-radius: 8px;
+              padding: 10px;
+              font-size: 14px;
+              margin-bottom: 8px;
+              cursor: pointer;
+              transition: background-color 0.3s ease;
+              display: flex;
+              gap: 8px;
+              align-items: flex-start;
 
-            &:hover {
-              background-color: $primary-hover;
-            }
+              &:hover {
+                background-color: $primary-hover;
+              }
 
-            &:last-child {
-              margin-bottom: 0;
+              &:last-child {
+                margin-bottom: 0;
+              }
+
+              .notif-left {
+                flex: 1 1 auto;
+                min-width: 0;
+
+                .notif-type {
+                  font-size: 0.75rem;
+                  opacity: 0.9;
+                  text-transform: capitalize;
+                  margin-bottom: 3px;
+                }
+
+                .notif-message {
+                  font-size: 0.95rem;
+                  line-height: 1.2rem;
+                  color: white;
+                  /* clamp long messages to 3 lines */
+                  display: -webkit-box;
+                  -webkit-line-clamp: 3;
+                  -webkit-box-orient: vertical;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                  word-break: break-word;
+                }
+              }
+
+              .notif-right {
+                display: flex;
+                flex-direction: column;
+                align-items: flex-end;
+                gap: 6px;
+                margin-left: 6px;
+
+                .notif-time {
+                  font-size: 0.7rem;
+                  opacity: 0.85;
+                }
+
+                .notif-dismiss {
+                  background: rgba(255,255,255,0.12);
+                  color: white;
+                  border: none;
+                  border-radius: 4px;
+                  width: 28px;
+                  height: 24px;
+                  display: inline-flex;
+                  align-items: center;
+                  justify-content: center;
+                  cursor: pointer;
+                }
+              }
             }
-          }
         }
 
         .empty {
@@ -171,5 +226,110 @@
       padding: 1rem;
       color: #666;
     }
+  }
+}
+
+/* Modal for notification details */
+.notif-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 15, 20, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999; /* ensure overlay sits above all page content (images, headers) */
+  pointer-events: auto;
+}
+
+.notif-modal {
+  background: #fff;
+  width: min(720px, 92vw);
+  max-width: 720px;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.25);
+  overflow: hidden;
+  /* Keep modal centered and within viewport */
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  /* entrance animation */
+  transform-origin: center center;
+  animation: notifFadeScaleIn 220ms cubic-bezier(.2,.9,.2,1);
+  /* ensure modal itself is above any transformed parents */
+  position: relative;
+  z-index: 100000;
+}
+
+.notif-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #eef3f8;
+  background: linear-gradient(90deg,#f8fafc,#eef7fb);
+}
+
+.notif-modal-header h4 {
+  margin: 0;
+  color: #0b4f78;
+}
+
+.notif-modal .close-btn {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.notif-modal-body {
+  padding: 16px;
+  overflow: auto;
+}
+
+.modal-message {
+  font-size: 1rem;
+  color: #223;
+  margin-bottom: 8px;
+  white-space: pre-wrap;
+}
+
+.modal-meta {
+  font-size: 0.85rem;
+  color: #6b7b85;
+}
+
+.notif-modal-actions {
+  display: flex;
+  gap: 8px;
+  padding: 12px 16px 18px;
+  justify-content: flex-end;
+  border-top: 1px solid #f1f5f8;
+}
+
+.notif-modal-actions .goto-btn {
+  background: #0b4f78;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.notif-modal-actions .close-secondary {
+  background: none;
+  border: 1px solid #d6e3ea;
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+@keyframes notifFadeScaleIn {
+  0% {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
   }
 }

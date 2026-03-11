@@ -33,12 +33,7 @@ const useAdminDashboard = () => {
   // Fetch functions - return data instead of setting state directly
   const fetchDashboardData = async () => {
     try {
-      const token = getToken();
-      if (!token) throw new Error('Authentication token missing.');
-
-      const response = await api.get('/admin/dashboard', {
-        headers: { 'Cache-Control': 'no-cache' },
-      });
+      const response = await api.get('/admin/dashboard');
 
       return response.data;
     } catch (err) {
@@ -50,12 +45,7 @@ const useAdminDashboard = () => {
 
   const fetchTopVenues = async () => {
     try {
-      const token = getToken();
-      if (!token) throw new Error('Authentication token missing.');
-
-      const response = await api.get('/admin/venues/top-booked', {
-        headers: { 'Cache-Control': 'no-cache' },
-      });
+      const response = await api.get('/admin/venues/top-booked');
 
       return response.data || [];
     } catch (err) {
@@ -67,12 +57,7 @@ const useAdminDashboard = () => {
 
   const fetchRevenueData = async () => {
     try {
-      const token = getToken();
-      if (!token) throw new Error('Authentication token missing.');
-
-      const response = await api.get('/admin/analytics/revenue', {
-        headers: { 'Cache-Control': 'no-cache' },
-      });
+      const response = await api.get('/admin/analytics/revenue');
 
       return response.data || [];
     } catch (err) {

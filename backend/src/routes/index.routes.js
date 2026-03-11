@@ -9,6 +9,7 @@ const facilityManagerRoutes = require('./facilityManager.routes');
 const userRoutes = require('./user.routes');
 const registrationRoutes = require('./registration.routes');
 const liquorRequestRoutes = require('./liquorRequest.routes');
+const notificationRoutes = require('./notification.routes');
 const reportRoutes = require('./report.routes');
 const bookingRoutes = require('./booking.routes');
 const invoiceRoutes = require('./invoice.routes');
@@ -22,11 +23,14 @@ const ticketRoutes = require('./ticket.routes');
 const toolRoutes = require('./tool.routes');
 const venueRoutes = require('./venue.routes');
 const publicRoutes = require('./public.routes');
-const notificationRoutes = require('./notification.routes');
+const attendeeRoutes = require('./attendee.routes');
+const supportRoutes = require('./support.routes');
+const ratingRoutes = require('./rating.routes');
 
 const router = express.Router();
 
 const appRoutes = [
+    { path: '/attendee', route: attendeeRoutes },
     { path: '/admin', route: adminRoutes },
     { path: '/campus-admin', route: campusAdminRoutes },
     { path: '/facility', route: facilityManagerRoutes },
@@ -35,6 +39,7 @@ const appRoutes = [
     { path: '/users', route: userRoutes },
     { path: '/registrations', route: registrationRoutes },
     { path: '/liquor-requests', route: liquorRequestRoutes },
+    { path: '/notifications', route: notificationRoutes },
     { path: '/reports', route: reportRoutes },
     { path: '/bookings', route: bookingRoutes },
     { path: '/invoices', route: invoiceRoutes },
@@ -47,7 +52,8 @@ const appRoutes = [
     { path: '/tickets', route: ticketRoutes },
     { path: '/tools', route: toolRoutes },
     { path: '/venues', route: venueRoutes },
-    { path: '/notifications', route: notificationRoutes },
+    { path: '/support', route: supportRoutes },
+    { path: '/ratings', route: ratingRoutes },
     { path: '/', route: publicRoutes },
 ];
 

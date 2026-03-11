@@ -9,7 +9,7 @@ import {
     TouchableOpacity,
     View
 } from "react-native";
-import { getEvents } from "../../data/Organiser/myEvents"; // Import API functions
+import { getEvents } from "../../../data/Organiser/myEvents"; // Import API functions
 
 export default function ApprovedScreen() {
     const [eventsData, setEventsData] = useState([]);

@@ -36,7 +36,7 @@ export default function AdminEventDetails() {
   // --- Fetch event, approval, booking, and event documents ---
   const fetchData = async () => {
     if (!token) {
-      alert("Session expired. Please log in again.");
+      toast.error("Session expired. Please log in again.");
       navigate("/login");
       return;
     }
@@ -117,7 +117,7 @@ export default function AdminEventDetails() {
 
     } catch (err) {
       console.error("Error fetching data:", err);
-      alert("Failed to load event or related details.");
+      toast.error("Failed to load event or related details.");
       navigate("/admin/approvals");
     } finally {
       setLoading(false);
@@ -143,7 +143,7 @@ export default function AdminEventDetails() {
 
   const updateApprovalStatus = async (newStatus, reason = null) => {
     if (!approval) {
-      alert("No approval record found for this event.");
+      toast.error("No approval record found for this event.");
       return;
     }
     try {
@@ -157,17 +157,17 @@ export default function AdminEventDetails() {
       setRejectReason("");
       setCustomReason("");
       setError("");
-      alert(`Approval ${newStatus.toLowerCase()} successfully`);
+      toast.success(`Approval ${newStatus.toLowerCase()} successfully`);
     } catch (err) {
       console.error("Failed to update approval status:", err);
-      alert(`Failed to ${newStatus.toLowerCase()} approval`);
+      toast.error(`Failed to ${newStatus.toLowerCase()} approval`);
     }
   };
 
   // --- Update Booking Details (ADMIN) ---
   const handleBookingUpdate = async () => {
     if (!booking) {
-      alert("No booking record found for this event.");
+      toast.error("No booking record found for this event.");
       return;
     }
 
@@ -188,10 +188,10 @@ export default function AdminEventDetails() {
           totalPaid: parseFloat(updatedBooking.totalPaid)
       });
       setIsEditingBooking(false); // Exit edit mode after successful update
-      alert("Booking details updated successfully");
+      toast.success("Booking details updated successfully");
     } catch (err) {
       console.error("Failed to update booking:", err);
-      alert("Failed to update booking details");
+      toast.error("Failed to update booking details");
     }
   };
 
@@ -235,17 +235,17 @@ export default function AdminEventDetails() {
       );
 
       cancelEditingStatus(); // Exit edit mode after successful update
-      alert("Document status updated successfully");
+      toast.success("Document status updated successfully");
     } catch (err) {
       console.error("Failed to update document status:", err);
-      alert("Failed to update document status");
+      toast.error("Failed to update document status");
     }
   };
 
   // --- Download Document (Updated using Axios) - Works with docId directly ---
   const handleDownloadDoc = useCallback(async (docId, filename) => {
     if (!docId) {
-      alert("Document ID is missing.");
+      toast.error("Document ID is missing.");
       return;
     }
 
@@ -275,7 +275,7 @@ export default function AdminEventDetails() {
 
     } catch (err) {
       console.error("Error downloading document:", err);
-      alert(`Failed to download document: ${err.response?.data?.message || err.message}`);
+      toast.error(`Failed to download document: ${err.response?.data?.message || err.message}`);
     }
   }, [token]); // Include token in dependencies if it's stable, otherwise manage carefully
 

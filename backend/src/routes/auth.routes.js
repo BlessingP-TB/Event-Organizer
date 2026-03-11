@@ -23,6 +23,7 @@ router.post(
 router.post(
     '/login',
     (req, res, next) => authLimiter(req, res, next),
+    validate(authValidation.login),
     authController.login
 );
 router.post(

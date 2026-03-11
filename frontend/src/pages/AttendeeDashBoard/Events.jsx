@@ -1,7 +1,7 @@
 // src/pages/AttendeeDashBoard/Events.jsx
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaCalendarAlt, FaBell, FaTimesCircle, FaInfoCircle } from "react-icons/fa";
+import { FaCalendarAlt, FaBell } from "react-icons/fa";
 import api from "../../utils/api";
 import toast from "react-hot-toast";
 import "../../styles/pages/_events.scss";
@@ -88,47 +88,14 @@ const EventCard = ({ event, navigate, onRateEvent, onViewTicket, isMobile }) => 
   </div>
 );
 
-// Notification Dropdown Component
-const NotificationDropdown = ({ notifications, onClose, isMobile }) => (
-  <div className={`notification-dropdown ${isMobile ? 'mobile' : ''}`}>
-    <div className="notification-header">
-      <h4>Notifications</h4>
-      <button
-        onClick={onClose}
-        aria-label="Close notifications"
-        type="button"
-      >
-        <FaTimesCircle color="#999" aria-hidden="true" />
-      </button>
-    </div>
-    {notifications.length === 0 ? (
-      <p className="empty-text">No new notifications</p>
-    ) : (
-      <div className="notification-list">
-        {notifications.map((item) => (
-          <div key={item.id} className="notification-item">
-            <FaInfoCircle size={isMobile ? 16 : 18} color="#2623d3ff" className="notification-icon" aria-hidden="true" />
-            <div className="notification-content">
-              <h5>{isMobile && item.title.length > 40 ? `${item.title.substring(0, 40)}...` : item.title}</h5>
-              <p>{isMobile && item.message.length > 60 ? `${item.message.substring(0, 60)}...` : item.message}</p>
-              <span>{item.time}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-    )}
-  </div>
-);
-
 const Events = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
+  const [availableEvents, setAvailableEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState("all");
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(true);
-  const [loadingNotifications, setLoadingNotifications] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
   const user = useMemo(() => {
@@ -203,25 +170,45 @@ const Events = () => {
     fetchAttendeeData();
   }, [user]);
 
-  // Fetch notifications
   useEffect(() => {
-    const fetchNotifications = async () => {
-      setLoadingNotifications(true);
-      if (!user?.id) {
-        setLoadingNotifications(false);
-        return;
-      }
+    const fetchAvailableEvents = async () => {
       try {
-        const res = await api.get(`/notifications?userId=${user.id}`);
-        setNotifications(res.data);
+        const response = await api.get('/events/public?page=1&pageSize=100');
+        const items = Array.isArray(response.data?.data)
+          ? response.data.data
+          : Array.isArray(response.data)
+            ? response.data
+            : [];
+
+        setAvailableEvents(items.filter((event) => new Date(event.startDateTime) > new Date()));
       } catch (err) {
-        //console.error("Error fetching notifications:", err);
-        //toast.error("Failed to load notifications.", { id: 'fetch-notifications-error' });
-      } finally {
-        setLoadingNotifications(false);
+        console.error('Failed to fetch available events:', err);
+        setAvailableEvents([]);
       }
     };
-    fetchNotifications();
+
+    fetchAvailableEvents();
+  }, []);
+
+  // Load notifications from shared admin feed.
+  useEffect(() => {
+    const loadNotifications = () => {
+      try {
+        const stored = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
+        setNotifications(Array.isArray(stored) ? stored : []);
+      } catch {
+        setNotifications([]);
+      }
+    };
+
+    const handleNotificationsUpdated = () => loadNotifications();
+
+    loadNotifications();
+    window.addEventListener('adminNotificationsUpdated', handleNotificationsUpdated);
+
+    return () => {
+      window.removeEventListener('adminNotificationsUpdated', handleNotificationsUpdated);
+    };
   }, [user]);
 
   // Apply filters to events
@@ -239,7 +226,7 @@ const Events = () => {
     if (existingRating) {
       toast.info("You have already rated this event.");
     } else {
-      navigate("/attendee/rate-events", { state: { eventData: eventData } });
+      navigate("/attendee/ratings", { state: { eventData: eventData } });
     }
   }, [navigate]);
 
@@ -249,10 +236,6 @@ const Events = () => {
 
   const handleFilterChange = useCallback((filterKey) => {
     setSelectedFilter(filterKey);
-  }, []);
-
-  const toggleNotifications = useCallback(() => {
-    setIsNotificationOpen(prev => !prev);
   }, []);
 
   // Get shortened filter labels for mobile
@@ -271,20 +254,12 @@ const Events = () => {
 
   return (
     <div className="events-container">
-      {isNotificationOpen && (
-        <NotificationDropdown
-          notifications={notifications}
-          onClose={() => setIsNotificationOpen(false)}
-          isMobile={isMobile}
-        />
-      )}
-
       <div className="header-row">
         <h1>My Events</h1>
         <button
           className="notification-btn"
-          onClick={toggleNotifications}
-          aria-label={isNotificationOpen ? "Close notifications" : "Open notifications"}
+          onClick={() => navigate("/attendee/notifications")}
+          aria-label="Open notifications page"
           type="button"
         >
           <FaBell size={isMobile ? 18 : 20} aria-hidden="true" />
@@ -338,6 +313,41 @@ const Events = () => {
           ))
         )}
       </div>
+
+      <section style={{ marginTop: '1.2rem', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.8rem' }}>
+          <h3 style={{ margin: 0, color: '#1f2937' }}>Available Events</h3>
+          <button
+            type="button"
+            onClick={() => navigate('/attendee/discover')}
+            style={{ border: 'none', background: 'transparent', color: '#2563eb', cursor: 'pointer', fontWeight: 600 }}
+          >
+            View all
+          </button>
+        </div>
+
+        {availableEvents.length === 0 ? (
+          <p style={{ margin: 0, color: '#6b7280' }}>No approved events available yet.</p>
+        ) : (
+          <div>
+            {availableEvents.slice(0, 5).map((event) => (
+              <div key={event.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0', borderTop: '1px solid #f3f4f6' }}>
+                <div>
+                  <p style={{ margin: 0, fontWeight: 600 }}>{event.name}</p>
+                  <small style={{ color: '#6b7280' }}>{new Date(event.startDateTime).toLocaleString()}</small>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => navigate(`/attendee/register/${event.id}`, { state: { eventData: event } })}
+                  style={{ border: '1px solid #0284c7', background: '#eff8ff', color: '#0369a1', borderRadius: '8px', padding: '0.35rem 0.55rem', cursor: 'pointer' }}
+                >
+                  Register
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

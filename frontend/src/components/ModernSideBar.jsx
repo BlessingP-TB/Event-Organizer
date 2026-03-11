@@ -1,11 +1,12 @@
 // src/components/ModernSidebar.jsx
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { NavLink } from "react-router-dom";
-import { Bell } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { Bell, CircleHelp, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import api from "../utils/api";
 import "../styles/components/_modernSidebar.scss";
+import NotificationModal from './NotificationModal';
 
 const ORGANIZER_EVENT_NOTE_PREFIX = "organizer-event";
 
@@ -24,225 +25,98 @@ const toTimestamp = (value) => {
 };
 
 const ModernSidebar = ({ role, links, storageKey }) => {
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
-  const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const popupRef = useRef(null);
-  const dismissedOrganizerNoteIdsKey = `${storageKey}:dismissed`;
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showNotifModal, setShowNotifModal] = useState(false);
+  const [activeNote, setActiveNote] = useState(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const roleBasePath = role === "ATTENDEE" ? "/attendee" : role === "ORGANIZER" ? "/organizer" : "/admin";
 
-  const readStoredNotifications = useCallback(() => {
-    return safeParseArray(localStorage.getItem(storageKey));
-  }, [storageKey]);
-
-  const readDismissedOrganizerNoteIds = useCallback(() => {
-    return new Set(safeParseArray(localStorage.getItem(dismissedOrganizerNoteIdsKey)));
-  }, [dismissedOrganizerNoteIdsKey]);
-
-  const persistNotifications = useCallback(
-    (nextNotifications) => {
-      setNotifications(nextNotifications);
-      localStorage.setItem(storageKey, JSON.stringify(nextNotifications));
-    },
-    [storageKey]
-  );
-
-  const buildOrganizerNotificationsFromEvents = useCallback((events) => {
-    return events.flatMap((event) => {
-      const latestApproval =
-        Array.isArray(event.approvals) && event.approvals.length > 0
-          ? event.approvals[0]
-          : null;
-      const latestApprovalStatus = latestApproval?.status;
-      const eventName = event?.name || "Untitled Event";
-      const baseTimestamp =
-        latestApproval?.updatedAt ||
-        latestApproval?.createdAt ||
-        event?.updatedAt ||
-        event?.createdAt ||
-        new Date().toISOString();
-
-      if (event.status === "CANCELLED") {
-        return [
-          {
-            id: `${ORGANIZER_EVENT_NOTE_PREFIX}-${event.id}-cancelled`,
-            title: "Event Cancelled",
-            message: `Your event "${eventName}" has been cancelled.`,
-            timestamp: baseTimestamp,
-            read: false,
-          },
-        ];
-      }
-
-      if (event.status === "DRAFT" && latestApprovalStatus === "PENDING") {
-        return [
-          {
-            id: `${ORGANIZER_EVENT_NOTE_PREFIX}-${event.id}-pending`,
-            title: "Waiting For Approval",
-            message: `Your event "${eventName}" is waiting for admin approval.`,
-            timestamp: baseTimestamp,
-            read: false,
-          },
-        ];
-      }
-
-      if (
-        latestApprovalStatus === "APPROVED" ||
-        event.status === "PUBLISHED" ||
-        event.status === "ONGOING" ||
-        event.status === "COMPLETED"
-      ) {
-        return [
-          {
-            id: `${ORGANIZER_EVENT_NOTE_PREFIX}-${event.id}-approved`,
-            title: "Event Approved",
-            message: `Your event "${eventName}" has been approved by admin.`,
-            timestamp: baseTimestamp,
-            read: false,
-          },
-        ];
-      }
-
-      return [];
-    });
-  }, []);
-
-  const syncOrganizerNotifications = useCallback(async () => {
-    if (role !== "ORGANIZER") return;
-
-    try {
-      const allOrganizerEvents = [];
-      let page = 1;
-      let hasNextPage = true;
-
-      while (hasNextPage) {
-        const response = await api.get("/events/organizer", {
-          params: { page, pageSize: 100 },
-        });
-
-        const pageEvents = Array.isArray(response.data?.data)
-          ? response.data.data
-          : [];
-
-        allOrganizerEvents.push(...pageEvents);
-        hasNextPage = Boolean(response.data?.meta?.hasNextPage);
-        page += 1;
-
-        if (pageEvents.length === 0) break;
-      }
-
-      const existingNotifications = readStoredNotifications();
-      const dismissedOrganizerIds = readDismissedOrganizerNoteIds();
-      const generatedOrganizerNotifications = buildOrganizerNotificationsFromEvents(
-        allOrganizerEvents
-      ).filter((note) => !dismissedOrganizerIds.has(note.id));
-
-      const existingById = new Map(
-        existingNotifications.map((note) => [String(note.id), note])
-      );
-
-      const organizerNotificationsWithReadState = generatedOrganizerNotifications.map(
-        (note) => {
-          const existingNote = existingById.get(String(note.id));
-          return existingNote ? { ...note, read: Boolean(existingNote.read) } : note;
-        }
-      );
-
-      const nonOrganizerGeneratedNotifications = existingNotifications.filter(
-        (note) =>
-          !(
-            typeof note?.id === "string" &&
-            note.id.startsWith(`${ORGANIZER_EVENT_NOTE_PREFIX}-`)
-          )
-      );
-
-      const mergedNotifications = [
-        ...organizerNotificationsWithReadState,
-        ...nonOrganizerGeneratedNotifications,
-      ].sort((a, b) => toTimestamp(b.timestamp) - toTimestamp(a.timestamp));
-
-      persistNotifications(mergedNotifications);
-      window.dispatchEvent(new Event(`${storageKey}Updated`));
-    } catch (error) {
-      console.error("Failed to sync organizer notifications:", error);
-    }
-  }, [
-    role,
-    buildOrganizerNotificationsFromEvents,
-    persistNotifications,
-    readDismissedOrganizerNoteIds,
-    readStoredNotifications,
-    storageKey,
-  ]);
+  const helpPath = role === "ATTENDEE" ? "/attendee/help-support" : null;
 
   /* ---------------- Load Notifications ---------------- */
   useEffect(() => {
-    const stored = readStoredNotifications();
-    setNotifications(stored);
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setNotifications([]);
+      return;
+    }
+
+    const loadNotifications = async () => {
+      try {
+        const response = await api.get('/notifications');
+        setNotifications(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        setNotifications([]);
+      }
+    };
+
+    loadNotifications();
 
     const handleUpdate = () => {
-      const updated = readStoredNotifications();
-      setNotifications(updated);
+      loadNotifications();
     };
 
-    window.addEventListener(`${storageKey}Updated`, handleUpdate);
-    return () => window.removeEventListener(`${storageKey}Updated`, handleUpdate);
-  }, [readStoredNotifications, storageKey]);
+    window.addEventListener('notificationsUpdated', handleUpdate);
+    return () => window.removeEventListener('notificationsUpdated', handleUpdate);
+  }, [storageKey]);
 
-  useEffect(() => {
-    if (role !== "ORGANIZER") return;
-
-    const refreshNotifications = () => {
-      void syncOrganizerNotifications();
-    };
-
-    refreshNotifications();
-
-    const refreshIntervalId = window.setInterval(refreshNotifications, 60000);
-    window.addEventListener("focus", refreshNotifications);
-    window.addEventListener("organizerEventsUpdated", refreshNotifications);
-
-    return () => {
-      window.clearInterval(refreshIntervalId);
-      window.removeEventListener("focus", refreshNotifications);
-      window.removeEventListener("organizerEventsUpdated", refreshNotifications);
-    };
-  }, [role, syncOrganizerNotifications]);
-
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = parseInt(localStorage.getItem(`${storageKey}:unreadCount`) || String(notifications.filter((n) => !n.read).length), 10);
 
   /* ---------------- Toggle Sidebar ---------------- */
   const toggleMobile = () => setIsMobileOpen((prev) => !prev);
 
-  /* ---------------- Toggle Notifications ---------------- */
-  const toggleNotifications = () => {
-    setShowNotifications((prev) => !prev);
-
-    // Auto-mark all notifications as read
-    const updated = notifications.map((n) => ({ ...n, read: true }));
-    persistNotifications(updated);
-    window.dispatchEvent(new Event(`${storageKey}Updated`));
+  const handleLogout = () => {
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("user");
+    localStorage.removeItem("userProfileImage");
+    navigate("/login");
   };
 
-  const handleDismiss = (id) => {
-    const c = window.confirm("Dismiss this notification?");
-    if (!c) return;
-
-    if (
-      role === "ORGANIZER" &&
-      typeof id === "string" &&
-      id.startsWith(`${ORGANIZER_EVENT_NOTE_PREFIX}-`)
-    ) {
-      const dismissedIds = readDismissedOrganizerNoteIds();
-      dismissedIds.add(id);
-      localStorage.setItem(
-        dismissedOrganizerNoteIdsKey,
-        JSON.stringify(Array.from(dismissedIds))
-      );
+  const handleOpen = async (note) => {
+    try {
+      // mark as read on the server
+      await api.patch(`/notifications/${note.id}/read`);
+    } catch (err) {
+      console.warn('Failed to mark notification read on server', err);
     }
 
-    const updated = notifications.filter((n) => n.id !== id);
-    persistNotifications(updated);
-    window.dispatchEvent(new Event(`${storageKey}Updated`));
+    // re-fetch notifications from server (poller will also update soon)
+    try {
+      const res = await api.get('/notifications');
+      const serverNotes = res.data?.data || [];
+      setNotifications(serverNotes);
+      localStorage.setItem(storageKey, JSON.stringify(serverNotes));
+      window.dispatchEvent(new Event(`${storageKey}Updated`));
+    } catch (err) {
+      // fallback: mark locally
+      const updated = notifications.map((n) => (n.id === note.id ? { ...n, read: true } : n));
+      setNotifications(updated);
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+    }
+
+    // Navigate to the Notifications page so user sees the full list
+    setShowNotifications(false);
+    const basePath = role === 'ADMIN' ? '/admin' : role === 'ORGANIZER' ? '/organizer' : '/attendee';
+    navigate(`${basePath}/notifications`);
+  };
+
+  const closeNotifModal = () => {
+    setShowNotifModal(false);
+    setActiveNote(null);
+  };
+
+  const goToEventFromNotif = (note) => {
+    const eventId = note.data?.eventId;
+    if (eventId) {
+      if (role === 'ADMIN') navigate(`/admin/details/${eventId}`);
+      else if (role === 'ORGANIZER') navigate(`/organizer/event/${eventId}`);
+      else navigate(`/attendee/view-event/${eventId}`);
+      setShowNotifications(false);
+      closeNotifModal();
+    }
   };
 
   return (
@@ -296,53 +170,76 @@ const ModernSidebar = ({ role, links, storageKey }) => {
           ))}
 
           {/* Notifications */}
-          <div
-            className={`menu-item notification ${
-              unreadCount > 0 ? "notif-glow" : ""
-            }`}
-            onClick={toggleNotifications}
-            ref={popupRef}
+          <NavLink
+            to={`${roleBasePath}/notifications`}
+            className={({ isActive }) =>
+              `menu-item sidebar-link notification ${isActive ? "active" : ""} ${
+                unreadCount > 0 ? "notif-glow" : ""
+              }`
+            }
           >
             <Bell size={20} />
             <span>Notifications</span>
             {unreadCount > 0 && <span className="badge">{unreadCount}</span>}
+          </NavLink>
 
-            {showNotifications && (
-              <div className="notification-popup">
-                {notifications.length > 0 ? (
-                  <ul>
-                    {notifications.map((note) => (
-                      <li
-                        key={note.id}
-                        className={note.read ? "read" : "unread"}
-                      >
-                        <strong>{note.title}</strong>
-                        <p>{note.message}</p>
-                        <small>{note.timestamp || "Just now"}</small>
-                        <button onClick={() => handleDismiss(note.id)}>
-                          ×
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <p className="empty">No new notifications</p>
-                )}
-              </div>
+          <div className="menu-bottom">
+            {helpPath && (
+              <NavLink
+                to={helpPath}
+                className={({ isActive }) =>
+                  `menu-item sidebar-link ${isActive ? "active" : ""}`
+                }
+              >
+                <CircleHelp size={20} />
+                <span className="text">Help / Support</span>
+              </NavLink>
             )}
+
+            <button className="menu-item logout-item" onClick={() => setShowLogoutModal(true)}>
+              <LogOut size={20} />
+              <span className="text">Logout</span>
+            </button>
           </div>
         </nav>
       </motion.aside>
 
-      {/* ----------- Overlay (close sidebar & popup) ----------- */}
-      {(isMobileOpen || showNotifications) && (
+      {showLogoutModal && (
+        <div className="logout-modal-overlay" onClick={() => setShowLogoutModal(false)}>
+          <div className="logout-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="Confirm logout">
+            <h3>Confirm Logout</h3>
+            <p>Are you sure you want to logout?</p>
+            <div className="logout-modal-actions">
+              <button type="button" className="logout-cancel-btn" onClick={() => setShowLogoutModal(false)}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="logout-confirm-btn"
+                onClick={() => {
+                  setShowLogoutModal(false);
+                  handleLogout();
+                }}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ----------- Overlay (close sidebar) ----------- */}
+      {isMobileOpen && (
         <div
           className="sidebar-overlay"
           onClick={() => {
             setIsMobileOpen(false);
-            setShowNotifications(false);
           }}
         />
+      )}
+      {/* Notification modal shown on top of screen when a notification is clicked */}
+      {showNotifModal && activeNote && (
+        <NotificationModal note={activeNote} onClose={closeNotifModal} onOpenEvent={goToEventFromNotif} />
       )}
     </>
   );

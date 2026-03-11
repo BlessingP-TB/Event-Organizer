@@ -1,0 +1,136 @@
+.help-support-page {
+  padding: 24px;
+  min-height: 100%;
+  background: linear-gradient(180deg, #f7fbff 0%, #eef6ff 100%);
+
+  .help-support-header {
+    margin-bottom: 20px;
+
+    h1 {
+      font-size: 1.9rem;
+      margin-bottom: 8px;
+      color: #0f2d5c;
+    }
+
+    p {
+      color: #355070;
+      font-size: 1rem;
+      margin: 0;
+    }
+  }
+
+  .help-support-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+  }
+
+  .help-card {
+    background: #ffffff;
+    border: 1px solid #d9e8ff;
+    border-radius: 14px;
+    padding: 18px;
+    box-shadow: 0 8px 24px rgba(31, 64, 104, 0.08);
+
+    .help-icon {
+      color: #1d5fbf;
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+    }
+
+    h2 {
+      margin: 0 0 8px;
+      color: #163f75;
+      font-size: 1.2rem;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: #445b78;
+      line-height: 1.45;
+    }
+
+    &.compact {
+      max-width: 760px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .help-btn {
+      display: inline-block;
+      text-decoration: none;
+      background: #1d5fbf;
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-weight: 600;
+
+      &.danger {
+        background: #b42318;
+      }
+    }
+
+    .support-form {
+      display: grid;
+      gap: 10px;
+
+      label {
+        font-weight: 600;
+        color: #27496f;
+      }
+
+      input,
+      select,
+      textarea {
+        border: 1px solid #c7d9f3;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font: inherit;
+        color: #1e3550;
+        background: #fff;
+      }
+
+      textarea {
+        resize: vertical;
+      }
+
+      .help-btn {
+        width: fit-content;
+      }
+    }
+  }
+
+  .help-footer-note {
+    margin-top: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: #e8f1ff;
+    color: #224b83;
+    border-radius: 999px;
+    padding: 9px 14px;
+    font-size: 0.95rem;
+  }
+
+  .back-btn {
+    display: block;
+    margin-top: 20px;
+    border: none;
+    border-radius: 10px;
+    padding: 10px 14px;
+    background: #0f2d5c;
+    color: #fff;
+    font-weight: 600;
+    cursor: pointer;
+  }
+}
+
+@media (max-width: 860px) {
+  .help-support-page {
+    padding: 16px;
+
+    .help-support-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

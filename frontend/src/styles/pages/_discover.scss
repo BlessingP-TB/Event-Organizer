@@ -47,6 +47,43 @@
       color: #999;
     }
   }
+
+  .support-cta {
+    margin: 14px auto 0;
+    max-width: 680px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid #d7e7ff;
+    background: linear-gradient(90deg, #f4f9ff 0%, #edf5ff 100%);
+    text-align: left;
+
+    h3 {
+      margin: 0;
+      color: #134a8e;
+      font-size: 1rem;
+    }
+
+    p {
+      margin: 4px 0 0;
+      color: #4b6079;
+      font-size: 0.9rem;
+    }
+
+    .support-cta-btn {
+      border: none;
+      background: #0f5ec7;
+      color: #fff;
+      border-radius: 9px;
+      padding: 8px 12px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+  }
 }
 
 /* ---------------------------
@@ -267,6 +304,19 @@
 @media (min-width: 768px) {
   .events-list {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .discover-header {
+    .support-cta {
+      flex-direction: column;
+      align-items: flex-start;
+
+      .support-cta-btn {
+        width: 100%;
+      }
+    }
   }
 }
 

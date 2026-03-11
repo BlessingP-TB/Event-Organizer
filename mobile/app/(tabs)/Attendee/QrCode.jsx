@@ -4,7 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { getAttendeeRegistrations, getAttendeeTickets } from "../../data/Organiser/myEvents";
+import { getAttendeeRegistrations, getAttendeeTickets } from "../../../data/Organiser/myEvents";
 
 // Helper to generate QR URL
 const getQrCodeImageUrl = (qrCodeData) => {

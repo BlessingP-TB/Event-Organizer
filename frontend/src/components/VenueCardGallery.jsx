@@ -5,49 +5,6 @@ import { MdImage } from "react-icons/md";
 import api from "../utils/api";
 import "../styles/pages/_createEvent.scss";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
-const BACKEND_ORIGIN = API_BASE.replace(/\/api\/v\d+\/?$/i, '');
-
-const resolveVenueImageUrl = (rawUrl) => {
-  const value = String(rawUrl || '').trim();
-  if (!value) return '';
-
-  let normalized = value.replace('/api/v1/uploads/', '/uploads/');
-
-  if (normalized.startsWith('/uploads/')) {
-    normalized = `${BACKEND_ORIGIN}${normalized}`;
-  }
-
-  return encodeURI(normalized);
-};
-
-const normalizeImageUrls = (value) => {
-  if (Array.isArray(value)) {
-    return value.filter(Boolean).map((url) => resolveVenueImageUrl(url)).filter(Boolean);
-  }
-
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) return [];
-
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) {
-        return parsed.filter(Boolean).map((url) => resolveVenueImageUrl(url)).filter(Boolean);
-      }
-      if (typeof parsed === "string") {
-        return [resolveVenueImageUrl(parsed.trim())].filter(Boolean);
-      }
-    } catch {
-      // not JSON - treat as plain URL string
-    }
-
-    return [resolveVenueImageUrl(trimmed)].filter(Boolean);
-  }
-
-  return [];
-};
-
 export default function VenueCardGallery({
   selectedVenue,
   setSelectedVenue,
@@ -60,28 +17,18 @@ export default function VenueCardGallery({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const resolveVenueId = (venue) => venue?.id || venue?.venueId || venue?._id || '';
+  const selectedVenueId = resolveVenueId(selectedVenue);
+
   const fetchVenues = async () => {
     try {
       setLoading(true);
-      setError("");
       const response = await api.get("/venues");
-      const payload = response?.data;
-      const candidates = [
-        payload,
-        payload?.data,
-        payload?.items,
-        payload?.results,
-        payload?.data?.data,
-        payload?.data?.items,
-        payload?.results?.data,
-      ];
-      const venuesArray = candidates.find(Array.isArray) || [];
-      setVenues(
-        venuesArray.map((venue) => ({
-          ...venue,
-          imageUrls: normalizeImageUrls(venue.imageUrls),
-        }))
-      );
+      // Handle both array response and paginated response
+      const venuesArray = Array.isArray(response.data)
+        ? response.data
+        : response.data.data || [];
+      setVenues(venuesArray);
       setLoading(false);
     } catch (err) {
       console.error("Failed to fetch venues:", err);
@@ -129,6 +76,8 @@ export default function VenueCardGallery({
         <h2 className="section-title">Venue Selection</h2>
       </div>
 
+      {/* venue select removed - users pick via cards */}
+
       <div className="venue-card-grid">
         {filteredVenues.length === 0 ? (
           <p className="no-venues">
@@ -137,10 +86,12 @@ export default function VenueCardGallery({
               : "No venues available right now."}
           </p>
         ) : (
-          filteredVenues.map((venue) => (
+          filteredVenues.map((venue) => {
+            const venueId = resolveVenueId(venue);
+            return (
             <div
-              key={venue.id} // ✅ Use venue.id instead of index
-              className={`venue-card ${selectedVenue?.id === venue.id ? "selected" : ""}`}
+              key={venueId || venue.name}
+              className={`venue-card ${selectedVenueId === venueId ? "selected" : ""}`}
               onClick={() => {
                 setSelectedVenue(venue);
                 if (typeof setFormData === "function") {
@@ -156,7 +107,6 @@ export default function VenueCardGallery({
                     alt={venue.name} 
                     onError={(e) => {
                       e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
                     }}
                   />
                 ) : (
@@ -178,7 +128,8 @@ export default function VenueCardGallery({
                 <p className="venue-capacity">Capacity: {venue.capacity || "—"}</p>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </section>

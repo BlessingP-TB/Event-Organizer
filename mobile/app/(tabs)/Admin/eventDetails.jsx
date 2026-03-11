@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 // NOTE: Make sure this path is correct based on where you moved your data files (e.g., if you moved them to 'src/')
-import { getEvents, updateEvent } from "../../data/Organiser/myEvents";
+import { getEvents, updateEvent } from "../../../data/Organiser/myEvents";
 
 const defaultImg = require("@/assets/images/TUT-Logo1.jpg");
 

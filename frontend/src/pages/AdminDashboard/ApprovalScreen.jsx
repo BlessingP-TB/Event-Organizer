@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { toast } from 'react-hot-toast';
 import "../../styles/pages/_approvalqueue.scss";
 import { FaCalendarAlt, FaTag } from "react-icons/fa";
 import { FiSearch } from "react-icons/fi";
@@ -31,7 +32,7 @@ export default function ApprovalScreen() {
   const token = localStorage.getItem("accessToken");
 
   /** Fetch Approvals List **/
-  const fetchApprovals = async () => {
+  const fetchApprovals = async (statusFilter = null) => {
     if (!token) {
       setLoading(false);
       window.location.href = "/login";
@@ -39,7 +40,7 @@ export default function ApprovalScreen() {
     }
 
     try {
-      const res = await fetch(`${API_BASE}/admin/approvals?page=1&pageSize=100&status=ALL`, {
+      const res = await fetch(`${API_BASE}/approvals?page=1&pageSize=100&status=ALL`, {
         headers: {
           Authorization: `Bearer ${token}`,
           "Cache-Control": "no-cache",
@@ -93,14 +94,14 @@ export default function ApprovalScreen() {
 
       // 🔁 Fetch extra event data in parallel
       await fetchExtraEventDetails(normalized);
-    } catch (err) {
+      } catch (err) {
       console.error("Failed to load approvals:", err);
       if (err.message?.includes("401") || err.message?.includes("403")) {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("user");
         window.location.href = "/login";
       } else {
-        alert("Failed to load approvals. Check console.");
+        toast.error("Failed to load approvals. Check console.");
       }
     } finally {
       setLoading(false);
@@ -154,15 +155,12 @@ export default function ApprovalScreen() {
   };
 
   useEffect(() => {
-    fetchApprovals();
+    fetchApprovals(selectedTab);
   }, []);
 
   /** Filter Approvals **/
   useEffect(() => {
     let filtered = [...approvals];
-    if (selectedTab !== "All") {
-      filtered = filtered.filter(item => item.status === selectedTab);
-    }
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
       filtered = filtered.filter(
@@ -175,6 +173,11 @@ export default function ApprovalScreen() {
     }
     setFilteredApprovals(filtered);
   }, [approvals, selectedTab, searchTerm]);
+
+  // refetch when tab changes
+  useEffect(() => {
+    fetchApprovals(selectedTab);
+  }, [selectedTab]);
 
   const getStatusColor = (status) => {
     switch (status) {
@@ -256,16 +259,46 @@ export default function ApprovalScreen() {
               <div className="action-buttons">
                 <button
                   className="view-btn"
-                  onClick={() => {
+                    onClick={() => {
                     if (item.eventId) {
                       navigate(`/admin/details/${item.eventId}`);
                     } else {
-                      alert("Event ID not available for this approval.");
+                      toast.error("Event ID not available for this approval.");
                     }
                   }}
                 >
                   View Details
                 </button>
+                {item.status === 'REJECTED' && (
+                  <button
+                    className="approve-btn"
+                    onClick={async () => {
+                      const ok = window.confirm('Approve this previously rejected event and publish it?');
+                      if (!ok) return;
+                      try {
+                        const res = await fetch(`${API_BASE}/approvals/${item.id}`, {
+                          method: 'PATCH',
+                          headers: {
+                            Authorization: `Bearer ${token}`,
+                            'Content-Type': 'application/json',
+                          },
+                          body: JSON.stringify({ status: 'APPROVED', notes: 'Re-approved by admin via UI' }),
+                        });
+                        if (!res.ok) {
+                          const e = await res.json().catch(() => ({}));
+                          throw new Error(e.message || `HTTP ${res.status}`);
+                        }
+                        toast.success('Event approved and published.');
+                        await fetchApprovals();
+                      } catch (err) {
+                        console.error('Failed to approve:', err);
+                        toast.error('Failed to approve event. See console.');
+                      }
+                    }}
+                  >
+                    Approve
+                  </button>
+                )}
               </div>
             </div>
           ))

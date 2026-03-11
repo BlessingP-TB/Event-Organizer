@@ -60,35 +60,33 @@ const Discover = () => {
       setError(null);
 
       try {
-        const collectedEvents = [];
-        let page = 1;
-        let hasNextPage = true;
-
-        while (hasNextPage) {
-          const response = await api.get("/events/public", {
-            params: { page, pageSize: 100 },
-            headers: { "Cache-Control": "no-cache" },
-          });
-
-          const pageEvents = Array.isArray(response.data?.data)
-            ? response.data.data
+        // Add cache control header to the API request
+        const response = await api.get('events/public?page=1&pageSize=100', {
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        console.log(response.data);
+        const sourceEvents = Array.isArray(response.data?.data)
+          ? response.data.data
+          : Array.isArray(response.data)
+            ? response.data
             : [];
 
-          collectedEvents.push(...pageEvents);
+        const apiEvents = sourceEvents.map((event) => ({
+          id: event.id,
+          title: event.name,
+          date: event.startDateTime,
+          location: event.venue?.location || "TUT Polokwane Campus",
+          image: event.Theme?.imageUrl ||
+            "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80",
+          tags: [event.Theme?.name || "Event"],
+          backendStatus: event.status,
+          registrationStatus: event.registrationStatus ?? null,
+          frontendStatus: getFrontendStatus(event.status, event.registrationStatus),
+        }));
 
-          hasNextPage = Boolean(response.data?.meta?.hasNextPage);
-          page += 1;
-
-          if (pageEvents.length === 0) {
-            break;
-          }
-        }
-
-        const normalizedEvents = collectedEvents
-          .map(normalizeEvent)
-          .sort((a, b) => new Date(a.date) - new Date(b.date));
-
-        setEvents(normalizedEvents);
+        setEvents(apiEvents);
       } catch (error) {
         console.error("Failed to fetch events:", error);
         setError("Could not load discover events. Please try again.");
@@ -189,6 +187,20 @@ const Discover = () => {
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
+
+        <div className="support-cta" role="region" aria-label="Help and support">
+          <div>
+            <h3>Help / Support</h3>
+            <p>Contact organizers or report issues.</p>
+          </div>
+          <button
+            type="button"
+            className="support-cta-btn"
+            onClick={() => navigate('/attendee/help-support')}
+          >
+            Open Support
+          </button>
+        </div>
       </div>
 
       {/* Status Filter Buttons */}

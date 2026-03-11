@@ -17,7 +17,7 @@ import {
   TextInput,
   View
 } from "react-native";
-import { updateEventAPI } from "../../data/Organiser/myEvents";
+import { updateEventAPI } from "../../../data/Organiser/myEvents";
 
 // 1. IMPORTING ONLY ONE IMAGE
 const singleImage = require('@/assets/images/one.jpg');

@@ -6,49 +6,6 @@ import { MdAddCircle, MdImage, MdDelete, MdEdit } from "react-icons/md";
 import { Carousel } from "react-responsive-carousel";
 import "react-responsive-carousel/lib/styles/carousel.min.css";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
-const BACKEND_ORIGIN = API_BASE.replace(/\/api\/v\d+\/?$/i, '');
-
-const resolveVenueImageUrl = (rawUrl) => {
-  const value = String(rawUrl || '').trim();
-  if (!value) return '';
-
-  let normalized = value.replace('/api/v1/uploads/', '/uploads/');
-
-  if (normalized.startsWith('/uploads/')) {
-    normalized = `${BACKEND_ORIGIN}${normalized}`;
-  }
-
-  return encodeURI(normalized);
-};
-
-const normalizeImageUrls = (value) => {
-  if (Array.isArray(value)) {
-    return value.filter(Boolean).map((url) => resolveVenueImageUrl(url)).filter(Boolean);
-  }
-
-  if (typeof value === "string") {
-    const trimmed = value.trim();
-    if (!trimmed) return [];
-
-    try {
-      const parsed = JSON.parse(trimmed);
-      if (Array.isArray(parsed)) {
-        return parsed.filter(Boolean).map((url) => resolveVenueImageUrl(url)).filter(Boolean);
-      }
-      if (typeof parsed === "string") {
-        return [resolveVenueImageUrl(parsed.trim())].filter(Boolean);
-      }
-    } catch {
-      // not JSON - treat as plain URL string
-    }
-
-    return [resolveVenueImageUrl(trimmed)].filter(Boolean);
-  }
-
-  return [];
-};
-
 export default function AvailableVenues() {
   const [venues, setVenues] = useState([]);
   const [venueData, setVenueData] = useState({
@@ -91,7 +48,7 @@ export default function AvailableVenues() {
           type: v.type || "HALL",
           typeOther: v.typeOther || "",
           rateType: v.rateType || "PER_DAY",
-          imageUrls: normalizeImageUrls(v.imageUrls),
+          imageUrls: v.imageUrls || [],
         }));
 
       setVenues(normalized);
@@ -195,7 +152,14 @@ export default function AvailableVenues() {
       }
 
       setModalVisible(false);
+      // Refresh local admin list
       fetchVenues();
+      // Notify other tabs (organiser UI) that venues changed
+      try {
+        localStorage.setItem('venues_updated', String(Date.now()));
+      } catch (e) {
+        console.warn('Failed to set venues_updated flag in localStorage', e);
+      }
     } catch (err) {
       console.error("Save error:", err);
       const apiMessage = err?.response?.data?.message;
@@ -216,6 +180,11 @@ export default function AvailableVenues() {
     try {
       await api.delete(`/admin/venues/${id}`);
       fetchVenues();
+      try {
+        localStorage.setItem('venues_updated', String(Date.now()));
+      } catch (e) {
+        console.warn('Failed to set venues_updated flag in localStorage', e);
+      }
     } catch (err) {
       console.error("Delete error:", err);
       alert("Failed to delete venue");
