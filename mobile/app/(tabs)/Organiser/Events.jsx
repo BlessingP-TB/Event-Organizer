@@ -5,7 +5,7 @@ import { useFocusEffect } from '@react-navigation/native'; // Import useFocusEff
 import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { getOrganiserEvents } from '../../data/Organiser/myEvents';
+import { getOrganiserEvents } from '../../../data/Organiser/myEvents';
 
 const filters = [
   { label: "All", key: "all" },

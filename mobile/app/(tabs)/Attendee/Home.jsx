@@ -7,7 +7,7 @@
 // import { useEffect, useState } from "react";
 // import { FlatList, Image, Linking, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 // import { TextInput } from "react-native-gesture-handler";
-// import { useEvents } from '../../hooks/Attendee/useEvents';
+// import { useEvents } from '../../../hooks/Attendee/useEvents';
 
 
 
@@ -590,7 +590,7 @@ import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { FlatList, Image, Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { TextInput } from "react-native-gesture-handler";
-import { useEvents } from '../../hooks/Attendee/useEvents';
+import { useEvents } from '../../../hooks/Attendee/useEvents';
 
 // 1. IMPORT YOUR STATIC IMAGE HERE
 // Make sure the file exists in your assets folder

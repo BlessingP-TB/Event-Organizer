@@ -22,6 +22,7 @@ const Dashboard = () => {
     registrationsLast30Days: 0,
     todayEvents: []
   });
+  const [publicEvents, setPublicEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
@@ -52,18 +53,32 @@ const Dashboard = () => {
     }
   }, []);
 
+  const fetchPublicEvents = useCallback(async () => {
+    try {
+      const response = await api.get('/events/public?page=1&pageSize=100');
+      const items = Array.isArray(response.data?.data)
+        ? response.data.data
+        : Array.isArray(response.data)
+          ? response.data
+          : [];
+
+      const upcoming = items
+        .filter((event) => new Date(event.startDateTime) > new Date())
+        .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+
+      setPublicEvents(upcoming);
+    } catch (err) {
+      console.error('Failed to fetch public events for dashboard:', err);
+      setPublicEvents([]);
+    }
+  }, []);
+
   useEffect(() => {
     fetchStats();
-  }, [fetchStats]);
+    fetchPublicEvents();
+  }, [fetchStats, fetchPublicEvents]);
 
   const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6366F1'];
-
-  const formatDate = (dateString) => {
-    if (!dateString) return 'TBA';
-    return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute:'2-digit'
-    });
-  };
 
   const Card = ({ title, children, className, actionText, onAction }) => (
     <div className={`dashboard-card ${className || ''}`} style={{ 
@@ -92,7 +107,7 @@ const Dashboard = () => {
   return (
     <div className="dashboard-container" style={{ padding: '2rem', background: '#f9fafb', minHeight: '100vh', fontFamily: "'Inter', sans-serif" }}>
       <DashboardHeader 
-        title={`Welcome back, ${user?.firstName || 'Attendee'}!`} 
+        title={`Welcome, ${user?.firstName || user?.name || 'Attendee'}!`} 
         subtitle="Dashboard Overview"
       />
 
@@ -106,66 +121,6 @@ const Dashboard = () => {
 
       {/* Row 2: Main Content */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        
-        {/* Next Upcoming Events List */}
-        <Card title="Next Upcoming Events" actionText="View All" onAction={() => navigate('/attendee/my-events')}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {stats.nextUpcomingEvents.length > 0 ? (
-                    stats.nextUpcomingEvents.map(event => (
-                        <div 
-                            key={event.id} 
-                            onClick={() => navigate(`/attendee/view-event/${event.id}`)}
-                            style={{ 
-                                padding: '1rem', 
-                                background: '#ffffff', 
-                                borderRadius: '12px', 
-                                border: '1px solid #f3f4f6',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '1rem',
-                                boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => {
-                                e.currentTarget.style.transform = 'translateY(-2px)';
-                                e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
-                            }}
-                            onMouseLeave={(e) => {
-                                e.currentTarget.style.transform = 'translateY(0)';
-                                e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.03)';
-                            }}
-                        >
-                             <div style={{
-                                width: '45px',
-                                height: '45px',
-                                background: '#eff6ff',
-                                borderRadius: '10px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                color: '#3b82f6',
-                                fontSize: '1.2rem'
-                            }}>
-                                <i className="fas fa-calendar-day"></i>
-                            </div>
-                            <div style={{ flex: 1 }}>
-                                <p style={{ margin: '0 0 0.25rem 0', fontWeight: '600', color: '#1f2937', fontSize: '0.95rem' }}>{event.name}</p>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', color: '#6b7280' }}>
-                                    <i className="far fa-clock"></i>
-                                    <span>{formatDate(event.date)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                ) : (
-                    <div style={{ textAlign: 'center', padding: '2rem', color: '#9ca3af' }}>
-                        <i className="far fa-calendar-times" style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.5 }}></i>
-                        <p style={{ margin: 0, fontStyle: 'italic' }}>No upcoming events.</p>
-                    </div>
-                )}
-            </div>
-        </Card>
 
         {/* Ticket Status Summary */}
         <Card title="Ticket Status Summary">
@@ -264,78 +219,54 @@ const Dashboard = () => {
              </div>
         </Card>
 
-        {/* Today Panel */}
-        <Card title="Today">
-            {stats.todayEvents.length > 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                     {stats.todayEvents.map(ev => (
-                         <div 
-                             key={ev.id} 
-                             onClick={() => navigate('/attendee/qr-code', { 
-                                 state: { 
-                                     ticketData: { 
-                                         id: ev.ticketId, 
-                                         eventData: ev, 
-                                         title: ev.name, 
-                                         type: ev.ticket?.type || 'REGULAR', 
-                                         status: 'Registered',
-                                         qrcodeORurl: ev.ticket?.qrcodeORurl
-                                     } 
-                                 } 
-                             })}
-                             style={{ 
-                                 padding: '1rem', 
-                                 background: '#ffffff', 
-                                 borderRadius: '12px', 
-                                 border: '1px solid #f3f4f6', 
-                                 boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-                                 display: 'flex',
-                                 alignItems: 'center',
-                                 gap: '0.75rem',
-                                 cursor: 'pointer',
-                                 transition: 'transform 0.2s ease, box-shadow 0.2s ease'
-                             }}
-                             onMouseEnter={(e) => {
-                                 e.currentTarget.style.transform = 'translateY(-2px)';
-                                 e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.08)';
-                             }}
-                             onMouseLeave={(e) => {
-                                 e.currentTarget.style.transform = 'translateY(0)';
-                                 e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.03)';
-                             }}
-                         >
-                             <div style={{ 
-                                 width: '40px', height: '40px', borderRadius: '10px', background: '#dcfce7', 
-                                 display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#15803d'
-                             }}>
-                                 <i className="fas fa-qrcode" style={{ fontSize: '1.1rem' }}></i>
-                             </div>
-                             <div>
-                                <p style={{ margin: 0, fontWeight: '600', color: '#1f2937', fontSize: '0.95rem' }}>{ev.name}</p>
-                                <p style={{ margin: 0, fontSize: '0.8rem', color: '#15803d', fontWeight: '600' }}>Tap to Check In</p>
-                             </div>
-                         </div>
-                     ))}
-                </div>
-            ) : (
-                <div style={{ textAlign: 'center', padding: '1.5rem', color: '#9ca3af' }}>
-                    <i className="fas fa-mug-hot" style={{ fontSize: '2rem', marginBottom: '0.5rem', opacity: 0.5 }}></i>
-                    <p style={{ margin: 0, fontStyle: 'italic' }}>No events today.</p>
-                </div>
-            )}
-        </Card>
-
       </div>
 
       {/* Quick Actions Footer */}
       <div style={{ marginTop: '2rem' }}>
           <h3 style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem', color: '#374151' }}>Quick Actions</h3>
           <button 
-                onClick={() => navigate('/attendee/events')}
+                onClick={() => navigate('/attendee/my-events')}
                 style={{ padding: '0.75rem 1.5rem', background: '#0284c7', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' }}
           >
               + Browse Events
           </button>
+
+          <div style={{ marginTop: '1rem', background: 'white', borderRadius: '12px', boxShadow: '0 1px 4px rgba(0,0,0,0.1)', padding: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.7rem' }}>
+              <h4 style={{ margin: 0, fontSize: '1rem', color: '#1F2937' }}>Available Events</h4>
+              <button
+                type="button"
+                onClick={() => navigate('/attendee/discover')}
+                style={{ border: 'none', background: 'transparent', color: '#4F46E5', fontWeight: '600', cursor: 'pointer' }}
+              >
+                View all
+              </button>
+            </div>
+
+            {publicEvents.length > 0 ? (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {publicEvents.slice(0, 4).map((event) => (
+                  <li key={event.id} style={{ display: 'flex', justifyContent: 'space-between', gap: '0.75rem', marginBottom: '0.8rem' }}>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: '600', color: '#1F2937' }}>{event.name}</p>
+                      <p style={{ margin: '0.2rem 0 0', fontSize: '0.82rem', color: '#6B7280' }}>
+                        {new Date(event.startDateTime).toLocaleString()}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/attendee/register/${event.id}`, { state: { eventData: event } })}
+                      style={{ border: '1px solid #0284c7', background: '#eff8ff', color: '#0369a1', borderRadius: '8px', padding: '0.35rem 0.55rem', cursor: 'pointer', height: 'fit-content' }}
+                    >
+                      Register
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p style={{ margin: 0, color: '#6B7280' }}>No approved events available yet.</p>
+            )}
+          </div>
       </div>
 
     </div>

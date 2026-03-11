@@ -5,8 +5,8 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { getOrganiserEvents } from '../../data/Organiser/myEvents';
-import { getOrganiserAuthToken, } from '../../hooks/apiClient';
+import { getOrganiserEvents } from '../../../data/Organiser/myEvents';
+import { getOrganiserAuthToken, } from '../../../hooks/apiClient';
 
 // Constant for the only allowed document type
 const DOC_TYPE_INVOICE = 'INVOICE';

@@ -5,7 +5,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useNavigation } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useEvents } from '../../../hooks/Attendee/useEvents';
+import { useEvents } from '../../../../hooks/Attendee/useEvents';
 import { use, useEffect, useState } from "react";
 import { useRouter } from "expo-router";
 

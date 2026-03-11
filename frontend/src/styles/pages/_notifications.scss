@@ -1,96 +1,186 @@
 .notifications-page {
-  max-width: 1000px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  max-width: 960px;
+  width: 100%;
   margin: 0 auto;
-  padding: 24px;
+  overflow-x: hidden;
 }
 
 .notifications-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  align-items: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+
+  h1 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #0b4f78;
+  }
+
+  p {
+    margin: 0.35rem 0 0;
+    color: #506070;
+  }
 }
 
-.notifications-header h1 {
-  margin: 0;
-  font-size: 1.6rem;
+.notifications-actions {
+  display: flex;
+  gap: 0.6rem;
 }
 
-.clear-btn,
-.dismiss-btn {
-  border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
+.notif-action {
+  border: 1px solid #0b4f78;
+  background: #fff;
+  color: #0b4f78;
+  border-radius: 10px;
+  padding: 0.5rem 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  font-weight: 600;
   cursor: pointer;
 }
 
+.notif-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.notif-action.danger {
+  border-color: #b42a2a;
+  color: #b42a2a;
+}
+
 .notifications-empty {
-  border: 1px solid;
+  border: 1px dashed #bfd4e0;
+  background: #f9fcff;
   border-radius: 12px;
-  padding: 22px;
-  text-align: center;
-}
-
-.notification-create {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 16px;
-}
-
-.notification-create input,
-.notification-create textarea,
-.notification-main textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid;
-  border-radius: 8px;
-  font: inherit;
+  padding: 1.2rem;
+  color: #537080;
+  display: inline-flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .notifications-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  flex: 1;
+  display: grid;
+  gap: 0.85rem;
+  align-content: start;
 }
 
 .notification-card {
+  border: 1px solid #d7e5ee;
+  border-radius: 12px;
+  padding: 0.9rem 1rem;
   display: flex;
   justify-content: space-between;
-  gap: 14px;
+  gap: 0.8rem;
   align-items: flex-start;
-  border: 1px solid;
-  border-radius: 12px;
-  padding: 14px;
+  background: #fff;
 }
 
-.notification-main h3 {
-  margin: 0 0 6px;
-  font-size: 1rem;
+.notification-card.unread {
+  border-left: 4px solid #0b4f78;
 }
 
-.notification-main p {
-  margin: 0 0 6px;
+.notification-content {
+  min-width: 0;
+
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: #113249;
+  }
+
+  p {
+    margin: 0.35rem 0 0.3rem;
+    color: #354c5e;
+    line-height: 1.35;
+    word-break: break-word;
+  }
+
+  small {
+    color: #6f8494;
+  }
 }
 
-.notification-main small {
-  opacity: 0.8;
+.dismiss-btn {
+  border: 1px solid #c6d5df;
+  background: #fff;
+  color: #365267;
+  border-radius: 8px;
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-.notification-actions {
+.notification-card-actions {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 100px;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.read-btn {
+  border: 1px solid #8ba9bc;
+  background: #f8fcff;
+  color: #22455e;
+  border-radius: 8px;
+  padding: 0.35rem 0.55rem;
+  cursor: pointer;
+}
+
+.icon-btn {
+  border: 1px solid #c6d5df;
+  background: #fff;
+  border-radius: 8px;
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #365267;
+}
+
+.notif-input,
+.notif-textarea {
+  width: 100%;
+  border: 1px solid #c6d5df;
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  font: inherit;
+  color: #113249;
+}
+
+.notif-input {
+  margin-bottom: 0.4rem;
+}
+
+.notif-textarea {
+  resize: vertical;
+  margin-bottom: 0.35rem;
 }
 
 @media (max-width: 640px) {
-  .notifications-page {
-    padding: 14px;
-  }
-
   .notification-card {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dismiss-btn {
+    width: fit-content;
+  }
+
+  .notification-card-actions {
+    justify-content: flex-start;
   }
 }

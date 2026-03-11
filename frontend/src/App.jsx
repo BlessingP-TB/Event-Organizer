@@ -8,6 +8,8 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import './App.scss';
 import './styles/abstracts/profile.scss';
 
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+
 /* ---------- Lazy Layouts ---------- */
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const AttendeeLayout = lazy(() => import('./layouts/AttendeeLayout'));
@@ -113,7 +115,7 @@ function App() {
             <Route path="event-details-modify/:id" element={<EventDetailsModify />} />
             <Route path="confirm-modified-details" element={<ConfirmModifiedDetails />} />
             <Route path="view-event/:id" element={<ViewEventDetails />} />
-            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications" element={<NotificationsPage />} />
 
           </Route>
 
@@ -136,7 +138,7 @@ function App() {
             <Route path="tools" element={<AdminTools />} />
             <Route path="chat" element={<AdminChat />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications" element={<NotificationsPage />} />
            <Route path="events" element={<AdminEvents />} />
           {/* <Route path="events/:id" element={<AdminEventDetails />} />  */}
 
@@ -161,7 +163,7 @@ function App() {
             <Route path="ratings" element={<AttendeeEventRating />} />
             <Route path="help-support" element={<HelpSupport />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications" element={<NotificationsPage />} />
           </Route>
 
           {/* ---------- 404 ---------- */}

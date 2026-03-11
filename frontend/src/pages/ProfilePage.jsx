@@ -62,15 +62,6 @@ const ProfilePage = () => {
     toast.success("Profile updated successfully!");
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("user");
-    localStorage.removeItem("userProfileImage");
-    setLoggedOut(true);
-    toast.success("Logged out successfully!");
-    setTimeout(() => navigate("/login"), 2000);
-  };
-
   const formatDate = (dateStr) =>
     dateStr
       ? new Date(dateStr).toLocaleString("en-US", {
@@ -133,7 +124,6 @@ const ProfilePage = () => {
           fileInputRef={fileInputRef}
           onImageChange={handleImageChange}
           onProfileUpdate={handleProfileUpdate}
-          onLogout={handleLogout}
           additionalFields={getAdditionalFields()}
         />
       </main>
