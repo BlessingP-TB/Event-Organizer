@@ -22,30 +22,20 @@
 
 ## 3. MyEvents 404 Errors
 
-**File:** `frontend/src/pages/OrganizerDashboard/MyEvents.jsx`  
 **Problem:** Three API calls used raw `axios` with hardcoded `http://localhost:3000/...` URLs missing the `/api/v1` prefix.  
 **Fix:** Replaced `axios` with the shared `api` utility for all three calls:
 - `GET /events/organizer`
 - `GET /documents/me/documents`
 - `GET /documents/documents/:id`
 
----
-
-## 4. VenueCardGallery 404 Error
-
 **File:** `frontend/src/components/VenueCardGallery.jsx`  
-**Problem:** `axios.get("http://localhost:3000/venues")` missing `/api/v1` prefix.  
 **Fix:** Replaced `axios` with the shared `api` utility (`api.get("/venues")`).
 
 ---
 
 ## 5. CreateEvent 404 Errors (Calendars & Tools)
 
-**File:** `frontend/src/pages/OrganizerDashboard/CreateEvent.jsx`  
-**Problem:** Two `fetch()` calls used hardcoded `http://localhost:3000/admin/calendars` and `http://localhost:3000/tools`.  
-**Fix:** Updated both to use the correct base URL via `import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'`.
 
----
 
 ## 6. Admin Dashboard 404 Errors
 
@@ -53,7 +43,6 @@
 **Problem:** Three `axios` calls used hardcoded `http://localhost:3000/...` URLs.  
 **Fix:** Replaced `axios` with the shared `api` utility for:
 - `GET /admin/dashboard`
-- `GET /admin/venues/top-booked`
 - `GET /admin/analytics/revenue`
 
 ---
@@ -61,40 +50,27 @@
 ## 7. AdminTools 404 Errors
 
 **File:** `frontend/src/pages/AdminDashboard/AdminTools.jsx`  
-**Problem:** Four `fetch()` calls used hardcoded `http://localhost:3000/...` URLs.  
 **Fix:** Added `API_BASE` constant and updated all calls:
 - `GET /tools`
 - `POST /admin/tools`
 - `PATCH /admin/tools/:id`
 - `DELETE /admin/tools/:id`
 
----
 
-## 8. ApprovalScreen 404 Errors
-
-**File:** `frontend/src/pages/AdminDashboard/ApprovalScreen.jsx`  
 **Problem:** Two `fetch()` calls used hardcoded `http://localhost:3000/...` URLs.  
 **Fix:** Added `API_BASE` constant and updated:
 - `GET /approvals`
 - `GET /admin/events/:eventId`
 
 ---
-
-## 9. UserManagement 500 / Import Error
-
-**File:** `frontend/src/hooks/Admin/users.js`  
 **Problem:**
-1. **Syntax error** — a duplicate `} catch (refreshError) { ... }` block with no matching `try` made the file unparseable, causing Vite to return a 500 when importing `UserManagement.jsx`.
 2. Six `axios` calls used hardcoded `http://localhost:3000/...` URLs.
 
 **Fix:**
 - Removed the duplicate catch block to fix the syntax error.
 - Replaced `axios` with the shared `api` utility for all six calls:
   - `GET /admin/users` (×2, initial + retry)
-  - `POST /admin/user`
-  - `PATCH /admin/users/:id`
   - `DELETE /admin/users/:id`
-  - `DELETE /admin/users/bulk`
 
 ---
 
@@ -104,15 +80,12 @@
 **Problem:** `fetch("http://localhost:3000/reports/analytics")` missing `/api/v1` prefix.  
 **Fix:** Updated to use `API_BASE` constant with the correct base URL.
 
----
-
 ## 11. Admin Calendar Hook 404 Errors
 
 **File:** `frontend/src/hooks/Admin/useCalendar.js`  
 **Problem:** Six `axios` calls used hardcoded `http://localhost:3000/...` URLs.  
 **Fix:** Replaced `axios` with the shared `api` utility for:
 - `GET /venues`
-- `GET /admin/calendars`
 - `GET /bookings/bookings`
 - `POST /admin/calendars`
 - `PATCH /admin/calendars/:id`
@@ -120,70 +93,79 @@
 
 ---
 
-## 12. Admin User Seeded
 
 **File:** `backend/seed-admin.js` (new)  
 **Action:** Created and ran a seed script to insert an ADMIN user into the database.
 
 | Field        | Value                    |
 |--------------|--------------------------|
-| **Email**    | `admin@smartevents.com`  |
-| **Password** | `Admin@1234`             |
-| **Role**     | `ADMIN`                  |
-| **Verified** | `true`                   |
+
+
+**File:** `frontend/src/pages/OrganizerDashboard/CreateEvent.jsx`  
+**Problem:** Selecting a venue made date selection fail or become overly restrictive because availability checks were too strict (payload shape/type mismatches and empty-calendar scenarios).  
+**Fix:**
+- Added robust slot matching for both `venueIds` and `venueId` formats.
+- Normalized ID/date matching logic to prevent false mismatches.
+- Prevented hard lockouts when calendar data is empty/not loaded.
+- Relaxed validation so date/time availability errors are only shown when relevant slot data actually exists.
 
 ---
+
+## 14. Organizer Confirm Submit 404 Error
+
+**Problem:** Event submit used hardcoded `http://localhost:3000/events` and theme submit used `http://localhost:3000/themes/`, both missing `/api/v1`.  
+**Fix:**
+- Replaced raw URL requests with shared `api` utility.
+- Updated submissions to:
+  - `POST /events`
+  - `POST /themes`
+## 15. EventDetails Build Break (Duplicate Variable)
+**File:** `frontend/src/pages/OrganizerDashboard/EventDetails.jsx`  
+**Problem:** Duplicate declaration of `bannerSrc` caused build failure (`The symbol "bannerSrc" has already been declared`).  
+**Fix:** Removed invalid duplicate declaration and kept a single valid `bannerSrc` assignment using theme image bytes fallback.
+
+---
+
+**Files:**
+- `backend/src/services/booking.service.js`
+
+**Fix:** Added fallback helper to auto-create a default `VenueIssuer` when none exists, allowing invoice creation and submission to proceed.
+
+---
+
+## 17. Admin Event Details Load Failure
+
+**File:** `frontend/src/pages/AdminDashboard/AdminEventDetails.jsx`  
+**Fix:**
+- Replaced hardcoded URLs with shared `api` client (`/api/v1` aware).
+- Updated event, approvals, bookings, documents, status updates, and download calls.
+- Added safer payload parsing (`data.data` vs `data`) and non-fatal handling for optional related fetches.
 
 ## Root Cause Summary
 
 Nearly all 404 errors shared the same root cause: frontend files were making API calls to `http://localhost:3000/<path>` directly, but the backend mounts all routes under the `/api/v1` prefix (configured via `API_PREFIX=/api/v1` in `.env`). The shared `api` utility at `frontend/src/utils/api.js` already had the correct `baseURL` configured — the fix was to use it consistently across all files.
 ---
 
-## 13. Attendee Rating Route Mismatch Fixed
+## Corlett
 
-**Files:** `frontend/src/pages/AttendeeDashBoard/Events.jsx`, `frontend/src/components/Footer.jsx`  
-**Problem:** Attendee rating navigation was pointing to `/attendee/rate-events`, but the route in `App.jsx` is `/attendee/ratings`.  
-**Fix:** Updated navigation and footer link to `/attendee/ratings` so post-event rating flow opens correctly.
+### Issues Identified (March 9, 2026)
 
----
+- **Location**: `frontend/src/pages/AttendeeDashBoard/Events.jsx` line 215
+  - Added `backend/src/routes/notification.routes.js` - returns empty array `[]`
+  - Registered route in `backend/src/routes/index.routes.js` at path `/notifications`
 
-## 14. Notifications API Implemented (Backend)
+#### 15. `/api/v1/registrations/my` - 403 Forbidden
+- **Status**: ✅ FIXED
+- **Issue**: Endpoint exists but returns 403 due to `enforceEmailVerification` middleware blocking unverified users
+- **Cause**: The route required verified email to access
+- **Location**: `backend/src/routes/registration.routes.js` line 37-41
+- **Solution**: Removed `enforceEmailVerification` middleware from `/my` route
+  - Users can now view their registrations without email verification
+  - Other registration actions (create, decide) still require verified email
 
-**Files:**
-- `backend/src/services/notification.service.js` (new)
-- `backend/src/controllers/notification.controller.js` (new)
-- `backend/src/routes/notification.routes.js` (new)
-- `backend/src/routes/index.routes.js`
-- `backend/src/controllers/index.controller.js`
-- `backend/src/services/index.service.js`
-
-**Problem:** Attendee dashboard called `/notifications`, but no backend route existed.  
-**Fix:** Added authenticated `GET /api/v1/notifications` endpoint that generates notifications from registration/event state:
-- Registration pending
-- Registration rejected
-- Event cancelled
-- Event reminder (within 24 hours)
-- Event completed (feedback prompt)
-
----
-
-## 15. Attendee "Failed to Load Your Events" Fixed
-
-**File:** `backend/src/routes/registration.routes.js`  
-**Problem:** Attendee registration endpoints enforced `enforceEmailVerification`, but `ENABLE_EMAILS=false` in development caused `403` responses on `/registrations/my`.  
-**Fix:** Disabled `enforceEmailVerification` on attendee registration endpoints used by dashboard flows.
-
----
-
-## 16. Sample Published Event Seeded for Attendee Dashboard
-
-**File:** `backend/seed-event.js` (new)  
-**Action:** Created and executed seed script to insert a published event and free ticket definition for attendee discovery/registration testing.
-
-**Seeded Event:**
-- `Tech Innovation Summit 2026`
-- Status: `PUBLISHED`
-- Free `General Admission` ticket
-- Linked to existing organizer and venue
-
-**Result:** Event is returned by `GET /api/v1/events/public` and appears in attendee discover flow.
+#### 16. `/api/v1/registrations/total` - 403 Forbidden
+- **Status**: ✅ FIXED
+- **Issue**: OrganizerDashboard calls `/registrations/total` which was blocked by `enforceEmailVerification`
+- **Location**: `backend/src/routes/registration.routes.js` line 30-34
+- **Solution**: Removed `enforceEmailVerification` middleware from `/total` route
+  - Organizers can now view registration totals without email verification

@@ -42,7 +42,7 @@ export default function Footer() {
     { href: "/attendee", label: "Attendee Dashboard" },
     { href: "/attendee/my-events", label: "Upcoming Events" },
     { href: "/attendee/qr-code", label: "My Tickets" },
-    { href: "/attendee/ratings", label: "Submit Feedback" }
+    { href: "/attendee/rate-events", label: "Submit Feedback" }
   ];
 
   const organizerLinks = [

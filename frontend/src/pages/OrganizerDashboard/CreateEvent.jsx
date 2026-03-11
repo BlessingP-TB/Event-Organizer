@@ -7,6 +7,7 @@ import VenueCardGallery from '../../components/VenueCardGallery';
 import TermsCheckbox from '../../components/TermsCheckbox';
 import "../../styles/pages/_createevent.scss";
 import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api';
 
 /**
  * Constants
@@ -127,7 +128,7 @@ export default function CreateEvent() {
     campus: '',
     venueType: '',
     themeId: null,
-    status: "DRAFT",
+    status: "PENDING",
     isFree: true,
     ticketRequired: true,
     autoDistribute: true,
@@ -155,16 +156,8 @@ export default function CreateEvent() {
   useEffect(() => {
     const fetchCalendarData = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
-        if (!token) throw new Error('Authentication token missing.');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/admin/calendars`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Cache-Control': 'no-cache'
-          }
-        });
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const json = await res.json();
+        const res = await api.get('/admin/calendars');
+        const json = res.data;
         setCalendarData(json.data || json || []);
       } catch (err) {
         console.error('Failed to fetch calendar data:', err);
@@ -178,16 +171,8 @@ export default function CreateEvent() {
     const fetchTools = async () => {
       setIsLoadingTools(true);
       try {
-        const token = localStorage.getItem('accessToken');
-        if (!token) throw new Error('Authentication token missing.');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/tools`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Cache-Control': 'no-cache'
-          }
-        });
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const json = await res.json();
+        const res = await api.get('/tools');
+        const json = res.data;
         const tools = json.data || json || [];
         const toolNames = Array.isArray(tools) ? tools.map(t => t.name).filter(Boolean) : [];
 
@@ -305,6 +290,23 @@ export default function CreateEvent() {
         ? prev.filter(t => t !== type)
         : [...prev, type]
     );
+  };
+
+  const handleThemeImageChange = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToastMessage('Please select a valid image file.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData(prev => ({ ...prev, themeImage: reader.result }));
+    };
+    reader.onerror = () => showToastMessage('Failed to read selected image.');
+    reader.readAsDataURL(file);
   };
 
   const showToastMessage = (message) => {
@@ -580,6 +582,23 @@ const finalPayload = {
                     rows="4"
                     className="form-textarea"
                   />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Upload Event Picture</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleThemeImageChange}
+                    className="form-input"
+                  />
+                  {formData.themeImage && (
+                    <img
+                      src={formData.themeImage}
+                      alt="Event preview"
+                      style={{ marginTop: '10px', maxWidth: '200px', maxHeight: '200px', borderRadius: '8px' }}
+                    />
+                  )}
                 </div>
               </section>
 

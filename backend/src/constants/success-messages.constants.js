@@ -17,6 +17,7 @@ const SUCCESS_MESSAGES = {
     PROFILE_FETCHED: 'Profile retrieved successfully',
     PROFILE_UPDATED: 'Profile updated successfully',
     PROFILE_DELETED: 'Profile deleted successfully',
+    SUPPORT_REQUEST_SUBMITTED: 'Support request submitted successfully',
 };
 
 module.exports = SUCCESS_MESSAGES;

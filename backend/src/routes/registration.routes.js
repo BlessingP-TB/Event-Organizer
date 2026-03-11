@@ -16,35 +16,33 @@ router.use(authenticate);
 router.post(
     '/:eventId',
     authorize([ROLES.ADMIN, ROLES.ORGANIZER, ROLES.ATTENDEE]),
-    // enforceEmailVerification,
+    enforceEmailVerification,
     registrationController.createRegistration
 );
 
 router.get(
     '/my/:eventId',
     authorize([ROLES.ADMIN, ROLES.ORGANIZER, ROLES.ATTENDEE]),
-    // enforceEmailVerification,
+    enforceEmailVerification,
     registrationController.getMyRegistration
 );
 
 router.get(
     '/total',
     authorize([ROLES.ADMIN, ROLES.ORGANIZER]),
-    // enforceEmailVerification,
     registrationController.getApprovedRegistrationsForOrganizer
 );
 
 router.get(
     '/my',
     authorize([ROLES.ADMIN, ROLES.ORGANIZER, ROLES.ATTENDEE]),
-    // enforceEmailVerification,
     registrationController.listMyRegistrations
 );
 
 router.patch(
     '/:id/decision',
     authorize([ROLES.ADMIN, ROLES.ORGANIZER]),
-    // enforceEmailVerification,
+    enforceEmailVerification,
     registrationController.decideRegistration
 );
 

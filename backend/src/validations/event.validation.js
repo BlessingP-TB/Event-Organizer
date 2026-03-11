@@ -5,7 +5,7 @@ const {
 } = require('./custom.validation');
 const { EVENT_STATUS } = require('../constants/index.constants');
 
-const eventIdParam = uuidParam('id');
+const eventIdParam = uuidParam('eventId');
 
 const listPublicEvents = customJoi.object({
     query: basePaginationQuery.keys({
@@ -20,7 +20,9 @@ const listAdminEvents = customJoi.object({
 });
 
 const listOrganizerEvents = customJoi.object({
-    query: basePaginationQuery,
+    query: basePaginationQuery.keys({
+        includeThemeImage: customJoi.boolean().optional(),
+    }),
 });
 
 const ticketDefinitionSchema = customJoi.object({

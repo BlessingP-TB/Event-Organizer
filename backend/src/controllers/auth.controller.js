@@ -24,12 +24,8 @@ const register = catchAsync(async (req, res) => {
 
 const login = catchAsync(async (req, res) => {
     const { email, password } = req.body;
-    // --- FIX ---
-    // Get userAgent from headers and ip from req.ip
-    /* const { 'user-agent': userAgent } = req.headers;
-     const ipAddress = req.ip;*/
-    const { ip: ipAddress, 'user-agent': userAgent } = req.headers;
-    // --- END FIX ---
+    const ipAddress = req.ip;
+    const userAgent = req.headers['user-agent'];
     const { user, tokens } = await authService.login(
         email,
         password,
@@ -71,7 +67,7 @@ const refresh = catchAsync(async (req, res) => {
 });
 
 const verifyEmail = catchAsync(async (req, res) => {
-    await authService.verifyEmail(req.body.token);
+    await authService.verifyEmail(req.body.email, req.body.code);
     res.status(HTTP_STATUS.OK).send({ message: SUCCESS_MESSAGES.EMAIL_VERIFIED });
 });
 

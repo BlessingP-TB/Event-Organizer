@@ -1,5 +1,5 @@
-@import "../abstracts-auth/_variable";
-@import "../abstracts-auth/_responsive-variables";
+@use "../abstracts-auth/_variable" as *;
+@use "../abstracts-auth/_responsive-variables" as *;
 
 /* ---------------------------
    ADMIN LAYOUT FIX
@@ -30,14 +30,9 @@
   @media (max-width: $breakpoint-sm) {
     padding-top: 5rem; // prevent overlap with mobile hamburger
   }
-}
 
-/* Footer stays at bottom */
-.admin-layout-container {
-  display: flex;
-  flex-direction: column;
-
-  .footer {
+  .footer,
+  footer {
     margin-top: auto;
   }
 }

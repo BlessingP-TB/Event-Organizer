@@ -1,9 +1,27 @@
 // EventDetailsModify.jsx
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/api";
 import { Trash2 } from "lucide-react";
 import "../../styles/pages/_eventdetails.scss";
+
+const bytesToDataUrl = (bytes, mimeType = "image/jpeg") => {
+  if (!bytes) return null;
+  const byteArray = Array.isArray(bytes) ? bytes : Object.values(bytes);
+  try {
+    const uint8Array = new Uint8Array(byteArray);
+    let binary = "";
+    const chunkSize = 0x8000;
+    for (let index = 0; index < uint8Array.length; index += chunkSize) {
+      const chunk = uint8Array.subarray(index, index + chunkSize);
+      binary += String.fromCharCode.apply(null, chunk);
+    }
+    const base64 = btoa(binary);
+    return `data:${mimeType};base64,${base64}`;
+  } catch {
+    return null;
+  }
+};
 
 const EventDetailsModify = () => {
   const { id } = useParams();
@@ -17,10 +35,7 @@ const EventDetailsModify = () => {
 
   const fetchEventById = useCallback(async (eventId) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      const response = await axios.get(`http://localhost:3000/events/${eventId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const response = await api.get(`/events/${eventId}`);
       setEvent(response.data);
     } catch (err) {
       console.error(err);
@@ -33,13 +48,17 @@ const EventDetailsModify = () => {
       setLoading(true);
       setError(null);
       const passedEvent = location.state?.eventData;
-      if (passedEvent) {
+      if (passedEvent && String(passedEvent.id) === String(id)) {
         setEvent(passedEvent);
         setLoading(false);
         return;
       }
-      await fetchEventById(id);
-      setLoading(false);
+
+      try {
+        await fetchEventById(id);
+      } finally {
+        setLoading(false);
+      }
     };
     loadEventData();
   }, [id, location.state, fetchEventById]);
@@ -50,10 +69,8 @@ const EventDetailsModify = () => {
     if (!window.confirm("Are you sure?")) return;
     setIsCancelling(true);
     try {
-      const token = localStorage.getItem("accessToken");
-      await axios.delete(`http://localhost:3000/events/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      await api.delete(`/events/${id}`);
+      window.dispatchEvent(new Event("organizerEventsUpdated"));
       alert("Event cancelled!");
       navigate("/organizer/events");
     } catch (err) {
@@ -64,6 +81,10 @@ const EventDetailsModify = () => {
 
   const formatDate = (isoDate) => isoDate ? new Date(isoDate).toLocaleDateString(undefined, { year: "numeric", month: "long", day: "numeric" }) : "N/A";
   const formatTime = (isoDate) => isoDate ? new Date(isoDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "N/A";
+  const bannerImage =
+    bytesToDataUrl(event?.Theme?.image, "image/jpeg") ||
+    event?.Theme?.imageUrl ||
+    "https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80";
 
   if (loading) return <p>Loading...</p>;
   if (error) return <p>{error}</p>;
@@ -82,7 +103,7 @@ const EventDetailsModify = () => {
       </div>
 
       <div className="banner">
-        <img src={"https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=800&q=80"} alt={event.name} />
+        <img src={bannerImage} alt={event.name} />
         <div className="banner-overlay">
           <h1>{event.name}</h1>
           <p className={`status-badge ${event.status ? event.status.toLowerCase() : ""}`}>{event.status}</p>
@@ -126,10 +147,10 @@ const EventDetailsModify = () => {
       </div>
 
       <div className="actions">
-        {event.status === "DRAFT" ? (
+        {["DRAFT", "PENDING"].includes(event.status) ? (
           <button className="modify-btn" onClick={handleModify}>Modify Details</button>
         ) : (
-          <p>This event is not in DRAFT status and cannot be modified.</p>
+          <p>This event cannot be modified in its current status.</p>
         )}
       </div>
     </div>

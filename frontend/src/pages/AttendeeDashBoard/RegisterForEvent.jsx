@@ -117,6 +117,16 @@ const RegisterForEvent = () => {
         { subscribeUpdates }
       );
 
+      try {
+        await api.post('/notifications', {
+          title: 'Registration Successful',
+          message: `You have successfully registered for ${eventData?.name || 'this event'}. You will be reminded when the event is close.`,
+        });
+        window.dispatchEvent(new Event('notificationsUpdated'));
+      } catch (notificationError) {
+        console.error('Failed to create registration notification:', notificationError);
+      }
+
       // Success message handled by api.js interceptor
       setIsRegistered(true); // Update UI immediately
       toast.success(`Successfully registered for ${eventData?.name || 'the event'}!`);

@@ -15,6 +15,7 @@ const {
 } = require('../constants/index.constants');
 const venueService = require('./venue.service.js');
 const bookingService = require('./booking.service.js');
+const notificationService = require('./notification.service');
 
 const checkVenueAvailability = async (
     venueId,
@@ -35,6 +36,7 @@ const checkVenueAvailability = async (
         venueId,
         status: {
             in: [
+                EVENT_STATUS.DRAFT,
                 EVENT_STATUS.PUBLISHED,
                 EVENT_STATUS.ONGOING,
                 EVENT_STATUS.COMPLETED,
@@ -128,6 +130,7 @@ const createEvent = async (organizerId, eventBody) => {
         const event = await tx.event.create({
             data: {
                 ...rest,
+                status: EVENT_STATUS.DRAFT,
                 organizerId,
                 venueId,
                 themeId,
@@ -157,20 +160,36 @@ const createEvent = async (organizerId, eventBody) => {
             tx
         );
 
-           await tx.approval.create({
+        const organizerProfile = await tx.organizerProfile.findUnique({
+            where: { userId: organizerId },
+            select: { id: true },
+        });
+
+        await tx.approval.create({
             data: {
                 targetType: 'Event',
-                targetId: event.id,       
+                targetId: event.id,
                 type: APPROVAL_TYPE.GENERAL,
                 status: APPROVAL_STATUS.PENDING,
-                notes: 'Awaiting admin review for new event.',
-                event: {                  
+                notes: 'Awaiting admin approval.',
+                event: {
                     connect: { id: event.id },
-                },       
-                organizerProfile: {
-                    connect: { userId: organizerId },
                 },
+                ...(organizerProfile
+                    ? {
+                          organizerProfile: {
+                              connect: { id: organizerProfile.id },
+                          },
+                      }
+                    : {}),
             },
+        });
+
+        await notificationService.createSystemNotification({
+            userId: organizerId,
+            title: 'Event Submitted',
+            message: `Your event "${event.name}" has been submitted and is pending admin approval.`,
+            tx,
         });
 
         return event;
@@ -181,7 +200,13 @@ const listPublicEvents = async (queryOptions) => {
     const { name, location, themeName } = queryOptions;
     const { skip, take, page, pageSize } = getPagination(queryOptions);
     const whereClause = {
-        status: EVENT_STATUS.PUBLISHED,
+        status: {
+            in: [
+                EVENT_STATUS.PUBLISHED,
+                EVENT_STATUS.ONGOING,
+                EVENT_STATUS.COMPLETED,
+            ],
+        },
         deletedAt: null,
     };
 
@@ -207,7 +232,7 @@ const listPublicEvents = async (queryOptions) => {
         include: {
             venue: { select: { name: true, location: true } },
             organizer: { select: { id: true, name: true } },
-            Theme: { select: { name: true } },
+            Theme: { select: { name: true, imageUrl: true } },
             ticketDefinitions: {
                 where: { deletedAt: null },
                 select: { id: true, name: true, price: true, quantity: true },
@@ -224,11 +249,23 @@ const listPublicEvents = async (queryOptions) => {
 };
 
 const listOrganizerEvents = async (organizerId, queryOptions) => {
+    const { includeThemeImage = false } = queryOptions;
     const { skip, take, page, pageSize } = getPagination(queryOptions);
+    // Include all events (including soft-deleted) so frontend can filter by status
     const whereClause = {
         organizerId,
-        deletedAt: null,
     };
+
+    const themeInclude = includeThemeImage
+        ? {
+              select: {
+                  id: true,
+                  name: true,
+                  imageUrl: true,
+                  image: true,
+              },
+          }
+        : undefined;
 
     const query = {
         where: whereClause,
@@ -237,6 +274,7 @@ const listOrganizerEvents = async (organizerId, queryOptions) => {
         orderBy: { createdAt: 'desc' },
         include: {
             venue: { select: { name: true, location: true } },
+            ...(themeInclude ? { Theme: themeInclude } : {}),
             booking: { include: { invoice: true } },
             _count: {
                 select: { registrations: true, tickets: true, purchases: true },
@@ -245,6 +283,9 @@ const listOrganizerEvents = async (organizerId, queryOptions) => {
                 orderBy: {
                     createdAt: 'desc',
                 },
+                include: {
+                    approver: { select: { id: true, name: true, email: true } }
+                }
             },
         },
     };
@@ -273,6 +314,9 @@ const listAdminEvents = async (queryOptions) => {
                 orderBy: {
                     createdAt: 'desc',
                 },
+                include: {
+                    approver: { select: { id: true, name: true, email: true } }
+                }
             },
         },
     };
@@ -305,7 +349,10 @@ const getEventById = async (eventId) => {
       },
       booking: { include: { invoice: true } },
       approvals: {
-        orderBy: { createdAt: 'desc' }
+        orderBy: { createdAt: 'desc' },
+        include: {
+          approver: { select: { id: true, name: true, email: true } }
+        }
       },
     },
   });
@@ -394,14 +441,15 @@ const updateEvent = async (eventId, updateBody) => {
 
 const deleteEvent = async (eventId) => {
     const event = await getEventById(eventId);
-    if (event.status !== EVENT_STATUS.DRAFT) {
+    if (![EVENT_STATUS.DRAFT, EVENT_STATUS.PENDING].includes(event.status)) {
         throw new ApiError(
             HTTP_STATUS.BAD_REQUEST,
-            'Only DRAFT events can be deleted. Published events must be CANCELLED.'
+            'Only DRAFT or PENDING events can be deleted.'
         );
     }
 
     try {
+        // Soft delete: set deletedAt timestamp
         await prisma.event.update({
             where: { id: eventId },
             data: { deletedAt: new Date() },
@@ -412,6 +460,16 @@ const deleteEvent = async (eventId) => {
         }
         throw error;
     }
+};
+
+// Cleanup function to permanently delete events soft-deleted for over 24 hours
+const cleanupDeletedEvents = async () => {
+    const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
+    await prisma.event.deleteMany({
+        where: {
+            deletedAt: { not: null, lte: cutoff },
+        },
+    });
 };
 
 const publishEvent = async (eventId) => {
@@ -448,13 +506,15 @@ const publishEvent = async (eventId) => {
 
 // --- REPAIRED SERVICE FUNCTION ---
 const setEventStatus = async (eventId, status, adminId, notes) => {
-    if (status === EVENT_STATUS.PUBLISHED) {
-        return prisma.$transaction(async (tx) => {
-            const event = await tx.event.findUnique({ where: { id: eventId } });
-            if (!event) {
-                throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
-            }
+    return prisma.$transaction(async (tx) => {
+        const event = await tx.event.findUnique({ where: { id: eventId } });
+        if (!event) {
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
+        }
 
+        let updatedEvent;
+
+        if (status === EVENT_STATUS.PUBLISHED) {
             await checkVenueAvailability(
                 event.venueId,
                 event.startDateTime,
@@ -466,7 +526,7 @@ const setEventStatus = async (eventId, status, adminId, notes) => {
             const approvalNote =
                 notes || `Admin override: immediate publish by ${adminId}`;
 
-            return tx.event.update({
+            updatedEvent = await tx.event.update({
                 where: { id: eventId },
                 data: {
                     status: EVENT_STATUS.PUBLISHED,
@@ -482,12 +542,21 @@ const setEventStatus = async (eventId, status, adminId, notes) => {
                     },
                 },
             });
-        });
-    }
+        } else {
+            updatedEvent = await tx.event.update({
+                where: { id: eventId },
+                data: { status },
+            });
+        }
 
-    return prisma.event.update({
-        where: { id: eventId },
-        data: { status },
+        await notificationService.createSystemNotification({
+            userId: event.organizerId,
+            title: 'Event Status Updated',
+            message: `Your event "${event.name}" status is now ${status}.`,
+            tx,
+        });
+
+        return updatedEvent;
     });
 };
 // --------------------------------

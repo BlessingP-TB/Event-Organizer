@@ -3,10 +3,13 @@ const approvalController = require('./approval.controller');
 const attendanceController = require('./attendance.controller');
 const authController = require('./auth.controller');
 const bookingController = require('./booking.controller');
+const campusAdminController = require('./campusAdmin.controller');
 const documentController = require('./document.controller');
 const eventController = require('./event.controller');
+const facilityManagerController = require('./facilityManager.controller');
 const invoiceController = require('./invoice.controller');
 const liquorRequestController = require('./liquorRequest.controller');
+const notificationController = require('./notification.controller');
 const organizerController = require('./organizer.controller');
 const notificationController = require('./notification.controller');
 const purchaseController = require('./purchase.controller');
@@ -22,6 +25,7 @@ const venueIssuerController = require('./venueIssuer.controller');
 const systemSettingController = require('./systemSetting.controller');
 const calendarController = require('./calendar.controller');
 const statsController = require('./stats.controller');
+const supportController = require('./support.controller');
 
 module.exports = {
     adminController,
@@ -29,10 +33,13 @@ module.exports = {
     attendanceController,
     authController,
     bookingController,
+    campusAdminController,
     documentController,
     eventController,
+    facilityManagerController,
     invoiceController,
     liquorRequestController,
+    notificationController,
     organizerController,
     notificationController,
     purchaseController,
@@ -48,4 +55,5 @@ module.exports = {
     systemSettingController,
     calendarController,
     statsController,
+    supportController,
 };

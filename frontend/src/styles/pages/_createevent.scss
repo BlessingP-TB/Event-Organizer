@@ -147,6 +147,40 @@
           font-size: 0.85rem;
           color: #ef4444;
         }
+
+        .helper-text {
+          font-size: 0.85rem;
+          color: #64748b;
+        }
+
+        .poster-preview {
+          margin-top: 0.75rem;
+          display: flex;
+          align-items: center;
+          gap: 1rem;
+
+          img {
+            width: 160px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+          }
+
+          .poster-remove-btn {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 0.5rem 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+
+            &:hover {
+              background: #fecaca;
+            }
+          }
+        }
       }
 
       /* Available Time Slots Styling */

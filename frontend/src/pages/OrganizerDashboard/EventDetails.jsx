@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/api";
 import { FaArrowLeft, FaUpload, FaCheck, FaFileImage, FaRedo } from "react-icons/fa";
 import { MdError } from "react-icons/md";
 import "../../styles/pages/_eventdetails.scss";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
 
 const DEFAULT_BANNER =
   "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&q=80";
@@ -21,7 +23,12 @@ const bytesToDataUrl = (bytes, mimeType = 'image/jpeg') => {
   }
   try {
     const uint8Array = new Uint8Array(byteArray);
-    const binary = String.fromCharCode(...uint8Array);
+    let binary = '';
+    const chunkSize = 0x8000;
+    for (let index = 0; index < uint8Array.length; index += chunkSize) {
+      const chunk = uint8Array.subarray(index, index + chunkSize);
+      binary += String.fromCharCode.apply(null, chunk);
+    }
     const base64 = btoa(binary);
     return `data:${mimeType};base64,${base64}`;
   } catch (e) {
@@ -53,21 +60,21 @@ const EventDetails = () => {
       const passedEvent = location.state?.eventData;
       if (passedEvent) {
         setEvent(passedEvent);
-        setLoading(false);
-        return;
       }
 
       const token = localStorage.getItem("accessToken");
       if (!token) {
+        if (passedEvent) {
+          setLoading(false);
+          return;
+        }
         setError("You must be logged in to view event details.");
         setLoading(false);
         return;
       }
 
       try {
-        const response = await axios.get(`http://localhost:3000/events/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await api.get(`/events/${id}`);
 
         setEvent(response.data);
 
@@ -169,31 +176,42 @@ const EventDetails = () => {
     setUploadError("");
     try {
       const token = localStorage.getItem("accessToken");
-      const payload = {
-        name: `Theme for ${event.name}`,
-        description: `Uploaded by organizer for event ${event.name}`,
-        image: base64Image,
-        eventId: event.id,
+      const themeId = event?.Theme?.id || event?.themeId;
+      const headers = {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       };
 
-      await axios.post("http://localhost:3000/themes/", payload, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      if (themeId) {
+        await api.patch(
+          `/themes/${themeId}`,
+          {
+            description: `Uploaded by organizer for event ${event.name}`,
+            image: base64Image,
+          }
+        );
+      } else {
+        await api.post(
+          "/themes",
+          {
+            name: `Theme for ${event.name} ${Date.now()}`,
+            description: `Uploaded by organizer for event ${event.name}`,
+            image: base64Image,
+            eventId: event.id,
+          }
+        );
+      }
 
-      const eventRes = await axios.get(`http://localhost:3000/events/${event.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        "Cache-Control": "no-cache",
-      });
+      const eventRes = await api.get(`/events/${event.id}`);
       setEvent(eventRes.data);
       setSelectedFile(null);
       setPreviewUrl("");
     } catch (err) {
       console.error("Theme upload failed:", err);
       setUploadError(
-        err.response?.data?.message || "Upload failed. Try again or check the file size/type."
+        err.response?.data?.message ||
+        err.response?.data?.error ||
+        "Upload failed. Try again or check the file size/type."
       );
     } finally {
       setUploading(false);

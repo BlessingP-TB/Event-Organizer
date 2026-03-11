@@ -3,11 +3,14 @@ const approvalService = require('./approval.service');
 const attendanceService = require('./attendance.service');
 const authService = require('./auth.service');
 const bookingService = require('./booking.service');
+const campusAdminService = require('./campusAdmin.service');
 const documentService = require('./document.service');
 const emailService = require('./email.service');
 const eventService = require('./event.service');
+const facilityManagerService = require('./facilityManager.service');
 const invoiceService = require('./invoice.service.js');
 const liquorRequestService = require('./liquorRequest.service');
+const notificationService = require('./notification.service');
 const organizerService = require('./organizer.service');
 const notificationService = require('./notification.service');
 const paymentService = require('./payment.service');
@@ -23,17 +26,21 @@ const venueService = require('./venue.service');
 const venueIssuerService = require('./venueIssuer.service');
 const calendarService = require('./calendar.service');
 const statsService = require('./stats.service');
+const supportService = require('./support.service');
 module.exports = {
     adminService,
     approvalService,
     attendanceService,
     authService,
     bookingService,
+    campusAdminService,
     documentService,
     emailService,
     eventService,
+    facilityManagerService,
     invoiceService,
     liquorRequestService,
+    notificationService,
     organizerService,
     notificationService,
     paymentService,
@@ -49,4 +56,5 @@ module.exports = {
     venueIssuerService,
     calendarService,
     statsService,
+    supportService,
 };

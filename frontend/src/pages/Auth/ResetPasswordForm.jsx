@@ -6,11 +6,11 @@ import api from '../../utils/api';
 import '../../styles/abstracts-auth/_auth.scss';
 
 export default function ResetPasswordForm() {
+  const [searchParams] = useSearchParams();
+  const resetToken = searchParams.get('token');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [searchParams] = useSearchParams();
-  const resetToken = searchParams.get('token');
   const navigate = useNavigate();
 
   const validatePassword = (pwd) => {
@@ -77,6 +77,7 @@ export default function ResetPasswordForm() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter new password"
               required
+              disabled={loading}
             />
 
             <label>Confirm New Password</label>
@@ -86,6 +87,7 @@ export default function ResetPasswordForm() {
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm new password"
               required
+              disabled={loading}
             />
 
             <button type="submit" disabled={loading}>

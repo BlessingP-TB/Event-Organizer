@@ -23,6 +23,7 @@ router.post(
 router.post(
     '/login',
     (req, res, next) => authLimiter(req, res, next),
+    validate(authValidation.login),
     authController.login
 );
 router.post(
@@ -32,7 +33,7 @@ router.post(
 );
 router.post(
     '/verify-email',
-    //validate(authValidation.verifyEmail),
+    validate(authValidation.verifyEmail),
     authController.verifyEmail
 );
 router.post(
@@ -42,12 +43,12 @@ router.post(
 );
 router.post(
     '/forgot-password',
-    // validate(authValidation.forgotPassword),
+    validate(authValidation.forgotPassword),
     authController.forgotPassword
 );
 router.post(
     '/reset-password',
-    //validate(authValidation.resetPassword),
+    validate(authValidation.resetPassword),
     authController.resetPassword
 );
 

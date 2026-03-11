@@ -7,14 +7,16 @@ console.log('🌍 API Base URL:', API_BASE_URL);
 
 const api = axios.create({
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 // ✅ Automatically attach access token if available
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('accessToken');
+
+  // If sending FormData, let the browser/axios set the Content-Type (including boundary)
+  if (config && config.data && typeof FormData !== 'undefined' && config.data instanceof FormData) {
+    if (config.headers) delete config.headers['Content-Type'];
+  }
 
   // Don't add token for login or register routes
   if (
@@ -35,7 +37,20 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.warn('🔒 Unauthorized - token may have expired');
-      // Example: redirect or clear storage if needed
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('role');
+      localStorage.removeItem('user');
+
+      const currentPath = window.location.pathname;
+      const isAuthPage =
+        currentPath.startsWith('/login') ||
+        currentPath.startsWith('/register') ||
+        currentPath.startsWith('/forgot-password') ||
+        currentPath.startsWith('/reset-password');
+
+      if (!isAuthPage) {
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }

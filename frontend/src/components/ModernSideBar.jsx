@@ -4,7 +4,24 @@ import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { Bell, CircleHelp, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
+import api from "../utils/api";
 import "../styles/components/_modernSidebar.scss";
+
+const ORGANIZER_EVENT_NOTE_PREFIX = "organizer-event";
+
+const safeParseArray = (rawValue) => {
+  try {
+    const parsed = JSON.parse(rawValue || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+const toTimestamp = (value) => {
+  const ms = new Date(value || "").getTime();
+  return Number.isNaN(ms) ? 0 : ms;
+};
 
 const ModernSidebar = ({ role, links, storageKey }) => {
   const navigate = useNavigate();
@@ -17,16 +34,29 @@ const ModernSidebar = ({ role, links, storageKey }) => {
 
   /* ---------------- Load Notifications ---------------- */
   useEffect(() => {
-    const stored = JSON.parse(localStorage.getItem(storageKey) || "[]");
-    setNotifications(stored);
+    const token = localStorage.getItem('accessToken');
+    if (!token) {
+      setNotifications([]);
+      return;
+    }
 
-    const handleUpdate = () => {
-      const updated = JSON.parse(localStorage.getItem(storageKey) || "[]");
-      setNotifications(updated);
+    const loadNotifications = async () => {
+      try {
+        const response = await api.get('/notifications');
+        setNotifications(Array.isArray(response.data) ? response.data : []);
+      } catch (error) {
+        setNotifications([]);
+      }
     };
 
-    window.addEventListener(`${storageKey}Updated`, handleUpdate);
-    return () => window.removeEventListener(`${storageKey}Updated`, handleUpdate);
+    loadNotifications();
+
+    const handleUpdate = () => {
+      loadNotifications();
+    };
+
+    window.addEventListener('notificationsUpdated', handleUpdate);
+    return () => window.removeEventListener('notificationsUpdated', handleUpdate);
   }, [storageKey]);
 
   const unreadCount = notifications.filter((n) => !n.read).length;

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../utils/api';
+import { deleteEvent } from '../../utils/eventDelete';
 import '../../styles/pages/_myevents.scss';
 
 const MyEvents = () => {
@@ -122,23 +123,46 @@ const MyEvents = () => {
   }, [token, popDocuments]);
 
   // --- FILTERING AND SORTING ---
+
+  // Helper to get effective status for filtering tabs
+  const getEffectiveStatus = (event) => {
+    if (event.deletedAt) return "DELETED";
+    // DRAFT: Not completed, not published, not pending approval, not cancelled
+    if (event.status === "DRAFT") return "DRAFT";
+    // PENDING: Waiting for approval (status is PENDING or has a pending approval)
+    if (event.status === "PENDING" || event.approvals?.some(a => a.status === "PENDING")) return "PENDING";
+    // ONGOING: Event is currently taking place
+    const now = new Date();
+    if (event.status === "ONGOING" || (event.status === "PUBLISHED" && new Date(event.startDateTime) <= now && new Date(event.endDateTime) >= now)) return "ONGOING";
+    // PUBLISHED: Approved and upcoming
+    if (event.status === "PUBLISHED" && new Date(event.startDateTime) > now) return "PUBLISHED";
+    // COMPLETED: End date in the past
+    if (event.status === "COMPLETED" || (event.status === "PUBLISHED" && new Date(event.endDateTime) < now)) return "COMPLETED";
+    // CANCELLED: Cancelled or soft-deleted
+    if (event.status === "CANCELLED") return "CANCELLED";
+    return event.status;
+  };
+
   const filteredEvents = useMemo(() => {
     return events
-      .filter(event => filter === "All" || event.status === filter)
+      .filter(event => {
+        const effectiveStatus = getEffectiveStatus(event);
+        if (filter === "All") return effectiveStatus !== "DELETED";
+        if (filter === "CANCELLED") return effectiveStatus === "CANCELLED" || effectiveStatus === "DELETED";
+        return effectiveStatus === filter;
+      })
       .sort((a, b) => {
         let aValue, bValue;
-
         if (sortBy === "name") {
           aValue = a.name.toLowerCase();
           bValue = b.name.toLowerCase();
-        } else { // Default to sorting by date
+        } else {
           aValue = new Date(a.startDateTime);
           bValue = new Date(b.startDateTime);
         }
-
         if (sortOrder === "asc") {
           return aValue > bValue ? 1 : (aValue < bValue ? -1 : 0);
-        } else { // desc
+        } else {
           return aValue < bValue ? 1 : (aValue > bValue ? -1 : 0);
         }
       });
@@ -160,7 +184,7 @@ const MyEvents = () => {
         <h2>My Events</h2>
         <div className="filter-sort">
           <div className="filters">
-            {["All", "DRAFT", "PUBLISHED", "ONGOING", "CANCELLED", "COMPLETED"].map(btn => (
+            {["All", "DRAFT", "PENDING", "PUBLISHED", "ONGOING", "CANCELLED", "COMPLETED"].map(btn => (
               <button
                 key={btn}
                 className={filter === btn ? 'active' : ''}
@@ -200,6 +224,17 @@ const MyEvents = () => {
           filteredEvents.map(event => {
             const formattedStartDate = new Date(event.startDateTime).toLocaleDateString();
             const hasDocument = !!popDocuments[event.id]; // Check if a document ID exists for this event
+            const displayStatus = event.deletedAt ? 'DELETED' : (event.status || 'NO STATUS');
+            const canModifyOrDelete = ["DRAFT", "PENDING"].includes(event.status);
+            const canViewDoc = hasDocument;
+            const showActionsMenu = canModifyOrDelete || canViewDoc;
+
+            const closeActionsMenu = (clickedElement) => {
+              const actionsMenu = clickedElement?.closest('.actions-menu');
+              if (actionsMenu) {
+                actionsMenu.removeAttribute('open');
+              }
+            };
 
             return (
               <div
@@ -211,23 +246,72 @@ const MyEvents = () => {
                 <div className="event-info">
                   <h4>{event.name}</h4>
                   <p className="date">Starts: {formattedStartDate}</p>
-                  <p className={`status ${event.status ? event.status.toLowerCase() : 'unknown'}`}>{event.status || 'NO STATUS'}</p>
+                  <p className={`status ${displayStatus.toLowerCase()}`}>{displayStatus}</p>
                 </div>
                 <div className="event-action">
-                  {/* Modify Button */}
-                  {event.status === "DRAFT" && (
-                    <button
-                      className="action-btn modify-btn"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/organizer/event-details-modify/${event.id}`, { state: { eventData: event } });
-                      }}
+                  {/* Collapsed actions menu for Modify/Delete/View-Doc */}
+                  {showActionsMenu && (
+                    <details
+                      className="actions-menu"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      Modify
-                    </button>
+                      <summary className="action-btn actions-toggle">Actions</summary>
+                      <div className="actions-dropdown">
+                        {canModifyOrDelete && (
+                          <button
+                            type="button"
+                            className="menu-item modify-item"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              closeActionsMenu(e.currentTarget);
+                              navigate(`/organizer/event-details-modify/${event.id}`, {
+                                state: { eventData: event },
+                              });
+                            }}
+                          >
+                            Modify
+                          </button>
+                        )}
+
+                        {canModifyOrDelete && (
+                          <button
+                            type="button"
+                            className="menu-item delete-item"
+                            onClick={async (e) => {
+                              e.stopPropagation();
+                              closeActionsMenu(e.currentTarget);
+                              if (window.confirm('Are you sure you want to delete this event? This action cannot be undone.')) {
+                                try {
+                                  await deleteEvent(event.id);
+                                  fetchEvents();
+                                } catch (err) {
+                                  alert('Failed to delete event: ' + (err?.response?.data?.message || err.message));
+                                }
+                              }
+                            }}
+                          >
+                            Delete
+                          </button>
+                        )}
+
+                        {canViewDoc && (
+                          <button
+                            type="button"
+                            className="menu-item view-doc-item"
+                            onClick={(e) => {
+                              closeActionsMenu(e.currentTarget);
+                              handleDownloadDoc(e, event.id);
+                            }}
+                          >
+                            View-Doc
+                          </button>
+                        )}
+                      </div>
+                    </details>
                   )}
+
                   {/* Upload Document Button */}
-                  {event.status === "DRAFT" && (
+                  {["DRAFT", "PENDING"].includes(event.status) && (
                     <button
                       className="action-btn upload-pop-btn"
                       onClick={(e) => {
@@ -238,13 +322,16 @@ const MyEvents = () => {
                       Upload-PoP
                     </button>
                   )}
-                  {/* Download Document Button */}
-                  {hasDocument && ( // Only show if a document exists for this event
+                  {/* Receipt Button for approved/published events */}
+                  {["PUBLISHED", "ONGOING", "COMPLETED"].includes(event.status) && (
                     <button
-                      className="action-btn download-pop-btn"
-                      onClick={(e) => handleDownloadDoc(e, event.id)} // Use the generic download handler
+                      className="action-btn receipt-btn"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/organizer/event-receipt/${event.id}`, { state: { eventData: event } });
+                      }}
                     >
-                      View-Doc
+                      Receipt
                     </button>
                   )}
                 </div>

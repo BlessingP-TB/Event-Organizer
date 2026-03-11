@@ -7,6 +7,7 @@ const documentValidation = require('./document.validation');
 const eventValidation = require('./event.validation');
 const invoiceValidation = require('./invoice.validation');
 const liquorRequestValidation = require('./liquorRequest.validation');
+const notificationValidation = require('./notification.validation');
 const organizerValidation = require('./organizer.validation');
 const purchaseValidation = require('./purchase.validation');
 const registrationValidation = require('./registration.validation');
@@ -20,6 +21,7 @@ const userValidation = require('./user.validation');
 const venueValidation = require('./venue.validation');
 const venueIssuerValidation = require('./venueIssuer.validation');
 const calendarValidation = require('./calendar.validation');
+const supportValidation = require('./support.validation');
 const {
     customJoi,
     uuidParam,
@@ -37,6 +39,7 @@ module.exports = {
     eventValidation,
     invoiceValidation,
     liquorRequestValidation,
+    notificationValidation,
     organizerValidation,
     purchaseValidation,
     registrationValidation,
@@ -54,4 +57,5 @@ module.exports = {
     basePaginationQuery,
     paginationQuery,
     calendarValidation,
+    supportValidation,
 };

@@ -1,5 +1,6 @@
 const EVENT_STATUS = Object.freeze({
     DRAFT: 'DRAFT',
+    PENDING: 'PENDING',
     PUBLISHED: 'PUBLISHED',
     ONGOING: 'ONGOING',
     COMPLETED: 'COMPLETED',

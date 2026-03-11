@@ -34,10 +34,7 @@ const useUsers = (initialPage = 1, initialLimit = 10) => {
         // Add Cache-Control: no-cache to bypass browser cache
         // This tells the browser to always ask the server for the latest data
         // and should prevent the 304 Not Modified response when data *has* changed.
-        return await api.get(`/admin/users`, {
-          headers: {
-            'Cache-Control': 'no-cache'
-          },
+        return await api.get('/admin/users', {
           params: {
             page,
             limit,
@@ -68,10 +65,7 @@ const useUsers = (initialPage = 1, initialLimit = 10) => {
                 // Create a *new* request function using the updated token
                 // Also include the no-cache header for the retry
                 const newRequestFn = async () => {
-                    return await api.get(`/admin/users`, {
-                        headers: {
-                            'Cache-Control': 'no-cache'
-                        },
+                    return await api.get('/admin/users', {
                         params: {
                             page,
                             limit,
@@ -167,7 +161,7 @@ const useUsers = (initialPage = 1, initialLimit = 10) => {
       }
 
       // --- Make the actual API call ---
-      const response = await api.post(`/admin/user`, userData);
+      const response = await api.post('/admin/user', userData);
 
       const newUser = response.data; // Assuming the backend returns the created user object
 
@@ -275,7 +269,7 @@ const useUsers = (initialPage = 1, initialLimit = 10) => {
       // --- Make the actual API call ---
       // Assuming your backend has an endpoint for bulk deletion
       // e.g., DELETE /admin/users/bulk with { ids: userIds } in the request body
-      await api.delete(`/admin/users/bulk`, {
+      await api.delete('/admin/users/bulk', {
         data: { ids: userIds }
       });
 

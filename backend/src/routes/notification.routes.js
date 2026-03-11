@@ -1,16 +1,43 @@
 const express = require('express');
 const { notificationController } = require('../controllers/index.controller');
-const { authenticate, authorize } = require('../middlewares/index.middleware');
-const { ROLES } = require('../constants/index.constants');
+const { notificationValidation } = require('../validations/index.validation');
+const { validate, authenticate } = require('../middlewares/index.middleware');
 
 const router = express.Router();
 
-router.use(authenticate);
-
 router.get(
     '/',
-    authorize([ROLES.ADMIN, ROLES.ORGANIZER, ROLES.ATTENDEE]),
-    notificationController.listMyNotifications
+    authenticate,
+    validate(notificationValidation.listNotifications),
+    notificationController.listNotifications
+);
+
+router.post(
+    '/',
+    authenticate,
+    validate(notificationValidation.createNotification),
+    notificationController.createNotification
+);
+
+router.patch(
+    '/:id',
+    authenticate,
+    validate(notificationValidation.updateNotification),
+    notificationController.updateNotification
+);
+
+router.delete(
+    '/:id',
+    authenticate,
+    validate(notificationValidation.notificationIdParam),
+    notificationController.deleteNotification
+);
+
+router.delete(
+    '/',
+    authenticate,
+    validate(notificationValidation.clearNotifications),
+    notificationController.clearNotifications
 );
 
 module.exports = router;

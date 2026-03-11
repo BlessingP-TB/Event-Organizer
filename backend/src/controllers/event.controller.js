@@ -1,8 +1,19 @@
 // src/controllers/event.controller.js
 const { eventService } = require('../services/index.service');
 const { catchAsync, ApiError } = require('../utils/index.util'); // Assuming ApiError is available here or import from the correct path
-const { HTTP_STATUS, EVENT_STATUS, ERROR_MESSAGES} = require('../constants/index.constants');
+const { HTTP_STATUS, EVENT_STATUS, APPROVAL_STATUS, ERROR_MESSAGES} = require('../constants/index.constants');
 
+const withDisplayStatus = (event) => {
+    if (!event) return event;
+    const hasPendingApproval = Array.isArray(event.approvals)
+        && event.approvals.some((approval) => approval?.status === APPROVAL_STATUS.PENDING);
+
+    if (event.status === EVENT_STATUS.DRAFT && hasPendingApproval) {
+        return { ...event, status: APPROVAL_STATUS.PENDING };
+    }
+
+    return event;
+};
 const createEvent = catchAsync(async (req, res) => {
     // Add extensive logging here to see the exact state of req.body and other relevant info
     console.log("DEBUG (Event Controller - createEvent): Raw req object inspection - URL:", req.url, "Method:", req.method);
@@ -35,7 +46,11 @@ const listOrganizerEvents = catchAsync(async (req, res) => {
         req.user.id,
         req.query
     );
-    res.status(HTTP_STATUS.OK).send(paginatedResult);
+    const eventsWithDisplayStatus = (paginatedResult.data || []).map(withDisplayStatus);
+    res.status(HTTP_STATUS.OK).send({
+        ...paginatedResult,
+        data: eventsWithDisplayStatus,
+    });
 });
 /*const listOrganizerEvents = catchAsync(async (req, res) => {
     // !!! TEMPORARY HARDCODED ID FOR POSTMAN TESTING !!!
@@ -48,8 +63,9 @@ const listOrganizerEvents = catchAsync(async (req, res) => {
     res.status(HTTP_STATUS.OK).send(paginatedResult);
 });*/
 const getEvent = catchAsync(async (req, res) => {
-    const event = await eventService.getEventById(req.params.id);
-    res.status(HTTP_STATUS.OK).send(event);
+    const eventId = req.params.eventId || req.params.id;
+    const event = await eventService.getEventById(eventId);
+    res.status(HTTP_STATUS.OK).send(withDisplayStatus(event));
 });
 
 const updateEvent = catchAsync(async (req, res) => {

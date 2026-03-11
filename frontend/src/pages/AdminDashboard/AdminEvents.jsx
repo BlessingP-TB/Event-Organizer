@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from "react";
 import api from "../../utils/api";
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1';
+
 const AdminEvents = () => {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
