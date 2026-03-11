@@ -94,7 +94,7 @@ const listApprovals = async (queryOptions) => {
         where: whereClause,
         skip,
         take,
-        orderBy: { createdAt: 'asc' },
+        orderBy: { createdAt: 'desc' },
         include: {
             approver: { select: { id: true, name: true } },
             event: {

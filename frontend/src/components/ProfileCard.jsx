@@ -9,7 +9,6 @@ const ProfileCard = ({
   onImgClick,
   fileInputRef,
   onImageChange,
-  onLogout,
   additionalFields,
 }) => {
   return (
@@ -39,10 +38,6 @@ const ProfileCard = ({
           ))}
         </div>
       </div>
-
-      <button className="logout-btn" onClick={onLogout}>
-        Logout
-      </button>
     </div>
   );
 };

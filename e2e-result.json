@@ -1,0 +1,16 @@
+{
+    "admin_login":  true,
+    "admin_create_venue":  true,
+    "organizer_register":  true,
+    "attendee_register":  true,
+    "organizer_login":  true,
+    "organizer_create_event":  true,
+    "admin_approve_event":  true,
+    "attendee_login":  true,
+    "attendee_can_see_event_public":  true,
+    "attendee_register_event":  true,
+    "event_id":  "e96bfaa5-5360-40fa-ad7f-1200d9dfee1e",
+    "venue_id":  "fd7139a5-7445-4643-a852-0d5baf529787",
+    "organizer_email":  "organizer.1773142033@example.com",
+    "attendee_email":  "attendee.1773142033@example.com"
+}
