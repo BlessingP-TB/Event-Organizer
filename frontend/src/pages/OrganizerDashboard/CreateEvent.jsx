@@ -90,9 +90,12 @@ const getAvailableTimeSlots = (calendarData, venueId, date) => {
     }));
 };
 
+const resolveVenueId = (venue) => venue?.id || venue?.venueId || venue?._id || '';
+
 export default function CreateEvent() {
   const navigate = useNavigate();
   const toastTimerRef = useRef(null);
+  const selectedVenueIdRef = useRef('');
 
   // Selected data
   const [selectedVenue, setSelectedVenue] = useState(null);
@@ -102,6 +105,7 @@ export default function CreateEvent() {
 
   // UI state
   const [errors, setErrors] = useState({});
+  const [validationSummary, setValidationSummary] = useState([]);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isLoadingTools, setIsLoadingTools] = useState(false);
@@ -201,8 +205,10 @@ export default function CreateEvent() {
   }, []);
 
   const handleVenueSelect = useCallback((venue) => {
+    const venueId = resolveVenueId(venue);
+    selectedVenueIdRef.current = venueId;
     setSelectedVenue(venue);
-    setFormData(prev => ({ ...prev, venueId: venue?.id || '' }));
+    setFormData(prev => ({ ...prev, venueId }));
     setDateParts({
       startDate: null,
       startTime: '',
@@ -219,6 +225,7 @@ export default function CreateEvent() {
       if (name === 'campus' || name === 'venueType') {
         setSelectedVenue(null);
         updated.venueId = '';
+        selectedVenueIdRef.current = '';
         setDateParts({
           startDate: null,
           startTime: '',
@@ -229,6 +236,25 @@ export default function CreateEvent() {
       }
       return updated;
     });
+  }, []);
+
+  const handleThemeImageChange = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToastMessage('Please select a valid image file for event gallery');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData(prev => ({ ...prev, themeImage: reader.result }));
+    };
+    reader.onerror = () => {
+      showToastMessage('Failed to read selected image file');
+    };
+    reader.readAsDataURL(file);
   }, []);
 
   const handleDateTimeChange = useCallback((name, value) => {
@@ -340,6 +366,7 @@ export default function CreateEvent() {
   const validateForm = () => {
     const newErrors = {};
     if (!formData.name?.trim()) newErrors.name = 'Event title is required';
+    if (!formData.description?.trim()) newErrors.description = 'Description is required';
     if (!formData.campus) newErrors.campus = 'Please select a campus';
     if (!formData.venueType) newErrors.venueType = 'Please select a venue type';
     if (!formData.expectedAttend || Number(formData.expectedAttend) <= 0) newErrors.expectedAttend = 'Please enter a valid number of guests';
@@ -347,7 +374,10 @@ export default function CreateEvent() {
     if (!dateParts.startTime) newErrors.startTime = 'Start time is required';
     if (!dateParts.endDate) newErrors.endDate = 'End date is required';
     if (!dateParts.endTime) newErrors.endTime = 'End time is required';
-    if (!selectedVenue) newErrors.venueSelection = 'Please select a venue from the gallery';
+    const effectiveVenueId = formData.venueId || resolveVenueId(selectedVenue) || selectedVenueIdRef.current;
+    if (!effectiveVenueId) {
+      newErrors.venueSelection = 'Please select a venue (from dropdown or gallery)';
+    }
     if (selectedEventTypes.length === 0) newErrors.eventType = 'Please select at least one type of function';
     if (selectedGuestTypes.length === 0) newErrors.guestType = 'Please select at least one type of guest';
 
@@ -375,20 +405,37 @@ export default function CreateEvent() {
     if (!termsAccepted) newErrors.terms = 'You must accept the terms and conditions';
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setValidationSummary(Object.values(newErrors));
+    return {
+      isValid: Object.keys(newErrors).length === 0,
+      errors: newErrors,
+    };
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      showToastMessage('Please fill out all required fields before submitting');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    const { isValid, errors: validationErrors } = validateForm();
+    if (!isValid) {
+      const firstErrorKey = Object.keys(validationErrors)[0];
+      const firstErrorMessage = validationErrors[firstErrorKey] || 'Please fill out all required fields before submitting';
+      showToastMessage(firstErrorMessage);
+      requestAnimationFrame(() => {
+        const firstInvalidField = document.querySelector('.form-input.error, .form-textarea.error, .error-message');
+        if (firstInvalidField && typeof firstInvalidField.scrollIntoView === 'function') {
+          firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
       return;
     }
 
+    setValidationSummary([]);
+
     const numericResourcesArray = [];
     const servicesObject = {};
+    const effectiveVenueId = formData.venueId || resolveVenueId(selectedVenue) || selectedVenueIdRef.current;
 
     Object.entries(resources).forEach(([name, value]) => {
       if (KNOWN_SERVICES.includes(name)) {
@@ -414,6 +461,7 @@ guestTypes.forEach(type => {
 
 const finalPayload = {
   ...formData,
+  venueId: effectiveVenueId,
   startDateTime: combineDateTime(dateParts.startDate, dateParts.startTime),
   endDateTime: combineDateTime(dateParts.endDate || dateParts.startDate, dateParts.endTime),
   expectedAttend: Number(formData.expectedAttend),
@@ -456,6 +504,17 @@ const finalPayload = {
 
           <div className="create-event-form-wrapper">
             <form className="create-event-form" onSubmit={handleSubmit}>
+              {validationSummary.length > 0 && (
+                <section className="form-section">
+                  <h2 className="section-title">Please fix these fields</h2>
+                  <ul className="error-message" style={{ marginTop: 8, paddingLeft: 20 }}>
+                    {validationSummary.map((msg, index) => (
+                      <li key={`${msg}-${index}`}>{msg}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
               {/* Event Details */}
               <section className="form-section">
                 <h2 className="section-title">Event Details</h2>
@@ -573,15 +632,16 @@ const finalPayload = {
                 </section>
 
                 <div className="form-group">
-                  <label className="form-label">Description</label>
+                  <label className="form-label">Description *</label>
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
                     placeholder="Provide a brief description of the event..."
                     rows="4"
-                    className="form-textarea"
+                    className={`form-textarea ${errors.description ? 'error' : ''}`}
                   />
+                  {errors.description && <p className="error-message">{errors.description}</p>}
                 </div>
 
                 <div className="form-group">
@@ -603,6 +663,17 @@ const finalPayload = {
               </section>
 
               {/* Venue Gallery */}
+              {formData.venueId && (
+                <section className="form-section">
+                  <p className="form-label" style={{ color: '#1f7a1f' }}>
+                    Venue selected successfully.
+                  </p>
+                  <p className="form-label" style={{ color: '#1f7a1f' }}>
+                    Selected venue ID: {formData.venueId}
+                  </p>
+                </section>
+              )}
+
               <VenueCardGallery
                 selectedVenue={selectedVenue}
                 setSelectedVenue={handleVenueSelect}

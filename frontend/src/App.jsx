@@ -60,6 +60,7 @@ const VerifyEmail = lazy(() => import('./pages/Auth/VerifyEmail'));
 
 /* ---------- Shared Pages ---------- */
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
 const Discover = lazy(() => import('./pages/AttendeeDashBoard/Discover'));
 const Notifications = lazy(() => import('./pages/Shared/Notifications'));
 
@@ -106,6 +107,7 @@ function App() {
             <Route path="discover" element={<Discover />} />
             <Route path="events" element={<MyEvents />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="notifications" element={<NotificationsPage role="ORGANIZER" />} />
             <Route path="upload-pop/:id" element={<UploadProofOfPayment />} />
             <Route path="create-event" element={<CreateEvent />} />
             <Route path="confirm-event" element={<ConfirmEventDetails />} />

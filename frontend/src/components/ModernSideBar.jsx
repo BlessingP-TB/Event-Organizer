@@ -6,6 +6,7 @@ import { Bell, CircleHelp, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import api from "../utils/api";
 import "../styles/components/_modernSidebar.scss";
+import NotificationModal from './NotificationModal';
 
 const ORGANIZER_EVENT_NOTE_PREFIX = "organizer-event";
 
@@ -59,7 +60,8 @@ const ModernSidebar = ({ role, links, storageKey }) => {
     return () => window.removeEventListener('notificationsUpdated', handleUpdate);
   }, [storageKey]);
 
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const unreadCount = parseInt(localStorage.getItem(`${storageKey}:unreadCount`) || String(notifications.filter((n) => !n.read).length), 10);
+  const navigate = useNavigate();
 
   /* ---------------- Toggle Sidebar ---------------- */
   const toggleMobile = () => setIsMobileOpen((prev) => !prev);
@@ -69,6 +71,50 @@ const ModernSidebar = ({ role, links, storageKey }) => {
     localStorage.removeItem("user");
     localStorage.removeItem("userProfileImage");
     navigate("/login");
+  };
+
+  const handleOpen = async (note) => {
+    try {
+      // mark as read on the server
+      await api.patch(`/notifications/${note.id}/read`);
+    } catch (err) {
+      console.warn('Failed to mark notification read on server', err);
+    }
+
+    // re-fetch notifications from server (poller will also update soon)
+    try {
+      const res = await api.get('/notifications');
+      const serverNotes = res.data?.data || [];
+      setNotifications(serverNotes);
+      localStorage.setItem(storageKey, JSON.stringify(serverNotes));
+      window.dispatchEvent(new Event(`${storageKey}Updated`));
+    } catch (err) {
+      // fallback: mark locally
+      const updated = notifications.map((n) => (n.id === note.id ? { ...n, read: true } : n));
+      setNotifications(updated);
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+    }
+
+    // Navigate to the Notifications page so user sees the full list
+    setShowNotifications(false);
+    const basePath = role === 'ADMIN' ? '/admin' : role === 'ORGANIZER' ? '/organizer' : '/attendee';
+    navigate(`${basePath}/notifications`);
+  };
+
+  const closeNotifModal = () => {
+    setShowNotifModal(false);
+    setActiveNote(null);
+  };
+
+  const goToEventFromNotif = (note) => {
+    const eventId = note.data?.eventId;
+    if (eventId) {
+      if (role === 'ADMIN') navigate(`/admin/details/${eventId}`);
+      else if (role === 'ORGANIZER') navigate(`/organizer/event/${eventId}`);
+      else navigate(`/attendee/view-event/${eventId}`);
+      setShowNotifications(false);
+      closeNotifModal();
+    }
   };
 
   return (
@@ -188,6 +234,10 @@ const ModernSidebar = ({ role, links, storageKey }) => {
             setIsMobileOpen(false);
           }}
         />
+      )}
+      {/* Notification modal shown on top of screen when a notification is clicked */}
+      {showNotifModal && activeNote && (
+        <NotificationModal note={activeNote} onClose={closeNotifModal} onOpenEvent={goToEventFromNotif} />
       )}
     </>
   );

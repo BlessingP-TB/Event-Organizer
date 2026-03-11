@@ -27,13 +27,17 @@ if (emailConfigured) {
         },
     });
 
-    transporter
-        .verify()
-        .then(() => logger.info('Email transporter is configured and ready.'))
-        .catch((error) =>
-            logger.error('Email transporter verification failed.', error)
-        );
-}
+    await smtpTransporter.verify();
+    logger.info('SMTP email transporter is configured and ready.');
+    return smtpTransporter;
+};
+
+const getTransporter = async () => {
+    if (!transporterPromise) {
+        transporterPromise = createTransporter();
+    }
+    return transporterPromise;
+};
 
 const assertEmailReady = () => {
     if (!emailConfigured) {
@@ -50,8 +54,17 @@ const sendEmail = async (to, subject, text, html) => {
     assertEmailReady();
 
     try {
+        const transporter = await getTransporter();
+        if (!transporter) {
+            logger.warn('Email sending is disabled. Skipping email task.', {
+                to,
+                subject,
+            });
+            return;
+        }
+
         const info = await transporter.sendMail({
-            from: email.from,
+            from: email.from || 'no-reply@smartevents.local',
             to,
             subject,
             text,
@@ -61,6 +74,11 @@ const sendEmail = async (to, subject, text, html) => {
             messageId: info.messageId,
             recipient: to,
         });
+
+        const previewUrl = nodemailer.getTestMessageUrl(info);
+        if (previewUrl) {
+            logger.info('Email preview URL (Ethereal):', { previewUrl });
+        }
     } catch (error) {
         logger.error('Error sending email.', { error, recipient: to });
         throw error;

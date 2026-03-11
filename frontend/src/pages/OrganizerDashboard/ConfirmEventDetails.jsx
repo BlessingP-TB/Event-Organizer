@@ -10,6 +10,12 @@ export default function ConfirmEventDetails() {
   const location = useLocation();
   // Receive the complete formData from the CreateEvent page
   const { formData, selectedVenue, termsAccepted, themeImage } = location.state || {};
+  const venueDetails = selectedVenue || {
+    name: 'Selected venue',
+    location: 'N/A',
+    type: 'N/A',
+    capacity: 'N/A',
+  };
 
   // --- STATE MANAGEMENT ---
   const [loading, setLoading] = useState(false);
@@ -53,7 +59,7 @@ export default function ConfirmEventDetails() {
       showToastMessage("You must accept the terms before submitting.");
       return;
     }
-    if (!selectedVenue || !formData.venueId) {
+    if (!formData?.venueId) {
       showToastMessage("A venue must be selected before submitting.");
       return;
     }
@@ -128,7 +134,7 @@ export default function ConfirmEventDetails() {
   };
 
   // --- RENDER LOGIC ---
-  if (!formData || !selectedVenue) {
+  if (!formData) {
     return (
       <div className="confirm-event-page">
          <div className="confirm-event-container">
@@ -174,10 +180,10 @@ export default function ConfirmEventDetails() {
             </section>
             <section className="confirm-section">
               <h2>Selected Venue</h2>
-              <p><strong>Name:</strong> {selectedVenue.name}</p>
-              <p><strong>Location:</strong> {selectedVenue.location}</p>
-              <p><strong>Type:</strong> {selectedVenue.type}</p>
-              <p><strong>Capacity:</strong> {selectedVenue.capacity}</p>
+              <p><strong>Name:</strong> {venueDetails.name}</p>
+              <p><strong>Location:</strong> {venueDetails.location}</p>
+              <p><strong>Type:</strong> {venueDetails.type}</p>
+              <p><strong>Capacity:</strong> {venueDetails.capacity}</p>
             </section>
 
             {/* Event Context */}
