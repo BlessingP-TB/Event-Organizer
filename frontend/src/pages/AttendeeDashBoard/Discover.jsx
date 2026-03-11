@@ -87,7 +87,6 @@ const Discover = () => {
         }));
 
         setEvents(apiEvents);
-        setFilteredEvents(apiEvents);
       } catch (error) {
         console.error("Failed to fetch events:", error);
         setError("Could not load discover events. Please try again.");

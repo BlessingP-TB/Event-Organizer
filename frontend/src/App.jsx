@@ -8,6 +8,8 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import './App.scss';
 import './styles/abstracts/profile.scss';
 
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+
 /* ---------- Lazy Layouts ---------- */
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const AttendeeLayout = lazy(() => import('./layouts/AttendeeLayout'));
