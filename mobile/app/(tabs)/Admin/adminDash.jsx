@@ -11,7 +11,7 @@ import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import Svg, { Path } from 'react-native-svg';
-import { useAdminDashboard } from '../../hooks/Admin/useAdminDashboard';
+import { useAdminDashboard } from '../../../hooks/Admin/useAdminDashboard';
 
 
 export function LineGraph({ data, label, stat, color }) {

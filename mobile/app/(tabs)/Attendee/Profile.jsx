@@ -5,7 +5,7 @@ import { useRouter } from 'expo-router';
 import { Platform, View, Text, Image, TouchableOpacity, TextInput, StyleSheet, Alert, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useProfileData } from '../../hooks/useProfileDat';
+import { useProfileData } from '../../../hooks/useProfileDat';
 
 export default function App() {
   const { data, isLoading, error } = useProfileData();

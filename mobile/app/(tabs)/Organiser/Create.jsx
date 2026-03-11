@@ -20,11 +20,11 @@ import {
 import { Calendar } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Ensure this is installed
 
-import { createEventAPI, updateEventAPI } from '../../data/Organiser/myEvents';
-import { useEvents } from '../../hooks/organiser/useMyEvents';
-import { useOrganiserCalendar } from "../../hooks/organiser/useOrganiserCalendar";
-import { useOrganiserVenue } from "../../hooks/organiser/useOrganiserVenue";
-import { useProfileData } from "../../hooks/organiser/useprofileData";
+import { createEventAPI, updateEventAPI } from '../../../data/Organiser/myEvents';
+import { useEvents } from '../../../hooks/organiser/useMyEvents';
+import { useOrganiserCalendar } from "../../../hooks/organiser/useOrganiserCalendar";
+import { useOrganiserVenue } from "../../../hooks/organiser/useOrganiserVenue";
+import { useProfileData } from "../../../hooks/organiser/useprofileData";
 
 /* --------------------------
    Constants
