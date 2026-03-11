@@ -18,6 +18,7 @@ export default function VenueCardGallery({
   const [error, setError] = useState("");
 
   const resolveVenueId = (venue) => venue?.id || venue?.venueId || venue?._id || '';
+  const selectedVenueId = resolveVenueId(selectedVenue);
 
   const fetchVenues = async () => {
     try {
