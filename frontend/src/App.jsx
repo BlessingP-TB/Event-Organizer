@@ -116,7 +116,7 @@ function App() {
             <Route path="event-details-modify/:id" element={<EventDetailsModify />} />
             <Route path="confirm-modified-details" element={<ConfirmModifiedDetails />} />
             <Route path="view-event/:id" element={<ViewEventDetails />} />
-            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="event-receipt/:eventId" element={<EventReceipt />} />
 
           </Route>
 
