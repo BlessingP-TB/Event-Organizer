@@ -36,6 +36,27 @@ const mapStatusToApproval = (event) => {
   return 'Waiting for Approval';
 };
 
+const getEffectiveStatus = (event) => {
+  if (event?.deletedAt) return 'DELETED';
+  return String(event?.status || 'UNKNOWN').toUpperCase();
+};
+
+const getCancelledAt = (event) => {
+  if (event?.deletedAt) return event.deletedAt;
+  if (String(event?.status || '').toUpperCase() === 'CANCELLED') {
+    return event.updatedAt || event.createdAt || null;
+  }
+  return null;
+};
+
+export const isCancelledExpired = (event, nowMs = Date.now()) => {
+  const cancelledAt = getCancelledAt(event);
+  if (!cancelledAt) return false;
+  const cancelledAtMs = new Date(cancelledAt).getTime();
+  if (Number.isNaN(cancelledAtMs)) return false;
+  return nowMs - cancelledAtMs >= 20 * 60 * 1000;
+};
+
 const formatDisplayDate = (isoString) => {
   if (!isoString) return 'N/A';
   return new Date(isoString).toLocaleDateString(undefined, {
@@ -109,9 +130,17 @@ export const getOrganiserEvents = async () => {
     }
 
     // Map backend data to frontend fields
-    return events.map((event) => ({
+    return events.map((event) => {
+      const effectiveStatus = getEffectiveStatus(event);
+      const isCancelledLike = effectiveStatus === 'CANCELLED' || effectiveStatus === 'DELETED';
+
+      return {
       title: event.name || event.title,
       approval: mapStatusToApproval(event),
+      status: effectiveStatus,
+      isDeleted: Boolean(event.deletedAt),
+      isCancelledLike,
+      cancelledAt: getCancelledAt(event),
       id: event.id || event.uuid,
       displayDate: formatDisplayDate(event.startDateTime),
       time: formatTimeRange(event.startDateTime, event.endDateTime),
@@ -123,7 +152,8 @@ export const getOrganiserEvents = async () => {
       price: event.isFree ? 'Free' : 'TBD',
       contact: event.organizer?.contactEmail || 'N/A',
       ...event,
-    }));
+      };
+    });
 
   } catch (e) {
     console.error('❌ Failed to load ORGANISER events from API', e);
@@ -154,9 +184,14 @@ export const getOrganiserEventById = async (eventId) => {
     const event = await response.json(); // Assuming it returns the event object
 
     // Map backend data to frontend fields
+    const effectiveStatus = getEffectiveStatus(event);
     return {
       title: event.name || event.title,
       approval: mapStatusToApproval(event),
+      status: effectiveStatus,
+      isDeleted: Boolean(event.deletedAt),
+      isCancelledLike: effectiveStatus === 'CANCELLED' || effectiveStatus === 'DELETED',
+      cancelledAt: getCancelledAt(event),
       id: event.id || event.uuid,
       displayDate: formatDisplayDate(event.startDateTime),
       time: formatTimeRange(event.startDateTime, event.endDateTime),
@@ -279,6 +314,143 @@ export const updateEventAPI = async (eventId, eventData) => {
     console.error('❌ Failed to update event via API:', e);
     throw e;
   }
+};
+
+export const deleteDraftOrPendingEvent = async (eventId) => {
+  const token = await getOrganiserAuthToken();
+  if (!token) throw new Error('Authentication token not found.');
+
+  const response = await fetch(`${API_URL}/events/${eventId}`, {
+    method: 'DELETE',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  if (!response.ok && response.status !== 204) {
+    const errorBody = await response.json().catch(() => ({}));
+    throw new Error(errorBody.message || 'Failed to delete event.');
+  }
+
+  return true;
+};
+
+export const cancelPublishedEvent = async (eventId, reason) => {
+  const token = await getOrganiserAuthToken();
+  if (!token) throw new Error('Authentication token not found.');
+
+  const response = await fetch(`${API_URL}/events/${eventId}/cancel`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ reason }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.message || 'Failed to cancel event.');
+  }
+
+  return payload;
+};
+
+export const deleteNowEvent = async (eventId) => {
+  const token = await getOrganiserAuthToken();
+  if (!token) throw new Error('Authentication token not found.');
+
+  const response = await fetch(`${API_URL}/events/${eventId}/delete-now`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.message || 'Failed to delete cancelled event now.');
+  }
+
+  return payload;
+};
+
+export const submitDraftEvent = async (eventId) => {
+  const token = await getOrganiserAuthToken();
+  if (!token) throw new Error('Authentication token not found.');
+
+  const response = await fetch(`${API_URL}/events/${eventId}/submit`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.message || 'Failed to submit draft event.');
+  }
+
+  return payload;
+};
+
+export const createWrittenAssign = async (eventId, staffCount) => {
+  const token = await getOrganiserAuthToken();
+  if (!token) throw new Error('Authentication token not found.');
+
+  const response = await fetch(`${API_URL}/events/${eventId}/written-assign`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({ staffCount }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.message || 'Failed to create written assignment.');
+  }
+
+  return payload;
+};
+
+export const loginWrittenScanner = async (eventId, username, password) => {
+  const response = await fetch(`${API_URL}/events/${eventId}/written-assign/login`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ username, password }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.message || 'Invalid scanner credentials.');
+  }
+
+  return payload;
+};
+
+export const redeemWrittenScannerQr = async (eventId, qrData, scannerToken) => {
+  const response = await fetch(`${API_URL}/events/${eventId}/written-assign/redeem`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${scannerToken}`,
+    },
+    body: JSON.stringify({ qrData }),
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.message || 'Failed to validate attendee QR code.');
+  }
+
+  return payload;
 };
 
 
@@ -578,12 +750,7 @@ export const saveEvent = async (newEvent) => {
 
 export const deleteEvent = async (eventId) => {
   try {
-    const existing = await getEvents(); // WARNING: This calls the ADMIN getEvents()
-    const filtered = existing.filter(
-      (event) => event.id !== parseInt(eventId)
-    );
-    await AsyncStorage.setItem(EVENTS_KEY, JSON.stringify(filtered));
-    return true;
+    return await deleteDraftOrPendingEvent(eventId);
   } catch (e) {
     console.error('Failed to delete event', e);
     return false;

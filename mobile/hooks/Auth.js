@@ -16,7 +16,7 @@ export const handleSignup = async (name, surname, email, phone, password, confir
             password,
             verify_password: confirmPassword,
             role,
-        });
+        }, { timeout: 20000 });
 
         if (response.status === 201) {
             Alert.alert("Success", "Account created successfully. Please verify your email.");
@@ -27,7 +27,13 @@ export const handleSignup = async (name, surname, email, phone, password, confir
         }
     } catch (error) {
         console.error("Signup error:", error.response?.data || error.message);
-        Alert.alert("Error", error.response?.data?.message || "Failed to sign up.");
+        if (error.code === "ECONNABORTED") {
+            Alert.alert("Network Timeout", `Server did not respond in time. Check backend and API URL: ${API_URL}`);
+        } else if (error.message === "Network Error") {
+            Alert.alert("Network Error", `Cannot reach API at ${API_URL}. Ensure backend is running and phone/emulator can access it.`);
+        } else {
+            Alert.alert("Error", error.response?.data?.message || "Failed to sign up.");
+        }
         return null;
     }
 };
@@ -40,7 +46,7 @@ export const handleSignin = async (rememberMe, email, password, API_URL, router)
         const response = await axios.post(`${API_URL}/auth/login`, {
             email,
             password,
-        });
+        }, { timeout: 20000 });
 
         if (response.status === 200) {
             const { accessToken, user } = response.data;
@@ -95,6 +101,10 @@ export const handleSignin = async (rememberMe, email, password, API_URL, router)
 
         if (error.message.includes("[AsyncStorage]")) {
             Alert.alert("Login Failed", "A problem occurred while trying to save your session. This is often due to an invalid API response.");
+        } else if (error.code === "ECONNABORTED") {
+            Alert.alert("Network Timeout", `Server did not respond in time. Check backend and API URL: ${API_URL}`);
+        } else if (error.message === "Network Error") {
+            Alert.alert("Network Error", `Cannot reach API at ${API_URL}. Ensure backend is running and phone/emulator can access it.`);
         } else {
             Alert.alert("Error", error.response?.data?.message || "Login failed.");
         }
