@@ -8,6 +8,8 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import './App.scss';
 import './styles/abstracts/profile.scss';
 
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
+
 /* ---------- Lazy Layouts ---------- */
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const AttendeeLayout = lazy(() => import('./layouts/AttendeeLayout'));
@@ -27,6 +29,8 @@ const ConfirmModifiedDetails = lazy(() => import('./pages/OrganizerDashboard/Con
 const RegisterForEvent = lazy(() => import('./pages/OrganizerDashboard/RegisterForEvent'));
 const UploadProofOfPayment = lazy(() => import('./pages/OrganizerDashboard/UploadProofOfPayment'));
 const EventReceipt = lazy(() => import('./pages/OrganizerDashboard/EventReceipt'));
+const RescheduleEvent = lazy(() => import('./pages/OrganizerDashboard/RescheduleEvent'));
+const WrittenAssign = lazy(() => import('./pages/OrganizerDashboard/WrittenAssign'));
 /* ---------- Admin Pages ---------- */
 const AnalyticsDashboard = lazy(() => import("./pages/AdminDashboard/AnalyticsDashboard"));
 const AnalyticsExportScreen = lazy(() => import("./pages/AdminDashboard/AnalyticsExportScreen"));
@@ -60,6 +64,8 @@ const VerifyEmail = lazy(() => import('./pages/Auth/VerifyEmail'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const Discover = lazy(() => import('./pages/AttendeeDashBoard/Discover'));
 const Notifications = lazy(() => import('./pages/Shared/Notifications'));
+const ScannerLogin = lazy(() => import('./pages/Shared/ScannerLogin'));
+const ScannerCheckIn = lazy(() => import('./pages/Shared/ScannerCheckIn'));
 
 /* ---------- Utility Components ---------- */
 function LoadingFallback() {
@@ -104,6 +110,7 @@ function App() {
             <Route path="discover" element={<Discover />} />
             <Route path="events" element={<MyEvents />} />
             <Route path="profile" element={<ProfilePage />} />
+            <Route path="notifications" element={<NotificationsPage role="ORGANIZER" />} />
             <Route path="upload-pop/:id" element={<UploadProofOfPayment />} />
             <Route path="create-event" element={<CreateEvent />} />
             <Route path="confirm-event" element={<ConfirmEventDetails />} />
@@ -113,9 +120,14 @@ function App() {
             <Route path="event-details-modify/:id" element={<EventDetailsModify />} />
             <Route path="confirm-modified-details" element={<ConfirmModifiedDetails />} />
             <Route path="view-event/:id" element={<ViewEventDetails />} />
-            <Route path="notifications" element={<Notifications />} />
+            <Route path="event-receipt/:eventId" element={<EventReceipt />} />
+            <Route path="reschedule-event/:id" element={<RescheduleEvent />} />
+            <Route path="written-assign/:id" element={<WrittenAssign />} />
 
           </Route>
+
+          <Route path="/scanner-login/:eventId" element={<ScannerLogin />} />
+          <Route path="/scanner/:eventId" element={<ScannerCheckIn />} />
 
           {/* ---------- Admin Routes ---------- */}
           <Route
@@ -136,7 +148,7 @@ function App() {
             <Route path="tools" element={<AdminTools />} />
             <Route path="chat" element={<AdminChat />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications" element={<NotificationsPage />} />
            <Route path="events" element={<AdminEvents />} />
           {/* <Route path="events/:id" element={<AdminEventDetails />} />  */}
 
@@ -161,7 +173,7 @@ function App() {
             <Route path="ratings" element={<AttendeeEventRating />} />
             <Route path="help-support" element={<HelpSupport />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="notifications" element={<Notifications />} />
+            <Route path="notifications" element={<NotificationsPage />} />
           </Route>
 
           {/* ---------- 404 ---------- */}

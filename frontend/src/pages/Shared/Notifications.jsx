@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
 import api from "../../utils/api";
+import { subscribeToNotificationStream } from "../../utils/realtimeNotifications";
 import "../../styles/pages/_notifications.scss";
 
 const roleConfig = {
@@ -42,13 +43,21 @@ const Notifications = () => {
 
   useEffect(() => {
     loadNotifications();
+    const pollId = window.setInterval(loadNotifications, 15000);
+    const unsubscribeRealtime = subscribeToNotificationStream(() => {
+      loadNotifications();
+    });
 
     const handleUpdate = () => {
       loadNotifications();
     };
 
     window.addEventListener('notificationsUpdated', handleUpdate);
-    return () => window.removeEventListener('notificationsUpdated', handleUpdate);
+    return () => {
+      unsubscribeRealtime();
+      window.clearInterval(pollId);
+      window.removeEventListener('notificationsUpdated', handleUpdate);
+    };
   }, [loadNotifications]);
 
   const markAsRead = async (id) => {

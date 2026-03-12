@@ -7,7 +7,7 @@ import * as Notifications from 'expo-notifications';
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import { useOrgaDash } from '../../hooks/organiser/useOrgaDash';
+import { useOrgaDash } from '../../../hooks/organiser/useOrgaDash';
 
 
 

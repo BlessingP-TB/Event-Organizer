@@ -64,6 +64,41 @@ const createEvent = customJoi.object({
             customJoi.string(), 
             customJoi.boolean()
         ).optional(),
+        submitForApproval: customJoi.boolean().optional(),
+    }),
+});
+
+const submitDraft = customJoi.object({
+    params: customJoi.object({
+        eventId: customJoi.string().uuid().required(),
+    }),
+});
+
+const writtenAssignCreate = customJoi.object({
+    params: customJoi.object({
+        eventId: customJoi.string().uuid().required(),
+    }),
+    body: customJoi.object({
+        staffCount: customJoi.number().integer().min(2).max(4).required(),
+    }),
+});
+
+const writtenAssignLogin = customJoi.object({
+    params: customJoi.object({
+        eventId: customJoi.string().uuid().required(),
+    }),
+    body: customJoi.object({
+        username: customJoi.string().trim().required(),
+        password: customJoi.string().trim().required(),
+    }),
+});
+
+const writtenAssignRedeem = customJoi.object({
+    params: customJoi.object({
+        eventId: customJoi.string().uuid().required(),
+    }),
+    body: customJoi.object({
+        qrData: customJoi.string().trim().required(),
     }),
 });
 
@@ -118,6 +153,31 @@ const approveImmediateBooking = customJoi.object({
     }),
 });
 
+const cancelEvent = customJoi.object({
+    params: customJoi.object({
+        eventId: customJoi.string().uuid().required(),
+    }),
+    body: customJoi.object({
+        reason: customJoi.string().trim().min(5).max(500).required(),
+    }),
+});
+
+const requestReschedule = customJoi.object({
+    params: customJoi.object({
+        eventId: customJoi.string().uuid().required(),
+    }),
+    body: customJoi.object({
+        startDateTime: customJoi.date().iso().required(),
+        endDateTime: customJoi
+            .date()
+            .iso()
+            .greater(customJoi.ref('startDateTime'))
+            .required(),
+        venueId: customJoi.string().uuid().optional(),
+        reason: customJoi.string().trim().min(5).max(500).required(),
+    }),
+});
+
 module.exports = {
     eventIdParam,
     listPublicEvents,
@@ -127,4 +187,10 @@ module.exports = {
     updateEvent,
     setEventStatus,
     approveImmediateBooking,
+    cancelEvent,
+    requestReschedule,
+    submitDraft,
+    writtenAssignCreate,
+    writtenAssignLogin,
+    writtenAssignRedeem,
 };

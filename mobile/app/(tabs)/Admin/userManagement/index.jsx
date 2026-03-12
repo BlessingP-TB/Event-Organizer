@@ -14,7 +14,7 @@ import {
 } from "react-native";
 // Import the new API Client and token management functions
 import { useNavigation } from "@react-navigation/native";
-import apiClient, { clearAccessToken, getAccessToken, setTokens } from "../../../hooks/apiClient";
+import apiClient, { clearAccessToken, getAccessToken, setTokens } from "../../../../hooks/apiClient";
 
 // --- Constants (Unchanged) ---
 const ROLES = ["Attendee", "Organizer"];

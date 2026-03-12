@@ -7,6 +7,7 @@ import VenueCardGallery from '../../components/VenueCardGallery';
 import TermsCheckbox from '../../components/TermsCheckbox';
 import "../../styles/pages/_createevent.scss";
 import { useNavigate } from 'react-router-dom';
+import api from '../../utils/api';
 
 /**
  * Constants
@@ -34,6 +35,22 @@ const getDateStr = (date) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const getStartOfToday = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+};
+
+const isTimeSlotStillAvailable = (selectedDate, startTime) => {
+  if (!selectedDate || !startTime) return true;
+
+  const now = new Date();
+  const candidate = new Date(selectedDate);
+  const [hours, minutes] = String(startTime).split(':').map(Number);
+  candidate.setHours(hours || 0, minutes || 0, 0, 0);
+  return candidate > now;
 };
 
 const normalizeId = (value) => String(value ?? '');
@@ -86,12 +103,16 @@ const getAvailableTimeSlots = (calendarData, venueId, date) => {
     .map(slot => ({
       startTime: slot.startTime,
       endTime: slot.endTime
-    }));
+    }))
+    .filter((slot) => isTimeSlotStillAvailable(date, slot.startTime));
 };
+
+const resolveVenueId = (venue) => venue?.id || venue?.venueId || venue?._id || '';
 
 export default function CreateEvent() {
   const navigate = useNavigate();
   const toastTimerRef = useRef(null);
+  const selectedVenueIdRef = useRef('');
 
   // Selected data
   const [selectedVenue, setSelectedVenue] = useState(null);
@@ -101,6 +122,7 @@ export default function CreateEvent() {
 
   // UI state
   const [errors, setErrors] = useState({});
+  const [validationSummary, setValidationSummary] = useState([]);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
   const [isLoadingTools, setIsLoadingTools] = useState(false);
@@ -155,16 +177,8 @@ export default function CreateEvent() {
   useEffect(() => {
     const fetchCalendarData = async () => {
       try {
-        const token = localStorage.getItem('accessToken');
-        if (!token) throw new Error('Authentication token missing.');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/admin/calendars`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Cache-Control': 'no-cache'
-          }
-        });
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const json = await res.json();
+        const res = await api.get('/admin/calendars');
+        const json = res.data;
         setCalendarData(json.data || json || []);
       } catch (err) {
         console.error('Failed to fetch calendar data:', err);
@@ -178,16 +192,8 @@ export default function CreateEvent() {
     const fetchTools = async () => {
       setIsLoadingTools(true);
       try {
-        const token = localStorage.getItem('accessToken');
-        if (!token) throw new Error('Authentication token missing.');
-        const res = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api/v1'}/tools`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Cache-Control': 'no-cache'
-          }
-        });
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        const json = await res.json();
+        const res = await api.get('/tools');
+        const json = res.data;
         const tools = json.data || json || [];
         const toolNames = Array.isArray(tools) ? tools.map(t => t.name).filter(Boolean) : [];
 
@@ -216,8 +222,10 @@ export default function CreateEvent() {
   }, []);
 
   const handleVenueSelect = useCallback((venue) => {
+    const venueId = resolveVenueId(venue);
+    selectedVenueIdRef.current = venueId;
     setSelectedVenue(venue);
-    setFormData(prev => ({ ...prev, venueId: venue?.id || '' }));
+    setFormData(prev => ({ ...prev, venueId }));
     setDateParts({
       startDate: null,
       startTime: '',
@@ -234,6 +242,7 @@ export default function CreateEvent() {
       if (name === 'campus' || name === 'venueType') {
         setSelectedVenue(null);
         updated.venueId = '';
+        selectedVenueIdRef.current = '';
         setDateParts({
           startDate: null,
           startTime: '',
@@ -244,6 +253,25 @@ export default function CreateEvent() {
       }
       return updated;
     });
+  }, []);
+
+  const handleThemeImageChange = useCallback((e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showToastMessage('Please select a valid image file for event gallery');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setFormData(prev => ({ ...prev, themeImage: reader.result }));
+    };
+    reader.onerror = () => {
+      showToastMessage('Failed to read selected image file');
+    };
+    reader.readAsDataURL(file);
   }, []);
 
   const handleDateTimeChange = useCallback((name, value) => {
@@ -307,23 +335,6 @@ export default function CreateEvent() {
     );
   };
 
-  const handleThemeImageChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      showToastMessage('Please select a valid image file.');
-      return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = () => {
-      setFormData(prev => ({ ...prev, themeImage: reader.result }));
-    };
-    reader.onerror = () => showToastMessage('Failed to read selected image.');
-    reader.readAsDataURL(file);
-  };
-
   const showToastMessage = (message) => {
     setToastMessage(message);
     setShowToast(true);
@@ -342,6 +353,7 @@ export default function CreateEvent() {
   });
 
   const filterDate = (date) => {
+    if (date < getStartOfToday()) return false;
     if (!selectedVenue) return true;
     if (!venueHasCalendarAvailability) return true;
     const selectedDateStr = getDateStr(date);
@@ -352,9 +364,10 @@ export default function CreateEvent() {
     );
   };
 
-  const validateForm = () => {
+  const validateForm = ({ requireTerms = true } = {}) => {
     const newErrors = {};
     if (!formData.name?.trim()) newErrors.name = 'Event title is required';
+    if (!formData.description?.trim()) newErrors.description = 'Description is required';
     if (!formData.campus) newErrors.campus = 'Please select a campus';
     if (!formData.venueType) newErrors.venueType = 'Please select a venue type';
     if (!formData.expectedAttend || Number(formData.expectedAttend) <= 0) newErrors.expectedAttend = 'Please enter a valid number of guests';
@@ -362,7 +375,24 @@ export default function CreateEvent() {
     if (!dateParts.startTime) newErrors.startTime = 'Start time is required';
     if (!dateParts.endDate) newErrors.endDate = 'End date is required';
     if (!dateParts.endTime) newErrors.endTime = 'End time is required';
-    if (!selectedVenue) newErrors.venueSelection = 'Please select a venue from the gallery';
+
+    const candidateStart = combineDateTime(dateParts.startDate, dateParts.startTime);
+    const candidateEnd = combineDateTime(
+      dateParts.endDate || dateParts.startDate,
+      dateParts.endTime
+    );
+    const now = new Date();
+
+    if (candidateStart && new Date(candidateStart) <= now) {
+      newErrors.startTime = 'Start date/time must be in the future';
+    }
+    if (candidateEnd && new Date(candidateEnd) <= now) {
+      newErrors.endTime = 'End date/time must be in the future';
+    }
+    const effectiveVenueId = formData.venueId || resolveVenueId(selectedVenue) || selectedVenueIdRef.current;
+    if (!effectiveVenueId) {
+      newErrors.venueSelection = 'Please select a venue (from dropdown or gallery)';
+    }
     if (selectedEventTypes.length === 0) newErrors.eventType = 'Please select at least one type of function';
     if (selectedGuestTypes.length === 0) newErrors.guestType = 'Please select at least one type of guest';
 
@@ -387,23 +417,40 @@ export default function CreateEvent() {
       }
     }
 
-    if (!termsAccepted) newErrors.terms = 'You must accept the terms and conditions';
+    if (requireTerms && !termsAccepted) newErrors.terms = 'You must accept the terms and conditions';
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setValidationSummary(Object.values(newErrors));
+    return {
+      isValid: Object.keys(newErrors).length === 0,
+      errors: newErrors,
+    };
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!validateForm()) {
-      showToastMessage('Please fill out all required fields before submitting');
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+    const { isValid, errors: validationErrors } = validateForm({ requireTerms: true });
+    if (!isValid) {
+      const firstErrorKey = Object.keys(validationErrors)[0];
+      const firstErrorMessage = validationErrors[firstErrorKey] || 'Please fill out all required fields before submitting';
+      showToastMessage(firstErrorMessage);
+      requestAnimationFrame(() => {
+        const firstInvalidField = document.querySelector('.form-input.error, .form-textarea.error, .error-message');
+        if (firstInvalidField && typeof firstInvalidField.scrollIntoView === 'function') {
+          firstInvalidField.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      });
       return;
     }
 
+    setValidationSummary([]);
+
     const numericResourcesArray = [];
     const servicesObject = {};
+    const effectiveVenueId = formData.venueId || resolveVenueId(selectedVenue) || selectedVenueIdRef.current;
 
     Object.entries(resources).forEach(([name, value]) => {
       if (KNOWN_SERVICES.includes(name)) {
@@ -429,6 +476,7 @@ guestTypes.forEach(type => {
 
 const finalPayload = {
   ...formData,
+  venueId: effectiveVenueId,
   startDateTime: combineDateTime(dateParts.startDate, dateParts.startTime),
   endDateTime: combineDateTime(dateParts.endDate || dateParts.startDate, dateParts.endTime),
   expectedAttend: Number(formData.expectedAttend),
@@ -445,7 +493,60 @@ const finalPayload = {
         formData: serializablePayload,
         selectedVenue,
         termsAccepted,
-        themeImage: formData.themeImage
+        themeImage: formData.themeImage,
+        submitMode: 'submit',
+      }
+    });
+  };
+
+  const handleSaveForLater = () => {
+    const { isValid, errors: validationErrors } = validateForm({ requireTerms: false });
+    if (!isValid) {
+      const firstErrorKey = Object.keys(validationErrors)[0];
+      const firstErrorMessage = validationErrors[firstErrorKey] || 'Please fill out required fields before saving draft';
+      showToastMessage(firstErrorMessage);
+      return;
+    }
+
+    const numericResourcesArray = [];
+    const servicesObject = {};
+    const effectiveVenueId = formData.venueId || resolveVenueId(selectedVenue) || selectedVenueIdRef.current;
+
+    Object.entries(resources).forEach(([name, value]) => {
+      if (KNOWN_SERVICES.includes(name)) {
+        servicesObject[name] = !!value;
+      } else {
+        const qty = parseInt(value, 10) || 0;
+        if (qty > 0) numericResourcesArray.push({ name, quantity: qty });
+      }
+    });
+
+    const enhancedServices = { ...servicesObject };
+    eventTypes.forEach(type => {
+      enhancedServices[`Type of Function - ${type}`] = selectedEventTypes.includes(type);
+    });
+    guestTypes.forEach(type => {
+      enhancedServices[`Type of Guest - ${type}`] = selectedGuestTypes.includes(type);
+    });
+
+    const finalPayload = {
+      ...formData,
+      venueId: effectiveVenueId,
+      startDateTime: combineDateTime(dateParts.startDate, dateParts.startTime),
+      endDateTime: combineDateTime(dateParts.endDate || dateParts.startDate, dateParts.endTime),
+      expectedAttend: Number(formData.expectedAttend),
+      resources: numericResourcesArray,
+      services: enhancedServices,
+    };
+
+    const serializablePayload = JSON.parse(JSON.stringify(finalPayload));
+    navigate('/organizer/confirm-event', {
+      state: {
+        formData: serializablePayload,
+        selectedVenue,
+        termsAccepted,
+        themeImage: formData.themeImage,
+        submitMode: 'draft',
       }
     });
   };
@@ -471,6 +572,17 @@ const finalPayload = {
 
           <div className="create-event-form-wrapper">
             <form className="create-event-form" onSubmit={handleSubmit}>
+              {validationSummary.length > 0 && (
+                <section className="form-section">
+                  <h2 className="section-title">Please fix these fields</h2>
+                  <ul className="error-message" style={{ marginTop: 8, paddingLeft: 20 }}>
+                    {validationSummary.map((msg, index) => (
+                      <li key={`${msg}-${index}`}>{msg}</li>
+                    ))}
+                  </ul>
+                </section>
+              )}
+
               {/* Event Details */}
               <section className="form-section">
                 <h2 className="section-title">Event Details</h2>
@@ -588,15 +700,16 @@ const finalPayload = {
                 </section>
 
                 <div className="form-group">
-                  <label className="form-label">Description</label>
+                  <label className="form-label">Description *</label>
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleInputChange}
                     placeholder="Provide a brief description of the event..."
                     rows="4"
-                    className="form-textarea"
+                    className={`form-textarea ${errors.description ? 'error' : ''}`}
                   />
+                  {errors.description && <p className="error-message">{errors.description}</p>}
                 </div>
 
                 <div className="form-group">
@@ -618,6 +731,17 @@ const finalPayload = {
               </section>
 
               {/* Venue Gallery */}
+              {formData.venueId && (
+                <section className="form-section">
+                  <p className="form-label" style={{ color: '#1f7a1f' }}>
+                    Venue selected successfully.
+                  </p>
+                  <p className="form-label" style={{ color: '#1f7a1f' }}>
+                    Selected venue ID: {formData.venueId}
+                  </p>
+                </section>
+              )}
+
               <VenueCardGallery
                 selectedVenue={selectedVenue}
                 setSelectedVenue={handleVenueSelect}
@@ -640,6 +764,7 @@ const finalPayload = {
                       className={`form-input ${errors.startDate ? 'error' : ''}`}
                       placeholderText="Select start date"
                       filterDate={filterDate}
+                      minDate={new Date()}
                       dateFormat="yyyy-MM-dd"
                     />
                     {errors.startDate && <p className="error-message">{errors.startDate}</p>}
@@ -701,6 +826,7 @@ const finalPayload = {
                       className={`form-input ${errors.endDate ? 'error' : ''}`}
                       placeholderText="Select end date"
                       filterDate={(date) => {
+                        if (date < getStartOfToday()) return false;
                         if (!selectedVenue) return true;
                         if (!venueHasCalendarAvailability) return true;
                         const selectedDateStr = getDateStr(date);
@@ -781,6 +907,7 @@ const finalPayload = {
 
               <div className="form-footer">
                 <button type="submit" className="btn btn-primary">Submit Request</button>
+                <button type="button" className="btn btn-secondary" onClick={handleSaveForLater}>Save for Later</button>
               </div>
             </form>
 

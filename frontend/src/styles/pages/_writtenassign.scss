@@ -1,0 +1,151 @@
+.written-assign-page {
+  min-height: 100vh;
+  background: #f4f8fc;
+  padding: 1.5rem;
+
+  .wa-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+
+    h2 {
+      margin: 0;
+      color: #0b4f78;
+    }
+
+    .wa-back {
+      border: 1px solid #bfd2e3;
+      background: #fff;
+      color: #0b4f78;
+      border-radius: 999px;
+      padding: 0.45rem 1rem;
+      cursor: pointer;
+    }
+  }
+
+  .wa-card {
+    max-width: 900px;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #d9e4ef;
+    padding: 1.25rem;
+    box-shadow: 0 8px 20px rgba(11, 79, 120, 0.08);
+  }
+
+  .wa-event,
+  .wa-help {
+    margin: 0.35rem 0;
+    color: #334155;
+  }
+
+  .wa-controls {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+
+    label {
+      font-weight: 600;
+      color: #0b4f78;
+    }
+
+    select,
+    button {
+      height: 40px;
+      border-radius: 10px;
+    }
+
+    select {
+      border: 1px solid #bfd2e3;
+      padding: 0 0.75rem;
+      min-width: 140px;
+    }
+
+    button {
+      border: none;
+      background: #0b4f78;
+      color: #fff;
+      padding: 0 1rem;
+      font-weight: 600;
+      cursor: pointer;
+
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .wa-error {
+    color: #b91c1c;
+    margin-top: 0.75rem;
+  }
+
+  .wa-result {
+    margin-top: 1.25rem;
+
+    a {
+      color: #1d4ed8;
+      font-weight: 600;
+    }
+  }
+
+  .wa-actions {
+    margin-top: 1rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.7rem;
+
+    button {
+      border: none;
+      border-radius: 10px;
+      padding: 0.58rem 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .wa-copy-btn {
+      background: #0b4f78;
+      color: #fff;
+    }
+
+    .wa-print-btn {
+      background: #eef2ff;
+      color: #3730a3;
+      border: 1px solid #c7d2fe;
+    }
+  }
+
+  .wa-action-message {
+    margin-top: 0.6rem;
+    color: #166534;
+    font-weight: 600;
+  }
+
+  .wa-credentials {
+    margin-top: 1rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .wa-credential-item {
+    border: 1px solid #dbe7f3;
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: #f8fbff;
+
+    h4 {
+      margin: 0 0 0.5rem;
+      color: #0b4f78;
+    }
+
+    p {
+      margin: 0.3rem 0;
+      color: #334155;
+      font-size: 0.92rem;
+    }
+  }
+}

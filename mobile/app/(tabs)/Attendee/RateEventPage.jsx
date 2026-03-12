@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEvents } from '../../hooks/Attendee/useEvents';
+import { useEvents } from '../../../hooks/Attendee/useEvents';
 
 export default function RatingsPage() {
   const navigation = useNavigation();

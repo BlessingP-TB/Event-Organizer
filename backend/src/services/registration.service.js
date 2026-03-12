@@ -8,6 +8,7 @@ const {
 } = require('../constants/index.constants');
 const eventService = require('./event.service');
 const ticketService = require('./ticket.service');
+const notificationService = require('./notification.service');
 
 const getCapacity = async (eventId) => {
     const event = await eventService.getEventById(eventId);
@@ -134,19 +135,34 @@ const createRegistration = async (userId, eventId, registrationBody) => {
             // Call the internal ticket issuing function
             const newTicket = await ticketService.issueTicketInternal(eventId, ticketBody, tx);
 
+            await notificationService.createSystemNotification({
+                userId,
+                title: 'Registration Completed',
+                message: `You are successfully registered for "${event.name}" and your ticket has been issued.`,
+                tx,
+            });
+
             // Return both the registration and the ticket
             return { ...newRegistration, ticket: newTicket };
         });
 
     } else {
         // --- MANUAL APPROVAL WORKFLOW (Original logic) ---
-        return prisma.registration.create({
+        const pendingRegistration = await prisma.registration.create({
             data: {
                 userId,
                 eventId,
                 status: REGISTRATION_STATUS.PENDING,
             },
         });
+
+        await notificationService.createSystemNotification({
+            userId,
+            title: 'Registration Submitted',
+            message: `Your registration request for "${event.name}" was submitted and is pending approval.`,
+        });
+
+        return pendingRegistration;
     }
 };
 // --- END OF REPLACED FUNCTION ---
@@ -192,6 +208,11 @@ const listUserRegistrations = async (userId) => {
 const decideRegistration = async (registrationId, user, { status, notes }) => {
     const registration = await prisma.registration.findUnique({
         where: { id: registrationId },
+        include: {
+            event: {
+                select: { id: true, name: true, organizerId: true },
+            },
+        },
     });
 
     if (!registration) {
@@ -219,12 +240,20 @@ const decideRegistration = async (registrationId, user, { status, notes }) => {
         await checkCapacity(registration.eventId);
     }
 
-    return prisma.registration.update({
+    const updatedRegistration = await prisma.registration.update({
         where: { id: registrationId },
         data: {
             status,
         },
     });
+
+    await notificationService.createSystemNotification({
+        userId: registration.userId,
+        title: 'Registration Decision',
+        message: `Your registration for "${registration.event?.name || 'this event'}" is now ${status}.`,
+    });
+
+    return updatedRegistration;
 };
 
 const getApprovedRegistrationsForOrganizer = async (organizerId) => {

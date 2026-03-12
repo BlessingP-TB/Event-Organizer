@@ -1,6 +1,7 @@
 const { prisma, ApiError } = require('../utils/index.util');
 const { HTTP_STATUS, ROLES } = require('../constants/index.constants');
 const { randomUUID } = require('crypto');
+const { emitUserNotification } = require('../utils/realtime.util');
 
 let tableInitialized = false;
 
@@ -54,7 +55,9 @@ const createNotificationRecord = async ({ userId, title, message }, db = prisma)
         newId
     );
 
-    return mapNotification(created);
+    const notification = mapNotification(created);
+    emitUserNotification({ userId, notification });
+    return notification;
 };
 
 const assertCanTarget = (currentUser, targetUserId, targetRole) => {
@@ -145,6 +148,30 @@ const createNotification = async ({ currentUser, body }) => {
 
 const createSystemNotification = async ({ userId, title, message, tx }) => {
     return createNotificationRecord({ userId, title, message }, tx || prisma);
+};
+
+const createSystemRoleNotification = async ({ role, title, message, tx }) => {
+    await ensureNotificationTable();
+    const db = tx || prisma;
+    const users = await db.$queryRawUnsafe(
+        `SELECT id FROM user WHERE role = ? AND active = true AND deletedAt IS NULL`,
+        role
+    );
+
+    if (!Array.isArray(users) || users.length === 0) {
+        return [];
+    }
+
+    const created = [];
+    for (const user of users) {
+        const item = await createNotificationRecord(
+            { userId: user.id, title, message },
+            db
+        );
+        created.push(item);
+    }
+
+    return created;
 };
 
 const updateNotification = async ({ currentUser, notificationId, body }) => {
@@ -243,6 +270,7 @@ module.exports = {
     listNotifications,
     createNotification,
     createSystemNotification,
+    createSystemRoleNotification,
     updateNotification,
     deleteNotification,
     clearNotifications,

@@ -1,7 +1,7 @@
 import { useNavigation, useRoute } from '@react-navigation/native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import apiClient from '../../../hooks/apiClient'; // Adjust path if needed
+import apiClient from '../../../../hooks/apiClient'; // Adjust path if needed
 
 // Helper to format dates
 const formatDate = (isoString) => {

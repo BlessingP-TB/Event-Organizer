@@ -24,6 +24,8 @@ const toolRoutes = require('./tool.routes');
 const venueRoutes = require('./venue.routes');
 const publicRoutes = require('./public.routes');
 const attendeeRoutes = require('./attendee.routes');
+const supportRoutes = require('./support.routes');
+const ratingRoutes = require('./rating.routes');
 
 const router = express.Router();
 
@@ -50,7 +52,8 @@ const appRoutes = [
     { path: '/tickets', route: ticketRoutes },
     { path: '/tools', route: toolRoutes },
     { path: '/venues', route: venueRoutes },
-    { path: '/notifications', route: notificationRoutes },
+    { path: '/support', route: supportRoutes },
+    { path: '/ratings', route: ratingRoutes },
     { path: '/', route: publicRoutes },
 ];
 

@@ -12,7 +12,7 @@ const AttendeeLayout = () => {
       <ModernSidebar
         role="ATTENDEE"
         links={attendeeLinks}
-        storageKey="attendeeNotifications"
+        storageKey="adminNotifications"
       />
 
       {/* Main content */}

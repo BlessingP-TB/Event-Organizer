@@ -16,8 +16,8 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { deleteEvent } from '../../../data/Organiser/myEvents';
-import { useEventDetails } from '../../../hooks/organiser/useEventDetails';
+import { deleteEvent } from '../../../../data/Organiser/myEvents';
+import { useEventDetails } from '../../../../hooks/organiser/useEventDetails';
 
 const { width } = Dimensions.get('window');
 

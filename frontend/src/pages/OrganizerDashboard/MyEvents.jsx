@@ -13,10 +13,60 @@ const MyEvents = () => {
   const [filter, setFilter] = useState("All");
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
+  const [nowMs, setNowMs] = useState(Date.now());
   const [popDocuments, setPopDocuments] = useState({}); // State to store POP document IDs
 
   const navigate = useNavigate();
   const token = localStorage.getItem("accessToken");
+
+  const bytesToDataUrl = (bytes, mimeType = 'image/jpeg') => {
+    if (!bytes) return null;
+
+    if (typeof bytes === 'string') {
+      if (bytes.startsWith('data:image/')) return bytes;
+      return `data:${mimeType};base64,${bytes}`;
+    }
+
+    let byteArray;
+    if (Array.isArray(bytes)) {
+      byteArray = bytes;
+    } else if (bytes?.type === 'Buffer' && Array.isArray(bytes.data)) {
+      byteArray = bytes.data;
+    } else if (typeof bytes === 'object') {
+      byteArray = Object.values(bytes);
+    } else {
+      return null;
+    }
+
+    try {
+      // Convert in chunks to avoid call stack errors on large images.
+      const chunkSize = 0x8000;
+      const uint8 = Uint8Array.from(byteArray);
+      let binary = '';
+
+      for (let i = 0; i < uint8.length; i += chunkSize) {
+        const chunk = uint8.subarray(i, i + chunkSize);
+        binary += String.fromCharCode.apply(null, chunk);
+      }
+
+      const base64 = btoa(binary);
+      return `data:${mimeType};base64,${base64}`;
+    } catch (conversionError) {
+      console.warn('Could not convert theme image bytes:', conversionError);
+      return null;
+    }
+  };
+
+  const getThemeImageSrc = (event) => {
+    const theme = event?.Theme;
+    if (!theme) return null;
+
+    if (theme.image) {
+      return bytesToDataUrl(theme.image, theme.mimeType || 'image/jpeg');
+    }
+
+    return theme.imageUrl || null;
+  };
 
   // --- DATA FETCHING ---
   const fetchEvents = useCallback(async () => {
@@ -26,7 +76,8 @@ const MyEvents = () => {
       const response = await api.get("/events/organizer", {
         params: {
           page: 1,
-          pageSize: 100
+          pageSize: 100,
+          includeThemeImage: true,
         }
       });
 
@@ -81,6 +132,11 @@ const MyEvents = () => {
     }
   }, [fetchEvents, token]);
 
+  useEffect(() => {
+    const timer = setInterval(() => setNowMs(Date.now()), 30 * 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // --- HANDLER FOR DOWNLOADING DOCUMENT ---
   const handleDownloadDoc = useCallback(async (e, eventId) => {
     e.stopPropagation(); // Prevent the card's onClick from firing
@@ -122,25 +178,62 @@ const MyEvents = () => {
     }
   }, [token, popDocuments]);
 
+  const handleCancelApprovedEvent = useCallback(async (eventItem, e) => {
+    e.stopPropagation();
+
+    const reason = window.prompt("Enter a cancellation reason (min 5 characters):", "");
+    if (!reason) return;
+
+    if (reason.trim().length < 5) {
+      alert("Cancellation reason must be at least 5 characters.");
+      return;
+    }
+
+    const confirmed = window.confirm(`Cancel event \"${eventItem.name}\"?`);
+    if (!confirmed) return;
+
+    try {
+      const response = await api.post(`/events/${eventItem.id}/cancel`, { reason: reason.trim() });
+      await fetchEvents();
+      const refundPurchaseCount = response?.data?.refundPurchaseCount || 0;
+      alert(
+        refundPurchaseCount > 0
+          ? `Event cancelled and removed from listings. Admin has been notified. Refund processing is pending for ${refundPurchaseCount} completed purchase${refundPurchaseCount === 1 ? '' : 's'}.`
+          : "Event cancelled and removed from listings. Admin has been notified."
+      );
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to cancel event.");
+    }
+  }, [fetchEvents]);
+
+  const handleRequestReschedule = useCallback((eventItem, e) => {
+    e.stopPropagation();
+    navigate(`/organizer/reschedule-event/${eventItem.id}`, {
+      state: { eventData: eventItem },
+    });
+  }, [navigate]);
+
   // --- FILTERING AND SORTING ---
 
   // Helper to get effective status for filtering tabs
   const getEffectiveStatus = (event) => {
     if (event.deletedAt) return "DELETED";
-    // DRAFT: Not completed, not published, not pending approval, not cancelled
-    if (event.status === "DRAFT") return "DRAFT";
-    // PENDING: Waiting for approval (status is PENDING or has a pending approval)
-    if (event.status === "PENDING" || event.approvals?.some(a => a.status === "PENDING")) return "PENDING";
-    // ONGOING: Event is currently taking place
-    const now = new Date();
-    if (event.status === "ONGOING" || (event.status === "PUBLISHED" && new Date(event.startDateTime) <= now && new Date(event.endDateTime) >= now)) return "ONGOING";
-    // PUBLISHED: Approved and upcoming
-    if (event.status === "PUBLISHED" && new Date(event.startDateTime) > now) return "PUBLISHED";
-    // COMPLETED: End date in the past
-    if (event.status === "COMPLETED" || (event.status === "PUBLISHED" && new Date(event.endDateTime) < now)) return "COMPLETED";
-    // CANCELLED: Cancelled or soft-deleted
-    if (event.status === "CANCELLED") return "CANCELLED";
-    return event.status;
+    return event.status || "UNKNOWN";
+  };
+
+  const getCancelledTimestamp = (event) => {
+    if (event.deletedAt) return new Date(event.deletedAt).getTime();
+    if (event.status === "CANCELLED") {
+      const fallbackDate = event.updatedAt || event.createdAt;
+      return fallbackDate ? new Date(fallbackDate).getTime() : null;
+    }
+    return null;
+  };
+
+  const isExpiredFromCancelledTab = (event) => {
+    const cancelledAtMs = getCancelledTimestamp(event);
+    if (!cancelledAtMs || Number.isNaN(cancelledAtMs)) return false;
+    return nowMs - cancelledAtMs >= 20 * 60 * 1000;
   };
 
   const filteredEvents = useMemo(() => {
@@ -148,7 +241,10 @@ const MyEvents = () => {
       .filter(event => {
         const effectiveStatus = getEffectiveStatus(event);
         if (filter === "All") return effectiveStatus !== "DELETED";
-        if (filter === "CANCELLED") return effectiveStatus === "CANCELLED" || effectiveStatus === "DELETED";
+        if (filter === "CANCELLED") {
+          const isCancelledLike = effectiveStatus === "CANCELLED" || effectiveStatus === "DELETED";
+          return isCancelledLike && !isExpiredFromCancelledTab(event);
+        }
         return effectiveStatus === filter;
       })
       .sort((a, b) => {
@@ -166,7 +262,7 @@ const MyEvents = () => {
           return aValue < bValue ? 1 : (aValue > bValue ? -1 : 0);
         }
       });
-  }, [events, filter, sortBy, sortOrder]);
+  }, [events, filter, sortBy, sortOrder, nowMs]);
 
   // --- RENDER LOGIC ---
 
@@ -225,9 +321,14 @@ const MyEvents = () => {
             const formattedStartDate = new Date(event.startDateTime).toLocaleDateString();
             const hasDocument = !!popDocuments[event.id]; // Check if a document ID exists for this event
             const displayStatus = event.deletedAt ? 'DELETED' : (event.status || 'NO STATUS');
+            const isDeletedEvent = Boolean(event.deletedAt);
+            const effectiveStatus = getEffectiveStatus(event);
+            const isCancelledLike = effectiveStatus === "CANCELLED" || effectiveStatus === "DELETED";
+            const isApprovedEvent = event.status === "PUBLISHED";
             const canModifyOrDelete = ["DRAFT", "PENDING"].includes(event.status);
             const canViewDoc = hasDocument;
-            const showActionsMenu = canModifyOrDelete || canViewDoc;
+            const showActionsMenu = !isCancelledLike && (canModifyOrDelete || canViewDoc || isApprovedEvent);
+            const eventImage = getThemeImageSrc(event);
 
             const closeActionsMenu = (clickedElement) => {
               const actionsMenu = clickedElement?.closest('.actions-menu');
@@ -240,15 +341,44 @@ const MyEvents = () => {
               <div
                 key={event.id}
                 className="event-card"
-                onClick={() => navigate(`/organizer/event/${event.id}`, { state: { eventData: event } })}
-                tabIndex="0"
+                onClick={() => {
+                  if (isDeletedEvent) return;
+                  navigate(`/organizer/event/${event.id}`, { state: { eventData: event } });
+                }}
+                tabIndex={isDeletedEvent ? -1 : 0}
               >
                 <div className="event-info">
+                  <div className="event-poster">
+                    {eventImage ? (
+                      <img src={eventImage} alt={`${event.name} theme`} loading="lazy" />
+                    ) : (
+                      <div className="event-poster-placeholder">No image</div>
+                    )}
+                  </div>
                   <h4>{event.name}</h4>
                   <p className="date">Starts: {formattedStartDate}</p>
                   <p className={`status ${displayStatus.toLowerCase()}`}>{displayStatus}</p>
                 </div>
                 <div className="event-action">
+                  {isCancelledLike && (
+                    <button
+                      type="button"
+                      className="action-btn delete-now-btn"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        if (!window.confirm('Delete this cancelled event now? This action cannot be undone.')) return;
+                        try {
+                          await api.post(`/events/${event.id}/delete-now`);
+                          fetchEvents();
+                        } catch (err) {
+                          alert('Failed to delete event: ' + (err?.response?.data?.message || err.message));
+                        }
+                      }}
+                    >
+                      Delete Now
+                    </button>
+                  )}
+
                   {/* Collapsed actions menu for Modify/Delete/View-Doc */}
                   {showActionsMenu && (
                     <details
@@ -306,12 +436,53 @@ const MyEvents = () => {
                             View-Doc
                           </button>
                         )}
+
+                        {isApprovedEvent && (
+                          <button
+                            type="button"
+                            className="menu-item written-assign-item"
+                            onClick={(e) => {
+                              closeActionsMenu(e.currentTarget);
+                              navigate(`/organizer/written-assign/${event.id}`, {
+                                state: { eventData: event },
+                              });
+                            }}
+                          >
+                            Written Assign
+                          </button>
+                        )}
+
+                        {isApprovedEvent && (
+                          <button
+                            type="button"
+                            className="menu-item reschedule-item"
+                            onClick={(e) => {
+                              closeActionsMenu(e.currentTarget);
+                              handleRequestReschedule(event, e);
+                            }}
+                          >
+                            Reschedule
+                          </button>
+                        )}
+
+                        {isApprovedEvent && (
+                          <button
+                            type="button"
+                            className="menu-item cancel-event-item"
+                            onClick={(e) => {
+                              closeActionsMenu(e.currentTarget);
+                              handleCancelApprovedEvent(event, e);
+                            }}
+                          >
+                            Cancel Event
+                          </button>
+                        )}
+
                       </div>
                     </details>
                   )}
 
-                  {/* Upload Document Button */}
-                  {["DRAFT", "PENDING"].includes(event.status) && (
+                  {!isCancelledLike && ["DRAFT", "PENDING"].includes(event.status) && (
                     <button
                       className="action-btn upload-pop-btn"
                       onClick={(e) => {
@@ -334,6 +505,7 @@ const MyEvents = () => {
                       Receipt
                     </button>
                   )}
+
                 </div>
               </div>
             );

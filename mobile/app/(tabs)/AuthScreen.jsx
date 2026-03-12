@@ -1,5 +1,5 @@
 // app/(tabs)/AuthScreen.js
-import { handleSignin, handleSignup } from "@/app/hooks/Auth";
+import { handleSignin, handleSignup } from "@/hooks/Auth";
 import API_URL from "@/config"; // Replace with your API server IP
 import { useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";

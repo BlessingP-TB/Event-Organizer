@@ -20,7 +20,14 @@ export default function ForgotPassword() {
 
     setLoading(true);
     try {
-      await api.post('/auth/forgot-password', { email });
+      const res = await api.post('/auth/forgot-password', { email });
+      const devResetToken = res.data?.resetToken;
+
+      if (devResetToken) {
+        toast.success('Email is disabled in development. Redirecting to reset form.');
+        navigate(`/reset-password?token=${encodeURIComponent(devResetToken)}`);
+        return;
+      }
 
       toast.success(
         `If an account with "${email}" exists, a reset link has been sent. Check your inbox.`

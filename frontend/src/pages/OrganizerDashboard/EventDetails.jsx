@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
-import axios from "axios";
+import api from "../../utils/api";
 import { FaArrowLeft, FaUpload, FaCheck, FaFileImage, FaRedo } from "react-icons/fa";
 import { MdError } from "react-icons/md";
 import "../../styles/pages/_eventdetails.scss";
@@ -35,6 +35,28 @@ const bytesToDataUrl = (bytes, mimeType = 'image/jpeg') => {
     console.error("Failed to convert image bytes to data URL", e);
     return null;
   }
+};
+
+const parseApprovalNotes = (notes) => {
+  if (typeof notes !== 'string') return null;
+  try {
+    return JSON.parse(notes);
+  } catch {
+    return null;
+  }
+};
+
+const getPendingRescheduleApproval = (event) => {
+  if (!Array.isArray(event?.approvals)) return null;
+
+  return event.approvals.find(
+    (approval) => approval.targetType === 'EventReschedule' && approval.status === 'PENDING'
+  ) || null;
+};
+
+const getRequestedRescheduleValue = (payload, legacyKey, compactKey) => {
+  if (!payload || typeof payload !== 'object') return null;
+  return payload[legacyKey] ?? payload[compactKey] ?? null;
 };
 
 const EventDetails = () => {
@@ -74,9 +96,7 @@ const EventDetails = () => {
       }
 
       try {
-        const response = await axios.get(`${API_BASE}/events/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const response = await api.get(`/events/${id}`);
 
         setEvent(response.data);
 
@@ -133,6 +153,20 @@ const EventDetails = () => {
 
   if (!event) return <p>Event not found.</p>;
 
+  const pendingRescheduleApproval = getPendingRescheduleApproval(event);
+  const pendingReschedulePayload = parseApprovalNotes(pendingRescheduleApproval?.notes);
+  const effectiveStartDateTime =
+    getRequestedRescheduleValue(pendingReschedulePayload, 'requestedStartDateTime', 's') ||
+    event.startDateTime;
+  const effectiveEndDateTime =
+    getRequestedRescheduleValue(pendingReschedulePayload, 'requestedEndDateTime', 'e') ||
+    event.endDateTime;
+  const effectiveVenueId =
+    getRequestedRescheduleValue(pendingReschedulePayload, 'requestedVenueId', 'v') ||
+    event.venueId;
+  const effectiveVenue =
+    effectiveVenueId === event.venue?.id || !effectiveVenueId ? event.venue : event.venue;
+
   const statsAvailable = event._count && typeof event._count.registrations !== "undefined";
 
   const bannerSrc = event?.Theme?.image
@@ -185,31 +219,26 @@ const EventDetails = () => {
       };
 
       if (themeId) {
-        await axios.patch(
-          `${API_BASE}/themes/${themeId}`,
+        await api.patch(
+          `/themes/${themeId}`,
           {
             description: `Uploaded by organizer for event ${event.name}`,
             image: base64Image,
-          },
-          { headers }
+          }
         );
       } else {
-        await axios.post(
-          `${API_BASE}/themes`,
+        await api.post(
+          "/themes",
           {
             name: `Theme for ${event.name} ${Date.now()}`,
             description: `Uploaded by organizer for event ${event.name}`,
             image: base64Image,
             eventId: event.id,
-          },
-          { headers }
+          }
         );
       }
 
-      const eventRes = await axios.get(`${API_BASE}/events/${event.id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-        "Cache-Control": "no-cache",
-      });
+      const eventRes = await api.get(`/events/${event.id}`);
       setEvent(eventRes.data);
       setSelectedFile(null);
       setPreviewUrl("");
@@ -257,17 +286,22 @@ const EventDetails = () => {
           <hr />
 
           <h3>When and Where</h3>
+          {pendingRescheduleApproval && (
+            <p className="pending-reschedule-note">
+              <strong>Pending Reschedule:</strong> These details reflect the requested schedule while admin approval is pending.
+            </p>
+          )}
           <p>
-            <strong>Date:</strong> {formatDate(event.startDateTime)} to {formatDate(event.endDateTime)}
+            <strong>Date:</strong> {formatDate(effectiveStartDateTime)} to {formatDate(effectiveEndDateTime)}
           </p>
           <p>
-            <strong>Time:</strong> {formatTime(event.startDateTime)} - {formatTime(event.endDateTime)}
+            <strong>Time:</strong> {formatTime(effectiveStartDateTime)} - {formatTime(effectiveEndDateTime)}
           </p>
           <p>
-            <strong>Venue:</strong> {event.venue?.name || "N/A"}
+            <strong>Venue:</strong> {effectiveVenue?.name || "N/A"}
           </p>
           <p>
-            <strong>Location:</strong> {event.venue?.location || "N/A"}
+            <strong>Location:</strong> {effectiveVenue?.location || "N/A"}
           </p>
 
           {statsAvailable && event.status !== "DRAFT" && (

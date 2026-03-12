@@ -78,6 +78,11 @@ const deleteEvent = catchAsync(async (req, res) => {
     res.status(HTTP_STATUS.NO_CONTENT).send();
 });
 
+const deleteNowEvent = catchAsync(async (req, res) => {
+    await eventService.deleteNowEventByOrganizer(req.params.eventId, req.user.id);
+    res.status(HTTP_STATUS.OK).send({ message: 'Event removed from cancelled list.' });
+});
+
 const publishEvent = catchAsync(async (req, res) => {
     const event = await eventService.publishEvent(req.params.eventId);
     res.status(HTTP_STATUS.OK).send(event);
@@ -90,6 +95,59 @@ const listTicketDefinitions = catchAsync(async (req, res) => {
     res.status(HTTP_STATUS.OK).send(definitions);
 });
 
+const cancelEvent = catchAsync(async (req, res) => {
+    const event = await eventService.cancelEventByOrganizer(
+        req.params.eventId,
+        req.user.id,
+        req.body.reason
+    );
+    res.status(HTTP_STATUS.OK).send(event);
+});
+
+const submitDraft = catchAsync(async (req, res) => {
+    const event = await eventService.submitDraftEventByOrganizer(
+        req.params.eventId,
+        req.user.id
+    );
+    res.status(HTTP_STATUS.OK).send(event);
+});
+
+const requestReschedule = catchAsync(async (req, res) => {
+    const result = await eventService.requestRescheduleByOrganizer(
+        req.params.eventId,
+        req.user.id,
+        req.body
+    );
+    res.status(HTTP_STATUS.CREATED).send(result);
+});
+
+const createWrittenAssign = catchAsync(async (req, res) => {
+    const result = await eventService.assignWrittenScannersByOrganizer(
+        req.params.eventId,
+        req.user.id,
+        req.body.staffCount
+    );
+    res.status(HTTP_STATUS.OK).send(result);
+});
+
+const writtenAssignLogin = catchAsync(async (req, res) => {
+    const result = await eventService.loginWrittenScanner(
+        req.params.eventId,
+        req.body.username,
+        req.body.password
+    );
+    res.status(HTTP_STATUS.OK).send(result);
+});
+
+const redeemWithWrittenAssign = catchAsync(async (req, res) => {
+    const result = await eventService.scannerRedeemAttendeeQr(
+        req.params.eventId,
+        req.body.qrData,
+        req.headers.authorization
+    );
+    res.status(HTTP_STATUS.OK).send(result);
+});
+
 module.exports = {
     createEvent,
     listPublicEvents,
@@ -97,6 +155,13 @@ module.exports = {
     getEvent,
     updateEvent,
     deleteEvent,
+    deleteNowEvent,
     publishEvent,
     listTicketDefinitions,
+    cancelEvent,
+    submitDraft,
+    requestReschedule,
+    createWrittenAssign,
+    writtenAssignLogin,
+    redeemWithWrittenAssign,
 };

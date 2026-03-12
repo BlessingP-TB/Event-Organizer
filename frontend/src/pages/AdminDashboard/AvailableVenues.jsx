@@ -152,7 +152,14 @@ export default function AvailableVenues() {
       }
 
       setModalVisible(false);
+      // Refresh local admin list
       fetchVenues();
+      // Notify other tabs (organiser UI) that venues changed
+      try {
+        localStorage.setItem('venues_updated', String(Date.now()));
+      } catch (e) {
+        console.warn('Failed to set venues_updated flag in localStorage', e);
+      }
     } catch (err) {
       console.error("Save error:", err);
       const apiMessage = err?.response?.data?.message;
@@ -173,6 +180,11 @@ export default function AvailableVenues() {
     try {
       await api.delete(`/admin/venues/${id}`);
       fetchVenues();
+      try {
+        localStorage.setItem('venues_updated', String(Date.now()));
+      } catch (e) {
+        console.warn('Failed to set venues_updated flag in localStorage', e);
+      }
     } catch (err) {
       console.error("Delete error:", err);
       alert("Failed to delete venue");

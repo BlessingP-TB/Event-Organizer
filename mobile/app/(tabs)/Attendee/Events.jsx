@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { useEvents } from '../../hooks/Attendee/useEvents';
+import { useEvents } from '../../../hooks/Attendee/useEvents';
 
 const filters = [
   { label: 'All', key: 'all' },

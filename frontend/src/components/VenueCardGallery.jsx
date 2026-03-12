@@ -17,22 +17,17 @@ export default function VenueCardGallery({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const resolveVenueId = (venue) => venue?.id || venue?.venueId || venue?._id || '';
+  const selectedVenueId = resolveVenueId(selectedVenue);
+
   const fetchVenues = async () => {
     try {
       setLoading(true);
-      setError("");
       const response = await api.get("/venues");
-      const payload = response?.data;
-      const candidates = [
-        payload,
-        payload?.data,
-        payload?.items,
-        payload?.results,
-        payload?.data?.data,
-        payload?.data?.items,
-        payload?.results?.data,
-      ];
-      const venuesArray = candidates.find(Array.isArray) || [];
+      // Handle both array response and paginated response
+      const venuesArray = Array.isArray(response.data)
+        ? response.data
+        : response.data.data || [];
       setVenues(venuesArray);
       setLoading(false);
     } catch (err) {
@@ -81,6 +76,8 @@ export default function VenueCardGallery({
         <h2 className="section-title">Venue Selection</h2>
       </div>
 
+      {/* venue select removed - users pick via cards */}
+
       <div className="venue-card-grid">
         {filteredVenues.length === 0 ? (
           <p className="no-venues">
@@ -89,10 +86,12 @@ export default function VenueCardGallery({
               : "No venues available right now."}
           </p>
         ) : (
-          filteredVenues.map((venue) => (
+          filteredVenues.map((venue) => {
+            const venueId = resolveVenueId(venue);
+            return (
             <div
-              key={venue.id} // ✅ Use venue.id instead of index
-              className={`venue-card ${selectedVenue?.id === venue.id ? "selected" : ""}`}
+              key={venueId || venue.name}
+              className={`venue-card ${selectedVenueId === venueId ? "selected" : ""}`}
               onClick={() => {
                 setSelectedVenue(venue);
                 if (typeof setFormData === "function") {
@@ -108,7 +107,6 @@ export default function VenueCardGallery({
                     alt={venue.name} 
                     onError={(e) => {
                       e.target.style.display = 'none';
-                      e.target.nextSibling.style.display = 'flex';
                     }}
                   />
                 ) : (
@@ -130,7 +128,8 @@ export default function VenueCardGallery({
                 <p className="venue-capacity">Capacity: {venue.capacity || "—"}</p>
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </div>
     </section>

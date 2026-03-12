@@ -9,7 +9,13 @@ export default function ConfirmEventDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   // Receive the complete formData from the CreateEvent page
-  const { formData, selectedVenue, termsAccepted, themeImage } = location.state || {};
+  const { formData, selectedVenue, termsAccepted, themeImage, submitMode = 'submit' } = location.state || {};
+  const venueDetails = selectedVenue || {
+    name: 'Selected venue',
+    location: 'N/A',
+    type: 'N/A',
+    capacity: 'N/A',
+  };
 
   // --- STATE MANAGEMENT ---
   const [loading, setLoading] = useState(false);
@@ -25,20 +31,17 @@ export default function ConfirmEventDetails() {
     toastTimerRef.current = setTimeout(() => setShowToast(false), 5000);
   };
 
-  const notifyAdmin = (eventPayload, venue) => {
-    const adminNotifications = JSON.parse(localStorage.getItem('adminNotifications') || '[]');
-
-    const newNotification = {
-      id: `admin-notif-${Date.now()}`,
-      title: 'New Event Request Submitted',
-      message: `Organizer submitted "${eventPayload.name}" at ${venue?.name || 'selected venue'} for admin review.`,
-      timestamp: new Date().toLocaleString(),
-      read: false,
-      eventId: eventPayload?.id || null,
-    };
-
-    localStorage.setItem('adminNotifications', JSON.stringify([newNotification, ...adminNotifications]));
-    window.dispatchEvent(new Event('adminNotificationsUpdated'));
+  const notifyAdmin = async (eventPayload, venue) => {
+    try {
+      await api.post('/notifications', {
+        title: 'New Event Request Submitted',
+        message: `Organizer submitted "${eventPayload.name}" at ${venue?.name || 'selected venue'} for admin review.`,
+        role: 'ADMIN',
+      });
+      window.dispatchEvent(new Event('notificationsUpdated'));
+    } catch (error) {
+      console.error('Failed to send admin notification:', error);
+    }
   };
 
   const formatDateTime = (isoString) => {
@@ -51,19 +54,25 @@ export default function ConfirmEventDetails() {
   };
 
   // --- SUBMISSION ---
-  const handleSubmit = async () => {
-    if (!termsAccepted) {
+  const saveEvent = async ({ submitForApproval }) => {
+    if (submitForApproval && !termsAccepted) {
       showToastMessage("You must accept the terms before submitting.");
       return;
     }
-    if (!selectedVenue || !formData.venueId) {
+    if (!formData?.venueId) {
       showToastMessage("A venue must be selected before submitting.");
+      return;
+    }
+    if (new Date(formData.endDateTime) <= new Date(formData.startDateTime)) {
+      showToastMessage("End date/time must be after start date/time.");
       return;
     }
     setLoading(true);
     try {
       let themeId = null;
+      let themeWarning = "";
       if (themeImage) {
+        try {
           const base64Image = themeImage.split(',')[1];
           const imageType = themeImage.split(';')[0].split('/')[1];
           const themeResponse = await api.post('/themes', {
@@ -77,6 +86,10 @@ export default function ConfirmEventDetails() {
           if (!themeId) {
               throw new Error('Failed to get theme ID from response');
           }
+        } catch (themeError) {
+          console.error("Theme creation failed, proceeding without theme:", themeError);
+          themeWarning = " Theme image could not be saved, but the event will still be created.";
+        }
       }
 
       // ✅ MERGE eventContext INTO services
@@ -90,40 +103,59 @@ export default function ConfirmEventDetails() {
       const submissionData = {
         name: formData.name,
         description: formData.description,
-        expectedAttend: formData.expectedAttend,
         venueId: formData.venueId,
-        organizerId: formData.organizerId,
-        purposeOfFunction: formData.purposeOfFunction,
         startDateTime: formData.startDateTime,
         endDateTime: formData.endDateTime,
         isFree: formData.isFree,
         ticketRequired: formData.ticketRequired,
         autoDistribute: formData.autoDistribute,
         resources: formData.resources || [],
-        services: formData.services || {}, // ✅ Already has boolean flags
+        services: formData.services || {},
         themeId: themeId ?? null,
-        status: formData.status ?? "PENDING",
+        submitForApproval,
       };
+
+      // Only include expectedAttend if it's a positive number
+      if (formData.expectedAttend && Number(formData.expectedAttend) >= 1) {
+        submissionData.expectedAttend = Number(formData.expectedAttend);
+      }
 
       console.log("DEBUG: Submitting formData to backend:", submissionData);
 
       const response = await api.post("/events", submissionData);
       console.log("Event submitted successfully:", response.data);
       const createdEvent = response?.data?.data || response?.data;
-      notifyAdmin({ ...submissionData, id: createdEvent?.id }, selectedVenue);
-      showToastMessage("Event booking request submitted successfully!");
+      if (submitForApproval) {
+        await notifyAdmin({ ...submissionData, id: createdEvent?.id }, selectedVenue);
+      }
+      showToastMessage(
+        submitForApproval
+          ? "Event booking request submitted successfully!"
+          : "Draft saved successfully!"
+      );
       setTimeout(() => navigate("/organizer/events"), 2000);
     } catch (error) {
       console.error("Error submitting event:", error);
+      console.error("Error response data:", JSON.stringify(error.response?.data, null, 2));
       const errorMessage = error.response?.data?.message || error.message || "An unexpected error occurred.";
-      showToastMessage(`Failed to submit event: ${errorMessage}`);
+      const details = error.response?.data?.details;
+      const detailStr = details ? ` Details: ${JSON.stringify(details)}` : '';
+      showToastMessage(`Failed to submit event: ${errorMessage}${detailStr}`);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleSubmit = async () => {
+    await saveEvent({ submitForApproval: true });
+  };
+
+  const handleSaveDraft = async () => {
+    await saveEvent({ submitForApproval: false });
+  };
+
   // --- RENDER LOGIC ---
-  if (!formData || !selectedVenue) {
+  if (!formData) {
     return (
       <div className="confirm-event-page">
          <div className="confirm-event-container">
@@ -169,10 +201,10 @@ export default function ConfirmEventDetails() {
             </section>
             <section className="confirm-section">
               <h2>Selected Venue</h2>
-              <p><strong>Name:</strong> {selectedVenue.name}</p>
-              <p><strong>Location:</strong> {selectedVenue.location}</p>
-              <p><strong>Type:</strong> {selectedVenue.type}</p>
-              <p><strong>Capacity:</strong> {selectedVenue.capacity}</p>
+              <p><strong>Name:</strong> {venueDetails.name}</p>
+              <p><strong>Location:</strong> {venueDetails.location}</p>
+              <p><strong>Type:</strong> {venueDetails.type}</p>
+              <p><strong>Capacity:</strong> {venueDetails.capacity}</p>
             </section>
 
             {/* Event Context */}
@@ -227,6 +259,11 @@ export default function ConfirmEventDetails() {
             )}
 
             <div className="submit-button-container">
+              {submitMode !== 'submit' && (
+                <button className="btn-submit" type="button" onClick={handleSaveDraft} disabled={loading}>
+                  {loading ? "Saving..." : "Save as Draft"}
+                </button>
+              )}
               <button className="btn-submit" type="button" onClick={handleSubmit} disabled={loading}>
                 {loading ? "Submitting..." : "Confirm & Submit Request"}
               </button>

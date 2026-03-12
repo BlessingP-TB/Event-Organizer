@@ -17,7 +17,7 @@
     "prepare-db-url": "node generate-env.js",
     "migrate": "npm run prepare-db-url && dotenv -e .env -- prisma migrate dev",
     "start": "node server.js",
-    "dev": "nodemon server.js",
+    "dev": "node --watch server.js",
     "admin:setup": "dotenv -e .env -- node admin.utility-script.js"
   },
   "dependencies": {
@@ -36,6 +36,7 @@
     "multer": "^2.0.2",
     "nodemailer": "^7.0.10",
     "pdfkit": "^0.17.2",
+    "socket.io": "^4.8.3",
     "uuid": "^13.0.0"
   },
   "devDependencies": {
