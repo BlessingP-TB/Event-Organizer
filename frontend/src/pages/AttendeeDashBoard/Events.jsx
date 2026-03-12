@@ -15,14 +15,31 @@ const eventFilters = [
   { label: "Missed", key: "CANCELLED" },
 ];
 
-// Helper to map backend status to a more user-friendly frontend status
-const getFrontendStatus = (eventStatus, registrationStatus) => {
+// Helper to map backend status to a more user-friendly frontend status using sysdate
+const getFrontendStatus = (event, registrationStatus) => {
+  // Support both (event, regStatus) and legacy (eventStatus string, regStatus)
+  const eventObj = typeof event === 'object' && event !== null ? event : null;
+  const eventStatus = eventObj ? eventObj.status : event;
+
   if (registrationStatus === "PENDING") return "Pending Approval";
+
+  // Use real dates to determine Missed/Ongoing/Upcoming
+  if (eventObj) {
+    const now = Date.now();
+    const end = eventObj.endDateTime ? new Date(eventObj.endDateTime).getTime() : null;
+    const start = eventObj.startDateTime ? new Date(eventObj.startDateTime).getTime() : null;
+
+    if (eventStatus === "CANCELLED") return "Missed";
+    if (end && now > end) return "Missed";
+    if (start && end && now >= start && now <= end) return "Ongoing";
+    if (start && now < start) return "Upcoming";
+  }
+
   switch (eventStatus) {
     case "PUBLISHED": return "Upcoming";
     case "ONGOING": return "Ongoing";
     case "COMPLETED": return "Attended";
-    case "CANCELLED": return "Cancelled";
+    case "CANCELLED": return "Missed";
     case "DRAFT": return "Draft";
     default: return "Unknown";
   }
@@ -92,6 +109,8 @@ const Events = () => {
   const navigate = useNavigate();
   const [events, setEvents] = useState([]);
   const [availableEvents, setAvailableEvents] = useState([]);
+  const [passedPublicEvents, setPassedPublicEvents] = useState([]);
+  const [missedUnregisteredEvents, setMissedUnregisteredEvents] = useState([]);
   const [filteredEvents, setFilteredEvents] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState("all");
   const [notifications, setNotifications] = useState([]);
@@ -139,7 +158,7 @@ const Events = () => {
         const processedEvents = regs.map((reg) => {
           const event = reg.event;
           const ticket = tickets.find((t) => t.registrationId === reg.id);
-          const status = getFrontendStatus(event.status, reg.status);
+          const status = getFrontendStatus(event, reg.status);
 
           return {
             id: event.id,
@@ -180,7 +199,20 @@ const Events = () => {
             ? response.data
             : [];
 
-        setAvailableEvents(items.filter((event) => new Date(event.startDateTime) > new Date()));
+        const now = new Date();
+        setAvailableEvents(
+          items.filter((event) => {
+            const end = event.endDateTime ? new Date(event.endDateTime) : null;
+            if (end && now > end) return false;
+            return true;
+          })
+        );
+        setPassedPublicEvents(
+          items.filter((event) => {
+            const end = event.endDateTime ? new Date(event.endDateTime) : null;
+            return end && now > end;
+          })
+        );
       } catch (err) {
         console.error('Failed to fetch available events:', err);
         setAvailableEvents([]);
@@ -189,6 +221,12 @@ const Events = () => {
 
     fetchAvailableEvents();
   }, []);
+
+  // Derive unregistered missed events: public events that passed but user never registered for
+  useEffect(() => {
+    const registeredIds = new Set(events.map((e) => e.id));
+    setMissedUnregisteredEvents(passedPublicEvents.filter((e) => !registeredIds.has(e.id)));
+  }, [passedPublicEvents, events]);
 
   // Load notifications from shared admin feed.
   useEffect(() => {
@@ -213,10 +251,16 @@ const Events = () => {
 
   // Apply filters to events
   useEffect(() => {
+    const filterKeyToStatus = {
+      PUBLISHED: 'Upcoming',
+      ONGOING: 'Ongoing',
+      COMPLETED: 'Attended',
+      CANCELLED: 'Missed',
+    };
     setFilteredEvents(
-      selectedFilter === "all"
+      selectedFilter === 'all'
         ? events
-        : events.filter((event) => event.status === getFrontendStatus(selectedFilter, ''))
+        : events.filter((event) => event.status === (filterKeyToStatus[selectedFilter] || selectedFilter))
     );
   }, [selectedFilter, events]);
 
@@ -312,6 +356,31 @@ const Events = () => {
             />
           ))
         )}
+
+        {selectedFilter === "CANCELLED" && missedUnregisteredEvents.length > 0 && (
+          <div style={{ marginTop: filteredEvents.length > 0 ? '1rem' : 0 }}>
+            {filteredEvents.length > 0 && (
+              <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.8rem', color: '#6b7280', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Events you missed without registering</p>
+            )}
+            {missedUnregisteredEvents.map((event) => (
+              <div
+                key={`unregistered-${event.id}`}
+                className="event-row"
+                style={{ opacity: 0.85, cursor: 'default' }}
+                role="listitem"
+              >
+                <div className="event-left">
+                  <FaCalendarAlt size={isMobile ? 24 : 26} color="#b45309" aria-hidden="true" />
+                </div>
+                <div className="event-info">
+                  <h4>{isMobile && event.name.length > 30 ? `${event.name.substring(0, 30)}...` : event.name}</h4>
+                  <p className="event-date">{new Date(event.startDateTime).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</p>
+                  <p className="event-status" style={{ color: '#b45309' }}>Missed · Not Registered</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <section style={{ marginTop: '1.2rem', background: '#fff', border: '1px solid #e5e7eb', borderRadius: '12px', padding: '1rem' }}>
@@ -330,21 +399,29 @@ const Events = () => {
           <p style={{ margin: 0, color: '#6b7280' }}>No approved events available yet.</p>
         ) : (
           <div>
-            {availableEvents.slice(0, 5).map((event) => (
-              <div key={event.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0', borderTop: '1px solid #f3f4f6' }}>
-                <div>
-                  <p style={{ margin: 0, fontWeight: 600 }}>{event.name}</p>
-                  <small style={{ color: '#6b7280' }}>{new Date(event.startDateTime).toLocaleString()}</small>
+            {availableEvents.slice(0, 5).map((event) => {
+              const isPassed = event.endDateTime ? new Date(event.endDateTime) < new Date() : false;
+              return (
+                <div key={event.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.55rem 0', borderTop: '1px solid #f3f4f6' }}>
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 600 }}>{event.name}</p>
+                    <small style={{ color: '#6b7280' }}>{new Date(event.startDateTime).toLocaleString()}</small>
+                    {isPassed && <small style={{ display: 'block', color: '#b45309', fontWeight: 600 }}>Event Passed</small>}
+                  </div>
+                  {isPassed ? (
+                    <span style={{ border: '1px solid #d97706', background: '#fff8e1', color: '#b45309', borderRadius: '8px', padding: '0.35rem 0.55rem', fontSize: '0.8rem', fontWeight: 600 }}>Passed</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/attendee/register/${event.id}`, { state: { eventData: event } })}
+                      style={{ border: '1px solid #0284c7', background: '#eff8ff', color: '#0369a1', borderRadius: '8px', padding: '0.35rem 0.55rem', cursor: 'pointer' }}
+                    >
+                      Register
+                    </button>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/attendee/register/${event.id}`, { state: { eventData: event } })}
-                  style={{ border: '1px solid #0284c7', background: '#eff8ff', color: '#0369a1', borderRadius: '8px', padding: '0.35rem 0.55rem', cursor: 'pointer' }}
-                >
-                  Register
-                </button>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </section>

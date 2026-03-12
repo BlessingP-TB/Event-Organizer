@@ -3,7 +3,7 @@ import "../../styles/pages/_discover.scss";
 import { useNavigate } from "react-router-dom";
 import api from "../../utils/api";
 
-const STATUS_FILTERS = ["All", "Upcoming", "Ongoing", "Attended"];
+const STATUS_FILTERS = ["All", "Upcoming", "Ongoing", "Passed"];
 
 const parseDate = (value) => {
   const d = new Date(value);
@@ -21,10 +21,10 @@ const getFrontendStatus = (event) => {
   if (start && end && nowMs >= start.getTime() && nowMs <= end.getTime()) {
     return "Ongoing";
   }
-  if (end && nowMs > end.getTime()) return "Attended";
+  if (end && nowMs > end.getTime()) return "Passed";
 
   if (event.status === "ONGOING") return "Ongoing";
-  if (event.status === "COMPLETED") return "Attended";
+  if (event.status === "COMPLETED") return "Passed";
 
   return "Upcoming";
 };
@@ -141,7 +141,7 @@ const Discover = () => {
         state: { eventData: event.rawEventData },
       });
     } else {
-      if (event.frontendStatus === "Attended") {
+      if (event.frontendStatus === "Passed") {
         navigate(`/attendee/view-event/${event.id}`, {
           state: { eventData: event.rawEventData },
         });
@@ -244,7 +244,7 @@ const Discover = () => {
                   <span>{event.location}</span>
                 </div>
 
-                <div className="event-status-badge">{event.frontendStatus}</div>
+                <div className={`event-status-badge${event.frontendStatus === 'Passed' ? ' passed' : ''}`}>{event.frontendStatus === 'Passed' ? 'Event Passed' : event.frontendStatus}</div>
 
                 <button
                   className="share-button"
