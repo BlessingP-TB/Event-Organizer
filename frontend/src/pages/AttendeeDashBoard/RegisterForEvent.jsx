@@ -177,6 +177,7 @@ window.dispatchEvent(new Event('adminNotificationsUpdated'));
     return `${diffHours} hours`;
   };
   const duration = calculateDuration(eventData?.startDateTime, eventData?.endDateTime);
+  const isEventPassed = eventData?.endDateTime ? new Date(eventData.endDateTime) < new Date() : false;
 
   if (loadingEvent) {
     return <div className="register-event-page loading">Loading event details...</div>;
@@ -245,7 +246,14 @@ window.dispatchEvent(new Event('adminNotificationsUpdated'));
 
         {/* Registration Section */}
         <section className="event-details__section registration-section">
-          {loadingRegistration ? (
+          {isEventPassed ? (
+            <div className="event-passed-message">
+              <span className="event-passed-icon">⏰</span>
+              <h3>This Event Has Already Passed</h3>
+              <p>The event ended on {new Date(eventData.endDateTime).toLocaleString()}. Registration is no longer available.</p>
+              <button className="view-my-events-btn" onClick={() => navigate('/attendee/discover')}>Discover Other Events</button>
+            </div>
+          ) : loadingRegistration ? (
             <p className="loading-message">Checking registration status...</p>
           ) : isRegistered ? (
             <div className="registered-message">

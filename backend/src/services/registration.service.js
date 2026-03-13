@@ -232,6 +232,7 @@ const listUserRegistrations = async (userId) => {
                     id: true,
                     name: true,
                     startDateTime: true,
+                    endDateTime: true,
                     status: true,
                 },
             },

@@ -219,6 +219,11 @@
       font-size: 12px;
       border-radius: 12px;
       align-self: flex-start;
+
+      &.passed {
+        background-color: #fff3cd;
+        color: #b45309;
+      }
     }
 
     .share-button {
