@@ -5,6 +5,18 @@ import api from '../../utils/api';
 import { deleteEvent } from '../../utils/eventDelete';
 import '../../styles/pages/_myevents.scss';
 
+const FACULTY_LABELS = {
+  ALL_STUDENTS: 'All Students',
+  MANAGEMENT_SCIENCE: 'Management Science',
+  ICT: 'ICT',
+  ENGINEERING_FEBE: 'Engineering (FEBE)',
+};
+
+const getAudienceLabel = (event) => {
+  const audience = event?.requestedResourcesAndServices?.__audienceFaculty;
+  return FACULTY_LABELS[audience] || 'All Students';
+};
+
 const MyEvents = () => {
   // --- STATE MANAGEMENT ---
   const [events, setEvents] = useState([]);
@@ -357,6 +369,7 @@ const MyEvents = () => {
                   </div>
                   <h4>{event.name}</h4>
                   <p className="date">Starts: {formattedStartDate}</p>
+                  <p className="date">Audience: {getAudienceLabel(event)}</p>
                   <p className={`status ${displayStatus.toLowerCase()}`}>{displayStatus}</p>
                 </div>
                 <div className="event-action">

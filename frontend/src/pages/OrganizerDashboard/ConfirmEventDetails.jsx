@@ -5,6 +5,13 @@ import "../../styles/pages/_confirmevent.scss"; // Ensure this path is correct
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../utils/api";
 
+const FACULTY_LABELS = {
+  ALL_STUDENTS: 'All Students',
+  MANAGEMENT_SCIENCE: 'Management Science',
+  ICT: 'ICT',
+  ENGINEERING_FEBE: 'Engineering (FEBE)',
+};
+
 export default function ConfirmEventDetails() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -111,6 +118,7 @@ export default function ConfirmEventDetails() {
         autoDistribute: formData.autoDistribute,
         resources: formData.resources || [],
         services: formData.services || {},
+        audienceFaculty: formData.audienceFaculty,
         themeId: themeId ?? null,
         submitForApproval,
       };
@@ -195,6 +203,7 @@ export default function ConfirmEventDetails() {
               <p><strong>Title:</strong> {formData.name}</p>
               <p><strong>Description:</strong> {formData.description || "No description provided"}</p>
               <p><strong>Purpose:</strong> {formData.purposeOfFunction || "Not specified"}</p>
+              <p><strong>Attendee Audience:</strong> {FACULTY_LABELS[formData.audienceFaculty] || formData.audienceFaculty || 'Not specified'}</p>
               <p><strong>Expected Guests:</strong> {formData.expectedAttend}</p>
               <p><strong>Starts:</strong> {start.date} at {start.time}</p>
               <p><strong>Ends:</strong> {end.date} at {end.time}</p>

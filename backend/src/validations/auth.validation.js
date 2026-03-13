@@ -19,6 +19,14 @@ const register = customJoi.object({
             then: customJoi.string().required(),
             otherwise: customJoi.string().allow('').optional(),
         }),
+        address: customJoi.string().when('role', {
+            is: ROLES.ATTENDEE,
+            then: customJoi
+                .string()
+                .valid('MANAGEMENT_SCIENCE', 'ICT', 'ENGINEERING_FEBE', 'ALL_STUDENTS')
+                .required(),
+            otherwise: customJoi.string().allow('').optional(),
+        }),
     }),
 });
 

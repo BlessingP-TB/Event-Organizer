@@ -5,6 +5,18 @@ import api from "../../utils/api";
 import { Send, Trash2 } from "lucide-react";
 import "../../styles/pages/_eventdetails.scss";
 
+const FACULTY_LABELS = {
+  ALL_STUDENTS: 'All Students',
+  MANAGEMENT_SCIENCE: 'Management Science',
+  ICT: 'ICT',
+  ENGINEERING_FEBE: 'Engineering (FEBE)',
+};
+
+const getAudienceLabel = (event) => {
+  const audience = event?.requestedResourcesAndServices?.__audienceFaculty;
+  return FACULTY_LABELS[audience] || 'All Students';
+};
+
 const bytesToDataUrl = (bytes, mimeType = "image/jpeg") => {
   if (!bytes) return null;
   const byteArray = Array.isArray(bytes) ? bytes : Object.values(bytes);
@@ -158,6 +170,7 @@ const EventDetailsModify = () => {
           <p><strong>Description:</strong> {event.description || "No description provided."}</p>
           <p><strong>Purpose:</strong> {event.purposeOfFunction || "Not specified."}</p>
           <p><strong>Expected Guests:</strong> {event.expectedAttend || 0}</p>
+          <p><strong>Attendee Audience:</strong> {getAudienceLabel(event)}</p>
 
           <hr />
 
@@ -182,7 +195,9 @@ const EventDetailsModify = () => {
                 <hr />
                 <h3>Services & Resources</h3>
                 <ul className="services-resources-list">
-                  {Object.entries(event.requestedResourcesAndServices).map(([key, value]) => (
+                  {Object.entries(event.requestedResourcesAndServices)
+                    .filter(([key]) => key !== '__audienceFaculty')
+                    .map(([key, value]) => (
                     <li key={key}>
                       <strong>{key}:</strong> {typeof value === "boolean" ? (value ? "Yes" : "No") : value}
                     </li>

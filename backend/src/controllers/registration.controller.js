@@ -60,10 +60,16 @@ const getApprovedRegistrationsForOrganizer = catchAsync(async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ count });
 });
 
+const getOrganizerRegistrationReport = catchAsync(async (req, res) => {
+    const report = await registrationService.getOrganizerRegistrationReport(req.user.id);
+    res.status(HTTP_STATUS.OK).send(report);
+});
+
 module.exports = {
     createRegistration,
     getMyRegistration,
     listMyRegistrations,
     decideRegistration,
     getApprovedRegistrationsForOrganizer,
+    getOrganizerRegistrationReport,
 };

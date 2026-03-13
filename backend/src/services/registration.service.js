@@ -10,6 +10,22 @@ const eventService = require('./event.service');
 const ticketService = require('./ticket.service');
 const notificationService = require('./notification.service');
 
+const FACULTY_AUDIENCE = Object.freeze({
+    ALL_STUDENTS: 'ALL_STUDENTS',
+    MANAGEMENT_SCIENCE: 'MANAGEMENT_SCIENCE',
+    ICT: 'ICT',
+    ENGINEERING_FEBE: 'ENGINEERING_FEBE',
+});
+
+const normalizeFacultyAudience = (value) => {
+    if (!value) return null;
+    const normalized = String(value).trim().toUpperCase().replace(/[\s-]+/g, '_');
+    if (normalized === 'ENGINEERING' || normalized === 'FEBE') {
+        return FACULTY_AUDIENCE.ENGINEERING_FEBE;
+    }
+    return Object.values(FACULTY_AUDIENCE).includes(normalized) ? normalized : null;
+};
+
 const getCapacity = async (eventId) => {
     const event = await eventService.getEventById(eventId);
     const venue = await prisma.venue.findUnique({
@@ -83,6 +99,25 @@ const createRegistration = async (userId, eventId, registrationBody) => {
             HTTP_STATUS.BAD_REQUEST,
             'Registrations are only allowed for published events.'
         );
+    }
+
+    const attendee = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { role: true, address: true },
+    });
+
+    const eventAudience =
+        normalizeFacultyAudience(event?.requestedResourcesAndServices?.__audienceFaculty) ||
+        FACULTY_AUDIENCE.ALL_STUDENTS;
+
+    if (attendee?.role === ROLES.ATTENDEE && eventAudience !== FACULTY_AUDIENCE.ALL_STUDENTS) {
+        const attendeeFaculty = normalizeFacultyAudience(attendee?.address);
+        if (!attendeeFaculty || attendeeFaculty !== eventAudience) {
+            throw new ApiError(
+                HTTP_STATUS.FORBIDDEN,
+                'This event is restricted to a different faculty audience.'
+            );
+        }
     }
 
     // Step 2: Check for existing registration
@@ -278,6 +313,207 @@ const getApprovedRegistrationsForOrganizer = async (organizerId) => {
     return count;
 };
 
+const getOrganizerRegistrationReport = async (organizerId) => {
+    const events = await prisma.event.findMany({
+        where: {
+            organizerId,
+            deletedAt: null,
+        },
+        orderBy: { startDateTime: 'desc' },
+        select: {
+            id: true,
+            name: true,
+            status: true,
+            startDateTime: true,
+            endDateTime: true,
+            venue: {
+                select: {
+                    name: true,
+                    location: true,
+                },
+            },
+            registrations: {
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    userId: true,
+                    status: true,
+                    createdAt: true,
+                    source: true,
+                    requestedTicket: true,
+                    user: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                            cellphone_number: true,
+                        },
+                    },
+                    ticket: {
+                        select: {
+                            id: true,
+                            type: true,
+                            price: true,
+                            issuedAt: true,
+                            redeemed: true,
+                            redeemedAt: true,
+                        },
+                    },
+                },
+            },
+            attendance: {
+                select: {
+                    userId: true,
+                    status: true,
+                    checkedAt: true,
+                },
+            },
+        },
+    });
+
+    const eventReports = events.map((event) => {
+        const attendanceByUserId = new Map(
+            event.attendance.map((attendance) => [attendance.userId, attendance])
+        );
+
+        const attendees = event.registrations.map((registration) => {
+            const attendance = attendanceByUserId.get(registration.userId) || null;
+
+            return {
+                registrationId: registration.id,
+                attendeeId: registration.user.id,
+                attendeeName: registration.user.name,
+                attendeeEmail: registration.user.email,
+                attendeePhone: registration.user.cellphone_number,
+                registrationStatus: registration.status,
+                registeredAt: registration.createdAt,
+                registrationSource: registration.source,
+                requestedTicket: registration.requestedTicket,
+                ticketIssued: Boolean(registration.ticket),
+                ticketId: registration.ticket?.id || null,
+                ticketType: registration.ticket?.type || null,
+                ticketPrice: registration.ticket?.price || null,
+                ticketIssuedAt: registration.ticket?.issuedAt || null,
+                ticketRedeemed: Boolean(registration.ticket?.redeemed),
+                ticketRedeemedAt: registration.ticket?.redeemedAt || null,
+                attendanceStatus: attendance?.status || null,
+                checkedAt: attendance?.checkedAt || null,
+            };
+        });
+
+        const totals = attendees.reduce(
+            (accumulator, attendee) => {
+                accumulator.totalRegistrations += 1;
+
+                if (attendee.registrationStatus === REGISTRATION_STATUS.PENDING) {
+                    accumulator.pendingRegistrations += 1;
+                }
+
+                if (attendee.registrationStatus === REGISTRATION_STATUS.APPROVED) {
+                    accumulator.approvedRegistrations += 1;
+                }
+
+                if (attendee.registrationStatus === REGISTRATION_STATUS.ALLOCATED) {
+                    accumulator.allocatedRegistrations += 1;
+                }
+
+                if (attendee.registrationStatus === REGISTRATION_STATUS.REJECTED) {
+                    accumulator.rejectedRegistrations += 1;
+                }
+
+                if (attendee.registrationStatus === REGISTRATION_STATUS.CANCELLED) {
+                    accumulator.cancelledRegistrations += 1;
+                }
+
+                if (attendee.ticketIssued) {
+                    accumulator.ticketIssuedCount += 1;
+                }
+
+                if (attendee.ticketRedeemed) {
+                    accumulator.ticketRedeemedCount += 1;
+                }
+
+                if (attendee.attendanceStatus) {
+                    accumulator.checkedInCount += 1;
+                }
+
+                return accumulator;
+            },
+            {
+                totalRegistrations: 0,
+                pendingRegistrations: 0,
+                approvedRegistrations: 0,
+                allocatedRegistrations: 0,
+                rejectedRegistrations: 0,
+                cancelledRegistrations: 0,
+                ticketIssuedCount: 0,
+                ticketRedeemedCount: 0,
+                checkedInCount: 0,
+            }
+        );
+
+        return {
+            eventId: event.id,
+            eventName: event.name,
+            eventStatus: event.status,
+            startDateTime: event.startDateTime,
+            endDateTime: event.endDateTime,
+            venueName: event.venue?.name || null,
+            venueLocation: event.venue?.location || null,
+            totals,
+            attendees,
+        };
+    });
+
+    const summary = eventReports.reduce(
+        (accumulator, eventReport) => {
+            accumulator.totalEvents += 1;
+            accumulator.totalRegistrations += eventReport.totals.totalRegistrations;
+            accumulator.totalPendingRegistrations += eventReport.totals.pendingRegistrations;
+            accumulator.totalApprovedRegistrations += eventReport.totals.approvedRegistrations;
+            accumulator.totalAllocatedRegistrations += eventReport.totals.allocatedRegistrations;
+            accumulator.totalCheckedIn += eventReport.totals.checkedInCount;
+            accumulator.totalTicketsRedeemed += eventReport.totals.ticketRedeemedCount;
+            return accumulator;
+        },
+        {
+            totalEvents: 0,
+            totalRegistrations: 0,
+            totalPendingRegistrations: 0,
+            totalApprovedRegistrations: 0,
+            totalAllocatedRegistrations: 0,
+            totalCheckedIn: 0,
+            totalTicketsRedeemed: 0,
+        }
+    );
+
+    const recentActivity = eventReports
+        .flatMap((eventReport) =>
+            eventReport.attendees.map((attendee) => ({
+                eventId: eventReport.eventId,
+                eventName: eventReport.eventName,
+                attendeeName: attendee.attendeeName,
+                attendeeEmail: attendee.attendeeEmail,
+                registrationStatus: attendee.registrationStatus,
+                attendanceStatus: attendee.attendanceStatus,
+                registeredAt: attendee.registeredAt,
+                checkedAt: attendee.checkedAt,
+            }))
+        )
+        .sort((left, right) => {
+            const leftDate = new Date(left.checkedAt || left.registeredAt).getTime();
+            const rightDate = new Date(right.checkedAt || right.registeredAt).getTime();
+            return rightDate - leftDate;
+        })
+        .slice(0, 12);
+
+    return {
+        summary,
+        events: eventReports,
+        recentActivity,
+    };
+};
+
 
 module.exports = {
     getRegistrationByUserAndEvent,
@@ -286,5 +522,6 @@ module.exports = {
     decideRegistration,
     checkCapacity,
     getApprovedRegistrationsForOrganizer,
+    getOrganizerRegistrationReport,
 };
 

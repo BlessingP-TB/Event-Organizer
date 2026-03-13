@@ -26,6 +26,39 @@ const notificationService = require('./notification.service');
 
 const WRITTEN_ASSIGN_TARGET_TYPE = 'EventWrittenAssign';
 const SCANNER_ACCESS_TOKEN_TYPE = 'SCANNER_ACCESS';
+const FACULTY_AUDIENCE = Object.freeze({
+    ALL_STUDENTS: 'ALL_STUDENTS',
+    MANAGEMENT_SCIENCE: 'MANAGEMENT_SCIENCE',
+    ICT: 'ICT',
+    ENGINEERING_FEBE: 'ENGINEERING_FEBE',
+});
+
+const normalizeFacultyAudience = (value) => {
+    if (!value) return null;
+    const normalized = String(value).trim().toUpperCase().replace(/[\s-]+/g, '_');
+    if (normalized === 'ENGINEERING' || normalized === 'FEBE') {
+        return FACULTY_AUDIENCE.ENGINEERING_FEBE;
+    }
+    return Object.values(FACULTY_AUDIENCE).includes(normalized) ? normalized : null;
+};
+
+const getEventAudienceFaculty = (event) => {
+    const rawAudience = event?.requestedResourcesAndServices?.__audienceFaculty;
+    return normalizeFacultyAudience(rawAudience) || FACULTY_AUDIENCE.ALL_STUDENTS;
+};
+
+const isEventVisibleToFaculty = (event, viewerFaculty) => {
+    const eventAudience = getEventAudienceFaculty(event);
+    if (eventAudience === FACULTY_AUDIENCE.ALL_STUDENTS) {
+        return true;
+    }
+
+    if (!viewerFaculty) {
+        return false;
+    }
+
+    return eventAudience === viewerFaculty;
+};
 
 const buildRescheduleApprovalPayload = ({
     startDateTime,
@@ -187,7 +220,7 @@ const checkVenueAvailability = async (
 
 const createEvent = async (organizerId, eventBody) => {
     // Destructure to separate ticketDefinitions, resources, and services from the rest of the event data
-    let { ticketDefinitions, resources, services, submitForApproval = true, ...rest } = eventBody;
+    let { ticketDefinitions, resources, services, submitForApproval = true, audienceFaculty, ...rest } = eventBody;
     console.log("DEBUG: Raw eventBody received in createEvent:", eventBody); // Debug log
     console.log("DEBUG: Resources array received:", resources); // Debug log
     console.log("DEBUG: Services object received:", services);
@@ -224,6 +257,16 @@ const createEvent = async (organizerId, eventBody) => {
     } else {
         console.log("DEBUG: No 'services' object found in eventBody or it's not an object.", services); // Debug log
     }
+
+    const normalizedAudienceFaculty = normalizeFacultyAudience(audienceFaculty);
+    if (!normalizedAudienceFaculty) {
+        throw new ApiError(
+            HTTP_STATUS.BAD_REQUEST,
+            'Audience faculty is required. Choose Management Science, ICT, Engineering(FEBE), or All Students.'
+        );
+    }
+
+    requestedResourcesAndServices.__audienceFaculty = normalizedAudienceFaculty;
 
     console.log("DEBUG: Final requestedResourcesAndServices object:", requestedResourcesAndServices); // Debug log
     // --- END OF NEW LOGIC ---
@@ -411,8 +454,16 @@ const submitDraftEventByOrganizer = async (eventId, organizerId) => {
 };
 
 const listPublicEvents = async (queryOptions) => {
-    const { name, location, themeName } = queryOptions;
+    const { name, location, themeName, viewerFaculty } = queryOptions;
     const { skip, take, page, pageSize } = getPagination(queryOptions);
+    const normalizedViewerFaculty = normalizeFacultyAudience(viewerFaculty);
+    if (viewerFaculty && !normalizedViewerFaculty) {
+        throw new ApiError(
+            HTTP_STATUS.BAD_REQUEST,
+            'Invalid viewer faculty filter. Use MANAGEMENT_SCIENCE, ICT, ENGINEERING_FEBE, or ALL_STUDENTS.'
+        );
+    }
+
     const whereClause = {
         status: {
             in: [
@@ -440,8 +491,6 @@ const listPublicEvents = async (queryOptions) => {
 
     const query = {
         where: whereClause,
-        skip,
-        take,
         orderBy: { startDateTime: 'asc' },
         include: {
             venue: { select: { name: true, location: true } },
@@ -454,12 +503,16 @@ const listPublicEvents = async (queryOptions) => {
         },
     };
 
-    const [events, totalItems] = await prisma.$transaction([
-        prisma.event.findMany(query),
-        prisma.event.count({ where: query.where }),
-    ]);
+    const events = await prisma.event.findMany(query);
 
-    return createPaginatedResponse(events, totalItems, page, pageSize);
+    const visibleEvents = events.filter((event) =>
+        isEventVisibleToFaculty(event, normalizedViewerFaculty)
+    );
+
+    const totalItems = visibleEvents.length;
+    const pagedEvents = visibleEvents.slice(skip, skip + take);
+
+    return createPaginatedResponse(pagedEvents, totalItems, page, pageSize);
 };
 
 const listOrganizerEvents = async (organizerId, queryOptions) => {

@@ -15,6 +15,12 @@ import api from '../../utils/api';
 const eventTypes = ["Official", "Academic related", "Private", "External", "Student"];
 const guestTypes = ["VIP", "Media", "Staff", "Student", "Special protocol required"];
 const KNOWN_SERVICES = ['Liquor', 'Kitchen Facilities', 'Cleaning Services', 'Extra Security Guard'];
+const FACULTY_AUDIENCE_OPTIONS = [
+  { value: 'ALL_STUDENTS', label: 'All Students' },
+  { value: 'MANAGEMENT_SCIENCE', label: 'Management Science' },
+  { value: 'ICT', label: 'ICT' },
+  { value: 'ENGINEERING_FEBE', label: 'Engineering (FEBE)' },
+];
 
 /**
  * Utility helpers
@@ -154,6 +160,7 @@ export default function CreateEvent() {
     ticketRequired: true,
     autoDistribute: true,
     allowAttendeePurchase: false,
+    audienceFaculty: '',
     logo: null,
     themeImage: null,
   });
@@ -370,6 +377,7 @@ export default function CreateEvent() {
     if (!formData.description?.trim()) newErrors.description = 'Description is required';
     if (!formData.campus) newErrors.campus = 'Please select a campus';
     if (!formData.venueType) newErrors.venueType = 'Please select a venue type';
+    if (!formData.audienceFaculty) newErrors.audienceFaculty = 'Please select the attendee faculty audience';
     if (!formData.expectedAttend || Number(formData.expectedAttend) <= 0) newErrors.expectedAttend = 'Please enter a valid number of guests';
     if (!dateParts.startDate) newErrors.startDate = 'Start date is required';
     if (!dateParts.startTime) newErrors.startTime = 'Start time is required';
@@ -657,6 +665,22 @@ const finalPayload = {
                     placeholder="e.g., Workshop, Seminar, Celebration"
                     className="form-input"
                   />
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">Attendee Faculty Audience *</label>
+                  <select
+                    name="audienceFaculty"
+                    value={formData.audienceFaculty}
+                    onChange={handleInputChange}
+                    className={`form-input ${errors.audienceFaculty ? 'error' : ''}`}
+                  >
+                    <option value="">Select audience faculty</option>
+                    {FACULTY_AUDIENCE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  {errors.audienceFaculty && <p className="error-message">{errors.audienceFaculty}</p>}
                 </div>
 
                 {/* Type of Function */}

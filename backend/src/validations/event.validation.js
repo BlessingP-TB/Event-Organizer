@@ -12,6 +12,10 @@ const listPublicEvents = customJoi.object({
         name: customJoi.string().optional(),
         location: customJoi.string().optional(),
         themeName: customJoi.string().optional(),
+        viewerFaculty: customJoi
+            .string()
+            .valid('ALL_STUDENTS', 'MANAGEMENT_SCIENCE', 'ICT', 'ENGINEERING_FEBE')
+            .optional(),
     }),
 });
 
@@ -47,6 +51,10 @@ const createEvent = customJoi.object({
         isFree: customJoi.boolean().default(false),
         ticketRequired: customJoi.boolean().optional(),
         autoDistribute: customJoi.boolean().optional(),
+        audienceFaculty: customJoi
+            .string()
+            .valid('ALL_STUDENTS', 'MANAGEMENT_SCIENCE', 'ICT', 'ENGINEERING_FEBE')
+            .required(),
         ticketDefinitions: customJoi
             .array()
             .items(ticketDefinitionSchema)

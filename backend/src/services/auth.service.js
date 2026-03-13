@@ -192,7 +192,7 @@ const findAndVerifyToken = async (token, type) => {
 const register = async (registerBody) => {
     // Don't require email service - we log verification code to console if email fails
 
-    const { email, password, name, role, cellphone_number } = registerBody;
+    const { email, password, name, role, cellphone_number, address } = registerBody;
 
     const existingUser = await userService.findUserByEmail(email);
     if (existingUser) {
@@ -215,6 +215,7 @@ const register = async (registerBody) => {
                 email,
                 name,
                 cellphone_number,
+                address,
                 role: userRole,
                 account: {
                     create: {

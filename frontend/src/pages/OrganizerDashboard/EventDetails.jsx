@@ -10,6 +10,18 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api
 const DEFAULT_BANNER =
   "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&q=80";
 
+const FACULTY_LABELS = {
+  ALL_STUDENTS: 'All Students',
+  MANAGEMENT_SCIENCE: 'Management Science',
+  ICT: 'ICT',
+  ENGINEERING_FEBE: 'Engineering (FEBE)',
+};
+
+const getAudienceLabel = (event) => {
+  const audience = event?.requestedResourcesAndServices?.__audienceFaculty;
+  return FACULTY_LABELS[audience] || 'All Students';
+};
+
 // Helper to convert byte object or array to base64 data URL
 const bytesToDataUrl = (bytes, mimeType = 'image/jpeg') => {
   if (!bytes) return null;
@@ -282,6 +294,9 @@ const EventDetails = () => {
           <p>
             <strong>Expected Guests:</strong> {event.expectedAttend || "Information not available."}
           </p>
+          <p>
+            <strong>Attendee Audience:</strong> {getAudienceLabel(event)}
+          </p>
 
           <hr />
 
@@ -319,7 +334,9 @@ const EventDetails = () => {
                 <hr />
                 <h3>Services & Resources</h3>
                 <ul className="services-resources-list">
-                  {Object.entries(event.requestedResourcesAndServices).map(([key, value]) => (
+                  {Object.entries(event.requestedResourcesAndServices)
+                    .filter(([key]) => key !== '__audienceFaculty')
+                    .map(([key, value]) => (
                     <li key={key}>
                       <strong>{key}:</strong> {typeof value === "boolean" ? (value ? "Yes" : "No") : value}
                     </li>
