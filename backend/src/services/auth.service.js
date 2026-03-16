@@ -197,7 +197,7 @@ const findAndVerifyToken = async (token, type) => {
 const register = async (registerBody) => {
     // Don't require email service - we log verification code to console if email fails
 
-    const { email, password, name, role, cellphone_number } = registerBody;
+    const { email, password, name, role, cellphone_number, address } = registerBody;
     const normalizedEmail = normalizeAuthEmail(email);
 
     if (!isAllowedAuthEmail(normalizedEmail)) {
@@ -229,6 +229,7 @@ const register = async (registerBody) => {
                 email: normalizedEmail,
                 name,
                 cellphone_number,
+                address,
                 role: userRole,
                 account: {
                     create: {

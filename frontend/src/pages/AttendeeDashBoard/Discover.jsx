@@ -59,9 +59,22 @@ const Discover = () => {
       setLoading(true);
       setError(null);
 
+      let viewerFaculty;
       try {
-        // Add cache control header to the API request
-        const response = await api.get('events/public?page=1&pageSize=100', {
+        const rawUser = localStorage.getItem('user');
+        const parsedUser = rawUser ? JSON.parse(rawUser) : null;
+        viewerFaculty = parsedUser?.address;
+      } catch (parseError) {
+        viewerFaculty = undefined;
+      }
+
+      try {
+        const response = await api.get('events/public', {
+          params: {
+            page: 1,
+            pageSize: 100,
+            viewerFaculty: viewerFaculty || undefined,
+          },
           headers: {
             'Cache-Control': 'no-cache'
           }

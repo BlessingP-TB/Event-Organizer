@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const http = require('http');
 const cors = require('cors');
 const cookieParser = require('cookie-parser');
 const environment = require('./src/configs/environment.config');
@@ -8,9 +9,11 @@ const corsOptions = require('./src/configs/cors.config');
 const { globalLimiter } = require('./src/middlewares/index.middleware');
 const mainRouter = require('./src/routes/index.routes');
 const { globalErrorHandler, logger } = require('./src/utils/index.util');
+const { initRealtime } = require('./src/utils/realtime.util');
 const path = require('path');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = environment.port;
 
 app.use(cors(corsOptions));
@@ -36,6 +39,9 @@ app.use('/uploads', express.static(path.join(__dirname, 'src', 'uploads')));
 
 app.use(globalErrorHandler);
 
-app.listen(PORT, () => {
+initRealtime({ server, corsOptions });
+
+server.listen(PORT, () => {
     logger.info(`Server is running on port ${PORT}`);
+    logger.info(`Realtime notifications enabled on port ${PORT}`);
 });

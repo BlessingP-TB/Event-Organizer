@@ -4,8 +4,11 @@ const {
     ApiError,
     getPagination,
     createPaginatedResponse,
+    generateToken,
+    verifyToken,
 } = require('../utils/index.util');
 const { app } = require('../configs/index.config');
+const { jwt } = require('../configs/environment.config');
 const {
     HTTP_STATUS,
     EVENT_STATUS,
@@ -13,10 +16,160 @@ const {
     APPROVAL_STATUS,
     APPROVAL_TYPE,
     ROLES,
+    BOOKING_STATUS,
+    INVOICE_STATUS,
+    REGISTRATION_STATUS,
 } = require('../constants/index.constants');
 const venueService = require('./venue.service.js');
 const bookingService = require('./booking.service.js');
 const notificationService = require('./notification.service');
+
+const WRITTEN_ASSIGN_TARGET_TYPE = 'EventWrittenAssign';
+const SCANNER_ACCESS_TOKEN_TYPE = 'SCANNER_ACCESS';
+const FACULTY_AUDIENCE = Object.freeze({
+    ALL_STUDENTS: 'ALL_STUDENTS',
+    MANAGEMENT_SCIENCE: 'MANAGEMENT_SCIENCE',
+    ICT: 'ICT',
+    ENGINEERING_FEBE: 'ENGINEERING_FEBE',
+});
+
+const normalizeFacultyAudience = (value) => {
+    if (!value) return null;
+    const normalized = String(value).trim().toUpperCase().replace(/[\s-]+/g, '_');
+    if (normalized === 'ENGINEERING' || normalized === 'FEBE') {
+        return FACULTY_AUDIENCE.ENGINEERING_FEBE;
+    }
+    return Object.values(FACULTY_AUDIENCE).includes(normalized) ? normalized : null;
+};
+
+const getEventAudienceFaculty = (event) => {
+    const rawAudience = event?.requestedResourcesAndServices?.__audienceFaculty;
+    return normalizeFacultyAudience(rawAudience) || FACULTY_AUDIENCE.ALL_STUDENTS;
+};
+
+const isEventVisibleToFaculty = (event, viewerFaculty) => {
+    const eventAudience = getEventAudienceFaculty(event);
+    if (eventAudience === FACULTY_AUDIENCE.ALL_STUDENTS) {
+        return true;
+    }
+
+    if (!viewerFaculty) {
+        return false;
+    }
+
+    return eventAudience === viewerFaculty;
+};
+
+const buildRescheduleApprovalPayload = ({
+    startDateTime,
+    endDateTime,
+    venueId,
+    previousStatus,
+}) => JSON.stringify({
+    s: new Date(startDateTime).toISOString(),
+    e: new Date(endDateTime).toISOString(),
+    v: venueId,
+    p: previousStatus,
+});
+
+const buildCancellationApprovalNote = () => 'Organizer cancelled event';
+
+const randomCode = (length = 8) => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let out = '';
+    for (let i = 0; i < length; i += 1) {
+        out += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return out;
+};
+
+const buildWrittenAssignNotes = (expiresAt, credentials) => {
+    const compactCreds = credentials.map((cred) => `${cred.u}:${cred.p}`).join(',');
+    return `WA1|${expiresAt.getTime()}|${compactCreds}`;
+};
+
+const parseWrittenAssignNotes = (notes) => {
+    if (!notes || typeof notes !== 'string' || !notes.startsWith('WA1|')) {
+        return null;
+    }
+
+    const [version, expiresAtMsRaw, credsRaw] = notes.split('|');
+    if (version !== 'WA1') return null;
+
+    const expiresAtMs = Number(expiresAtMsRaw);
+    if (!expiresAtMs || Number.isNaN(expiresAtMs)) return null;
+
+    const credentials = (credsRaw || '')
+        .split(',')
+        .filter(Boolean)
+        .map((pair) => {
+            const [u, p] = pair.split(':');
+            return { u, p };
+        })
+        .filter((cred) => cred.u && cred.p);
+
+    return {
+        expiresAt: new Date(expiresAtMs),
+        credentials,
+    };
+};
+
+const extractTicketIdFromScan = (rawValue) => {
+    if (!rawValue || typeof rawValue !== 'string') return null;
+
+    const value = rawValue.trim();
+    const uuidPattern = /[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i;
+
+    if (uuidPattern.test(value) && value.length <= 80) {
+        const match = value.match(uuidPattern);
+        return match ? match[0] : null;
+    }
+
+    try {
+        const parsedUrl = new URL(value);
+        const ticketId = parsedUrl.searchParams.get('ticketId');
+        if (ticketId && uuidPattern.test(ticketId)) return ticketId;
+    } catch (error) {
+        // Not a URL, continue with regex fallback below.
+    }
+
+    const queryMatch = value.match(/ticketId=([0-9a-f-]{36})/i);
+    return queryMatch ? queryMatch[1] : null;
+};
+
+const ensureScannerAccess = async (eventId, authHeader) => {
+    const token = authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.substring(7)
+        : null;
+
+    if (!token) {
+        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Missing scanner token.');
+    }
+
+    const payload = verifyToken(token, jwt.secret);
+    if (!payload || payload.type !== SCANNER_ACCESS_TOKEN_TYPE) {
+        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Invalid scanner token.');
+    }
+
+    if (payload.eventId !== eventId) {
+        throw new ApiError(HTTP_STATUS.FORBIDDEN, 'Scanner token is not valid for this event.');
+    }
+
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: { id: true, endDateTime: true, deletedAt: true },
+    });
+
+    if (!event || event.deletedAt) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
+    }
+
+    if (new Date(event.endDateTime) <= new Date()) {
+        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Scanner access has expired because the event has ended.');
+    }
+
+    return payload;
+};
 
 const checkVenueAvailability = async (
     venueId,
@@ -67,7 +220,7 @@ const checkVenueAvailability = async (
 
 const createEvent = async (organizerId, eventBody) => {
     // Destructure to separate ticketDefinitions, resources, and services from the rest of the event data
-    let { ticketDefinitions, resources, services, ...rest } = eventBody;
+    let { ticketDefinitions, resources, services, submitForApproval = true, audienceFaculty, ...rest } = eventBody;
     console.log("DEBUG: Raw eventBody received in createEvent:", eventBody); // Debug log
     console.log("DEBUG: Resources array received:", resources); // Debug log
     console.log("DEBUG: Services object received:", services);
@@ -105,6 +258,16 @@ const createEvent = async (organizerId, eventBody) => {
         console.log("DEBUG: No 'services' object found in eventBody or it's not an object.", services); // Debug log
     }
 
+    const normalizedAudienceFaculty = normalizeFacultyAudience(audienceFaculty);
+    if (!normalizedAudienceFaculty) {
+        throw new ApiError(
+            HTTP_STATUS.BAD_REQUEST,
+            'Audience faculty is required. Choose Management Science, ICT, Engineering(FEBE), or All Students.'
+        );
+    }
+
+    requestedResourcesAndServices.__audienceFaculty = normalizedAudienceFaculty;
+
     console.log("DEBUG: Final requestedResourcesAndServices object:", requestedResourcesAndServices); // Debug log
     // --- END OF NEW LOGIC ---
 
@@ -124,6 +287,13 @@ const createEvent = async (organizerId, eventBody) => {
     const { venueId, themeId, startDateTime, endDateTime } = rest;
     const startDate = new Date(startDateTime);
     const endDate = new Date(endDateTime);
+
+    if (startDate <= new Date()) {
+        throw new ApiError(
+            HTTP_STATUS.BAD_REQUEST,
+            'Start date/time must be in the future.'
+        );
+    }
 
     const venue = await venueService.getVenueById(venueId);
 
@@ -166,6 +336,85 @@ const createEvent = async (organizerId, eventBody) => {
             select: { id: true },
         });
 
+        if (submitForApproval) {
+            await tx.approval.create({
+                data: {
+                    targetType: 'Event',
+                    targetId: event.id,
+                    type: APPROVAL_TYPE.GENERAL,
+                    status: APPROVAL_STATUS.PENDING,
+                    notes: 'Awaiting admin approval.',
+                    event: {
+                        connect: { id: event.id },
+                    },
+                    ...(organizerProfile
+                        ? {
+                              organizerProfile: {
+                                  connect: { id: organizerProfile.id },
+                              },
+                          }
+                        : {}),
+                },
+            });
+
+            await notificationService.createSystemNotification({
+                userId: organizerId,
+                title: 'Event Submitted',
+                message: `Your event "${event.name}" has been submitted and is pending admin approval.`,
+                tx,
+            });
+        } else {
+            await notificationService.createSystemNotification({
+                userId: organizerId,
+                title: 'Draft Saved',
+                message: `Your event "${event.name}" was saved as a draft.`,
+                tx,
+            });
+        }
+
+        return event;
+    });
+};
+
+const submitDraftEventByOrganizer = async (eventId, organizerId) => {
+    return prisma.$transaction(async (tx) => {
+        const event = await tx.event.findUnique({
+            where: { id: eventId },
+            include: {
+                approvals: {
+                    where: { status: APPROVAL_STATUS.PENDING },
+                    select: { id: true },
+                },
+            },
+        });
+
+        if (!event || event.deletedAt) {
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
+        }
+
+        if (event.organizerId !== organizerId) {
+            throw new ApiError(HTTP_STATUS.FORBIDDEN, 'Forbidden.');
+        }
+
+        if (event.status !== EVENT_STATUS.DRAFT) {
+            throw new ApiError(
+                HTTP_STATUS.BAD_REQUEST,
+                'Only draft events can be submitted for approval.'
+            );
+        }
+
+        if (event.approvals.length > 0) {
+            throw new ApiError(
+                HTTP_STATUS.CONFLICT,
+                'This event already has a pending approval request.'
+            );
+        }
+
+        const organizerProfile = await tx.organizerProfile.findUnique({
+            where: { userId: organizerId },
+            select: { id: true },
+        });
+
         await tx.approval.create({
             data: {
                 targetType: 'Event',
@@ -184,6 +433,13 @@ const createEvent = async (organizerId, eventBody) => {
                       }
                     : {}),
             },
+        });
+
+        await notificationService.createSystemRoleNotification({
+            role: ROLES.ADMIN,
+            title: 'New Event Request Submitted',
+            message: `Organizer submitted "${event.name}" for admin review.`,
+            tx,
         });
 
         await notificationService.createSystemNotification({
@@ -205,8 +461,16 @@ const createEvent = async (organizerId, eventBody) => {
 };
 
 const listPublicEvents = async (queryOptions) => {
-    const { name, location, themeName } = queryOptions;
+    const { name, location, themeName, viewerFaculty } = queryOptions;
     const { skip, take, page, pageSize } = getPagination(queryOptions);
+    const normalizedViewerFaculty = normalizeFacultyAudience(viewerFaculty);
+    if (viewerFaculty && !normalizedViewerFaculty) {
+        throw new ApiError(
+            HTTP_STATUS.BAD_REQUEST,
+            'Invalid viewer faculty filter. Use MANAGEMENT_SCIENCE, ICT, ENGINEERING_FEBE, or ALL_STUDENTS.'
+        );
+    }
+
     const whereClause = {
         status: {
             in: [
@@ -234,8 +498,6 @@ const listPublicEvents = async (queryOptions) => {
 
     const query = {
         where: whereClause,
-        skip,
-        take,
         orderBy: { startDateTime: 'asc' },
         include: {
             venue: { select: { name: true, location: true } },
@@ -248,12 +510,16 @@ const listPublicEvents = async (queryOptions) => {
         },
     };
 
-    const [events, totalItems] = await prisma.$transaction([
-        prisma.event.findMany(query),
-        prisma.event.count({ where: query.where }),
-    ]);
+    const events = await prisma.event.findMany(query);
 
-    return createPaginatedResponse(events, totalItems, page, pageSize);
+    const visibleEvents = events.filter((event) =>
+        isEventVisibleToFaculty(event, normalizedViewerFaculty)
+    );
+
+    const totalItems = visibleEvents.length;
+    const pagedEvents = visibleEvents.slice(skip, skip + take);
+
+    return createPaginatedResponse(pagedEvents, totalItems, page, pageSize);
 };
 
 const listOrganizerEvents = async (organizerId, queryOptions) => {
@@ -470,6 +736,302 @@ const deleteEvent = async (eventId) => {
     }
 };
 
+const assignWrittenScannersByOrganizer = async (eventId, organizerId, staffCount) => {
+    const count = Number(staffCount);
+    if (!Number.isInteger(count) || count < 2 || count > 4) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Staff count must be between 2 and 4.');
+    }
+
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: {
+            id: true,
+            name: true,
+            organizerId: true,
+            status: true,
+            endDateTime: true,
+            deletedAt: true,
+        },
+    });
+
+    if (!event || event.deletedAt) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
+    }
+
+    if (event.organizerId !== organizerId) {
+        throw new ApiError(HTTP_STATUS.FORBIDDEN, 'Forbidden.');
+    }
+
+    if (![EVENT_STATUS.PUBLISHED, EVENT_STATUS.ONGOING].includes(event.status)) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Written assign is only available for approved events.');
+    }
+
+    const expiresAt = new Date(event.endDateTime);
+    if (expiresAt <= new Date()) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Cannot assign scanners for an event that has already ended.');
+    }
+
+    const credentials = Array.from({ length: count }).map((_, index) => ({
+        u: `WA${index + 1}${randomCode(4)}`,
+        p: randomCode(8),
+    }));
+
+    const notes = buildWrittenAssignNotes(expiresAt, credentials);
+
+    const latestAssignment = await prisma.approval.findFirst({
+        where: {
+            eventId,
+            targetType: WRITTEN_ASSIGN_TARGET_TYPE,
+        },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true },
+    });
+
+    if (latestAssignment) {
+        await prisma.approval.update({
+            where: { id: latestAssignment.id },
+            data: {
+                status: APPROVAL_STATUS.APPROVED,
+                approver: { connect: { id: organizerId } },
+                notes,
+                targetId: eventId,
+                type: APPROVAL_TYPE.GENERAL,
+            },
+        });
+    } else {
+        await prisma.approval.create({
+            data: {
+                targetType: WRITTEN_ASSIGN_TARGET_TYPE,
+                targetId: eventId,
+                type: APPROVAL_TYPE.GENERAL,
+                status: APPROVAL_STATUS.APPROVED,
+                approver: { connect: { id: organizerId } },
+                notes,
+                event: { connect: { id: eventId } },
+            },
+        });
+    }
+
+    return {
+        eventId,
+        eventName: event.name,
+        expiresAt,
+        loginPath: `/scanner-login/${eventId}`,
+        credentials: credentials.map((cred) => ({
+            username: cred.u,
+            password: cred.p,
+        })),
+    };
+};
+
+const loginWrittenScanner = async (eventId, username, password) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: {
+            id: true,
+            endDateTime: true,
+            deletedAt: true,
+        },
+    });
+
+    if (!event || event.deletedAt) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
+    }
+
+    if (new Date(event.endDateTime) <= new Date()) {
+        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Scanner login has expired because the event has ended.');
+    }
+
+    const assignment = await prisma.approval.findFirst({
+        where: {
+            eventId,
+            targetType: WRITTEN_ASSIGN_TARGET_TYPE,
+            status: APPROVAL_STATUS.APPROVED,
+        },
+        orderBy: { updatedAt: 'desc' },
+        select: { notes: true },
+    });
+
+    const parsed = parseWrittenAssignNotes(assignment?.notes);
+    if (!parsed) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'No written assignment exists for this event.');
+    }
+
+    if (parsed.expiresAt <= new Date()) {
+        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Scanner login credentials have expired.');
+    }
+
+    const matchedCredential = parsed.credentials.find(
+        (cred) => cred.u === username && cred.p === password
+    );
+
+    if (!matchedCredential) {
+        throw new ApiError(HTTP_STATUS.UNAUTHORIZED, 'Invalid scanner username or password.');
+    }
+
+    const expiresInSeconds = Math.max(
+        1,
+        Math.floor((parsed.expiresAt.getTime() - Date.now()) / 1000)
+    );
+
+    const accessToken = generateToken(
+        {
+            eventId,
+            scannerUsername: matchedCredential.u,
+            role: ROLES.ORGANIZER,
+        },
+        jwt.secret,
+        `${expiresInSeconds}s`,
+        SCANNER_ACCESS_TOKEN_TYPE
+    );
+
+    return {
+        accessToken,
+        expiresAt: parsed.expiresAt,
+        scannerUsername: matchedCredential.u,
+        eventId,
+    };
+};
+
+const scannerRedeemAttendeeQr = async (eventId, qrData, authHeader) => {
+    await ensureScannerAccess(eventId, authHeader);
+
+    const ticketId = extractTicketIdFromScan(qrData);
+    if (!ticketId) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Invalid attendee QR code.');
+    }
+
+    const ticket = await prisma.ticket.findFirst({
+        where: {
+            id: ticketId,
+            eventId,
+            deletedAt: null,
+        },
+        include: {
+            user: {
+                select: { id: true, name: true, email: true },
+            },
+            event: {
+                select: {
+                    id: true,
+                    name: true,
+                    startDateTime: true,
+                    endDateTime: true,
+                },
+            },
+        },
+    });
+
+    if (!ticket) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Ticket not found for this event.');
+    }
+
+    if (!ticket.userId || !ticket.user) {
+        throw new ApiError(HTTP_STATUS.BAD_REQUEST, 'Ticket is not linked to an attendee account.');
+    }
+
+    if (ticket.redeemed) {
+        throw new ApiError(HTTP_STATUS.CONFLICT, 'This attendee ticket has already been used.');
+    }
+
+    const { startOffsetHours, endOffsetHours } = app.ticketRedemptionWindow;
+    const now = new Date();
+    const redemptionStart = new Date(new Date(ticket.event.startDateTime).getTime() - startOffsetHours * 60 * 60 * 1000);
+    const redemptionEnd = new Date(new Date(ticket.event.endDateTime).getTime() + endOffsetHours * 60 * 60 * 1000);
+
+    if (now < redemptionStart || now > redemptionEnd) {
+        throw new ApiError(
+            HTTP_STATUS.UNPROCESSABLE_ENTITY,
+            `Scanning is only allowed between ${redemptionStart.toISOString()} and ${redemptionEnd.toISOString()}.`
+        );
+    }
+
+    const redeemedAt = new Date();
+
+    await prisma.$transaction([
+        prisma.ticket.update({
+            where: { id: ticket.id },
+            data: {
+                redeemed: true,
+                redeemedAt,
+            },
+        }),
+        prisma.attendance.upsert({
+            where: {
+                userId_eventId: {
+                    userId: ticket.userId,
+                    eventId,
+                },
+            },
+            update: {
+                status: 'ATTENDED',
+                checkedAt: redeemedAt,
+            },
+            create: {
+                userId: ticket.userId,
+                eventId,
+                status: 'ATTENDED',
+                checkedAt: redeemedAt,
+            },
+        }),
+    ]);
+
+    return {
+        valid: true,
+        message: 'Attendee validated and checked in successfully.',
+        attendee: {
+            id: ticket.user.id,
+            name: ticket.user.name,
+            email: ticket.user.email,
+        },
+        ticket: {
+            id: ticket.id,
+            type: ticket.type,
+            price: ticket.price,
+        },
+        event: {
+            id: ticket.event.id,
+            name: ticket.event.name,
+        },
+        checkedAt: redeemedAt,
+    };
+};
+
+const deleteNowEventByOrganizer = async (eventId, organizerId) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        select: {
+            id: true,
+            organizerId: true,
+            status: true,
+            deletedAt: true,
+        },
+    });
+
+    if (!event) {
+        throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
+    }
+
+    if (event.organizerId !== organizerId) {
+        throw new ApiError(HTTP_STATUS.FORBIDDEN, 'Forbidden.');
+    }
+
+    if (!event.deletedAt && event.status !== EVENT_STATUS.CANCELLED) {
+        throw new ApiError(
+            HTTP_STATUS.BAD_REQUEST,
+            'Delete Now is only available for cancelled or deleted events.'
+        );
+    }
+
+    // Mark as expired for organizer Cancelled tab so it disappears immediately.
+    const hiddenAt = new Date(Date.now() - 21 * 60 * 1000);
+
+    return prisma.event.update({
+        where: { id: eventId },
+        data: { deletedAt: hiddenAt },
+    });
+};
+
 // Cleanup function to permanently delete events soft-deleted for over 24 hours
 const cleanupDeletedEvents = async () => {
     const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // 24 hours ago
@@ -657,6 +1219,192 @@ const deleteTicketDefinition = async (defId, user) => {
     });
 };
 
+const cancelEventByOrganizer = async (eventId, organizerId, reason) => {
+    return prisma.$transaction(async (tx) => {
+        const event = await tx.event.findUnique({
+            where: { id: eventId },
+            include: {
+                booking: {
+                    include: { invoice: true },
+                },
+            },
+        });
+
+        if (!event || event.deletedAt) {
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
+        }
+
+        if (event.organizerId !== organizerId) {
+            throw new ApiError(HTTP_STATUS.FORBIDDEN, 'Forbidden.');
+        }
+
+        if (event.status === EVENT_STATUS.CANCELLED) {
+            throw new ApiError(
+                HTTP_STATUS.CONFLICT,
+                'Event is already cancelled.'
+            );
+        }
+
+        if (
+            [EVENT_STATUS.ONGOING, EVENT_STATUS.COMPLETED].includes(event.status)
+        ) {
+            throw new ApiError(
+                HTTP_STATUS.BAD_REQUEST,
+                'Only upcoming approved events can be cancelled by organizer.'
+            );
+        }
+
+        const refundPurchaseCount = await tx.purchase.count({
+            where: {
+                eventId,
+                deletedAt: null,
+                status: PURCHASE_STATUS.COMPLETED,
+            },
+        });
+
+        const updatedEvent = await tx.event.update({
+            where: { id: eventId },
+            data: {
+                status: EVENT_STATUS.CANCELLED,
+                deletedAt: new Date(),
+            },
+        });
+
+        if (event.booking && event.booking.status !== BOOKING_STATUS.CANCELLED) {
+            await tx.booking.update({
+                where: { id: event.booking.id },
+                data: {
+                    status: BOOKING_STATUS.CANCELLED,
+                    ...(event.booking.invoice
+                        ? {
+                              invoice: {
+                                  update: {
+                                      status: INVOICE_STATUS.CANCELLED,
+                                  },
+                              },
+                          }
+                        : {}),
+                },
+            });
+        }
+
+        await tx.registration.updateMany({
+            where: {
+                eventId,
+                status: { not: REGISTRATION_STATUS.CANCELLED },
+            },
+            data: { status: REGISTRATION_STATUS.CANCELLED },
+        });
+
+        await tx.approval.create({
+            data: {
+                targetType: 'EventCancellation',
+                targetId: eventId,
+                type: APPROVAL_TYPE.GENERAL,
+                status: APPROVAL_STATUS.APPROVED,
+                notes: buildCancellationApprovalNote(),
+                approverId: organizerId,
+                event: { connect: { id: eventId } },
+            },
+        }).catch(() => null);
+
+        const refundMessage = refundPurchaseCount > 0
+            ? ` Refund processing is required for ${refundPurchaseCount} completed purchase${refundPurchaseCount === 1 ? '' : 's'}.`
+            : '';
+
+        await notificationService.createSystemRoleNotification({
+            role: ROLES.ADMIN,
+            title: 'Event Cancelled By Organizer',
+            message: `Event "${event.name}" was cancelled by organizer. Reason: ${reason}.${refundMessage}`,
+            tx,
+        });
+
+        await notificationService.createSystemNotification({
+            userId: organizerId,
+            title: 'Event Cancelled',
+            message: refundPurchaseCount > 0
+                ? `Your event "${event.name}" was cancelled and removed from listings. Admin has been notified and refund processing is pending for ${refundPurchaseCount} completed purchase${refundPurchaseCount === 1 ? '' : 's'}.`
+                : `Your event "${event.name}" was cancelled and removed from listings. Admin has been notified.`,
+            tx,
+        });
+
+        return {
+            ...updatedEvent,
+            refundPending: refundPurchaseCount > 0,
+            refundPurchaseCount,
+        };
+    });
+};
+
+const requestRescheduleByOrganizer = async (eventId, organizerId, requestBody) => {
+    const { startDateTime, endDateTime, venueId, reason } = requestBody;
+
+    return prisma.$transaction(async (tx) => {
+        const event = await tx.event.findUnique({ where: { id: eventId } });
+
+        if (!event || event.deletedAt) {
+            throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Event not found.');
+        }
+
+        if (event.organizerId !== organizerId) {
+            throw new ApiError(HTTP_STATUS.FORBIDDEN, 'Forbidden.');
+        }
+
+        if (event.status !== EVENT_STATUS.PUBLISHED) {
+            throw new ApiError(
+                HTTP_STATUS.BAD_REQUEST,
+                'Only approved/published events can be rescheduled.'
+            );
+        }
+
+        const pendingReschedule = await tx.approval.findFirst({
+            where: {
+                eventId,
+                targetType: 'EventReschedule',
+                status: APPROVAL_STATUS.PENDING,
+            },
+            select: { id: true },
+        });
+
+        if (pendingReschedule) {
+            throw new ApiError(
+                HTTP_STATUS.CONFLICT,
+                'A reschedule request is already pending admin approval.'
+            );
+        }
+
+        const approval = await tx.approval.create({
+            data: {
+                targetType: 'EventReschedule',
+                targetId: eventId,
+                type: APPROVAL_TYPE.GENERAL,
+                status: APPROVAL_STATUS.PENDING,
+                notes: buildRescheduleApprovalPayload({
+                    startDateTime,
+                    endDateTime,
+                    venueId: venueId || event.venueId,
+                    previousStatus: event.status,
+                }),
+                event: { connect: { id: eventId } },
+            },
+        });
+
+        await tx.event.update({
+            where: { id: eventId },
+            data: { status: EVENT_STATUS.PENDING },
+        });
+
+        await notificationService.createSystemRoleNotification({
+            role: ROLES.ADMIN,
+            title: 'Event Reschedule Requested',
+            message: `Organizer requested reschedule for event "${event.name}".`,
+            tx,
+        });
+
+        return approval;
+    });
+};
+
 module.exports = {
     createEvent,
     listPublicEvents,
@@ -665,6 +1413,7 @@ module.exports = {
     getEventById,
     updateEvent,
     deleteEvent,
+    deleteNowEventByOrganizer,
     publishEvent,
     setEventStatus,
     checkVenueAvailability,
@@ -672,4 +1421,10 @@ module.exports = {
     addTicketDefinition,
     updateTicketDefinition,
     deleteTicketDefinition,
+    cancelEventByOrganizer,
+    requestRescheduleByOrganizer,
+    submitDraftEventByOrganizer,
+    assignWrittenScannersByOrganizer,
+    loginWrittenScanner,
+    scannerRedeemAttendeeQr,
 };

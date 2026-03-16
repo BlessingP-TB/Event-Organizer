@@ -54,6 +54,9 @@ export default function TabLayout() {
       <Tabs.Screen name="myEventdetails/[id]" options={{ href: null }} />
       <Tabs.Screen name="UploadDocument" options={{ href: null }} />
       <Tabs.Screen name="ModifyCreate" options={{ href: null }} />
+      <Tabs.Screen name="WrittenAssign" options={{ href: null }} />
+      <Tabs.Screen name="ScannerLogin" options={{ href: null }} />
+      <Tabs.Screen name="ScannerCheckIn" options={{ href: null }} />
 
     </Tabs>
 

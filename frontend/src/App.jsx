@@ -29,6 +29,8 @@ const ConfirmModifiedDetails = lazy(() => import('./pages/OrganizerDashboard/Con
 const RegisterForEvent = lazy(() => import('./pages/OrganizerDashboard/RegisterForEvent'));
 const UploadProofOfPayment = lazy(() => import('./pages/OrganizerDashboard/UploadProofOfPayment'));
 const EventReceipt = lazy(() => import('./pages/OrganizerDashboard/EventReceipt'));
+const RescheduleEvent = lazy(() => import('./pages/OrganizerDashboard/RescheduleEvent'));
+const WrittenAssign = lazy(() => import('./pages/OrganizerDashboard/WrittenAssign'));
 /* ---------- Admin Pages ---------- */
 const AnalyticsDashboard = lazy(() => import("./pages/AdminDashboard/AnalyticsDashboard"));
 const AnalyticsExportScreen = lazy(() => import("./pages/AdminDashboard/AnalyticsExportScreen"));
@@ -61,6 +63,8 @@ const ResetPasswordForm = lazy(() => import('./pages/Auth/ResetPasswordForm'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const Discover = lazy(() => import('./pages/AttendeeDashBoard/Discover'));
 const Notifications = lazy(() => import('./pages/Shared/Notifications'));
+const ScannerLogin = lazy(() => import('./pages/Shared/ScannerLogin'));
+const ScannerCheckIn = lazy(() => import('./pages/Shared/ScannerCheckIn'));
 
 /* ---------- Utility Components ---------- */
 function LoadingFallback() {
@@ -114,9 +118,14 @@ function App() {
             <Route path="event-details-modify/:id" element={<EventDetailsModify />} />
             <Route path="confirm-modified-details" element={<ConfirmModifiedDetails />} />
             <Route path="view-event/:id" element={<ViewEventDetails />} />
-            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="event-receipt/:eventId" element={<EventReceipt />} />
+            <Route path="reschedule-event/:id" element={<RescheduleEvent />} />
+            <Route path="written-assign/:id" element={<WrittenAssign />} />
 
           </Route>
+
+          <Route path="/scanner-login/:eventId" element={<ScannerLogin />} />
+          <Route path="/scanner/:eventId" element={<ScannerCheckIn />} />
 
           {/* ---------- Admin Routes ---------- */}
           <Route

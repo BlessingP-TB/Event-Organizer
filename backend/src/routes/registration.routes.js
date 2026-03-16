@@ -34,6 +34,12 @@ router.get(
 );
 
 router.get(
+    '/organizer-report',
+    authorize([ROLES.ORGANIZER]),
+    registrationController.getOrganizerRegistrationReport
+);
+
+router.get(
     '/my',
     authorize([ROLES.ADMIN, ROLES.ORGANIZER, ROLES.ATTENDEE]),
     registrationController.listMyRegistrations

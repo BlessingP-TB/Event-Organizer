@@ -15,6 +15,12 @@ import api from '../../utils/api';
 const eventTypes = ["Official", "Academic related", "Private", "External", "Student"];
 const guestTypes = ["VIP", "Media", "Staff", "Student", "Special protocol required"];
 const KNOWN_SERVICES = ['Liquor', 'Kitchen Facilities', 'Cleaning Services', 'Extra Security Guard'];
+const FACULTY_AUDIENCE_OPTIONS = [
+  { value: 'ALL_STUDENTS', label: 'All Students' },
+  { value: 'MANAGEMENT_SCIENCE', label: 'Management Science' },
+  { value: 'ICT', label: 'ICT' },
+  { value: 'ENGINEERING_FEBE', label: 'Engineering (FEBE)' },
+];
 
 /**
  * Utility helpers
@@ -35,6 +41,22 @@ const getDateStr = (date) => {
   const month = String(date.getMonth() + 1).padStart(2, '0');
   const day = String(date.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
+};
+
+const getStartOfToday = () => {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+};
+
+const isTimeSlotStillAvailable = (selectedDate, startTime) => {
+  if (!selectedDate || !startTime) return true;
+
+  const now = new Date();
+  const candidate = new Date(selectedDate);
+  const [hours, minutes] = String(startTime).split(':').map(Number);
+  candidate.setHours(hours || 0, minutes || 0, 0, 0);
+  return candidate > now;
 };
 
 const normalizeId = (value) => String(value ?? '');
@@ -87,7 +109,8 @@ const getAvailableTimeSlots = (calendarData, venueId, date) => {
     .map(slot => ({
       startTime: slot.startTime,
       endTime: slot.endTime
-    }));
+    }))
+    .filter((slot) => isTimeSlotStillAvailable(date, slot.startTime));
 };
 
 const resolveVenueId = (venue) => venue?.id || venue?.venueId || venue?._id || '';
@@ -137,6 +160,7 @@ export default function CreateEvent() {
     ticketRequired: true,
     autoDistribute: true,
     allowAttendeePurchase: false,
+    audienceFaculty: '',
     logo: null,
     themeImage: null,
   });
@@ -336,6 +360,7 @@ export default function CreateEvent() {
   });
 
   const filterDate = (date) => {
+    if (date < getStartOfToday()) return false;
     if (!selectedVenue) return true;
     if (!venueHasCalendarAvailability) return true;
     const selectedDateStr = getDateStr(date);
@@ -346,17 +371,32 @@ export default function CreateEvent() {
     );
   };
 
-  const validateForm = () => {
+  const validateForm = ({ requireTerms = true } = {}) => {
     const newErrors = {};
     if (!formData.name?.trim()) newErrors.name = 'Event title is required';
     if (!formData.description?.trim()) newErrors.description = 'Description is required';
     if (!formData.campus) newErrors.campus = 'Please select a campus';
     if (!formData.venueType) newErrors.venueType = 'Please select a venue type';
+    if (!formData.audienceFaculty) newErrors.audienceFaculty = 'Please select the attendee faculty audience';
     if (!formData.expectedAttend || Number(formData.expectedAttend) <= 0) newErrors.expectedAttend = 'Please enter a valid number of guests';
     if (!dateParts.startDate) newErrors.startDate = 'Start date is required';
     if (!dateParts.startTime) newErrors.startTime = 'Start time is required';
     if (!dateParts.endDate) newErrors.endDate = 'End date is required';
     if (!dateParts.endTime) newErrors.endTime = 'End time is required';
+
+    const candidateStart = combineDateTime(dateParts.startDate, dateParts.startTime);
+    const candidateEnd = combineDateTime(
+      dateParts.endDate || dateParts.startDate,
+      dateParts.endTime
+    );
+    const now = new Date();
+
+    if (candidateStart && new Date(candidateStart) <= now) {
+      newErrors.startTime = 'Start date/time must be in the future';
+    }
+    if (candidateEnd && new Date(candidateEnd) <= now) {
+      newErrors.endTime = 'End date/time must be in the future';
+    }
     const effectiveVenueId = formData.venueId || resolveVenueId(selectedVenue) || selectedVenueIdRef.current;
     if (!effectiveVenueId) {
       newErrors.venueSelection = 'Please select a venue (from dropdown or gallery)';
@@ -385,7 +425,7 @@ export default function CreateEvent() {
       }
     }
 
-    if (!termsAccepted) newErrors.terms = 'You must accept the terms and conditions';
+    if (requireTerms && !termsAccepted) newErrors.terms = 'You must accept the terms and conditions';
 
     setErrors(newErrors);
     setValidationSummary(Object.values(newErrors));
@@ -398,7 +438,7 @@ export default function CreateEvent() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    const { isValid, errors: validationErrors } = validateForm();
+    const { isValid, errors: validationErrors } = validateForm({ requireTerms: true });
     if (!isValid) {
       const firstErrorKey = Object.keys(validationErrors)[0];
       const firstErrorMessage = validationErrors[firstErrorKey] || 'Please fill out all required fields before submitting';
@@ -461,7 +501,60 @@ const finalPayload = {
         formData: serializablePayload,
         selectedVenue,
         termsAccepted,
-        themeImage: formData.themeImage
+        themeImage: formData.themeImage,
+        submitMode: 'submit',
+      }
+    });
+  };
+
+  const handleSaveForLater = () => {
+    const { isValid, errors: validationErrors } = validateForm({ requireTerms: false });
+    if (!isValid) {
+      const firstErrorKey = Object.keys(validationErrors)[0];
+      const firstErrorMessage = validationErrors[firstErrorKey] || 'Please fill out required fields before saving draft';
+      showToastMessage(firstErrorMessage);
+      return;
+    }
+
+    const numericResourcesArray = [];
+    const servicesObject = {};
+    const effectiveVenueId = formData.venueId || resolveVenueId(selectedVenue) || selectedVenueIdRef.current;
+
+    Object.entries(resources).forEach(([name, value]) => {
+      if (KNOWN_SERVICES.includes(name)) {
+        servicesObject[name] = !!value;
+      } else {
+        const qty = parseInt(value, 10) || 0;
+        if (qty > 0) numericResourcesArray.push({ name, quantity: qty });
+      }
+    });
+
+    const enhancedServices = { ...servicesObject };
+    eventTypes.forEach(type => {
+      enhancedServices[`Type of Function - ${type}`] = selectedEventTypes.includes(type);
+    });
+    guestTypes.forEach(type => {
+      enhancedServices[`Type of Guest - ${type}`] = selectedGuestTypes.includes(type);
+    });
+
+    const finalPayload = {
+      ...formData,
+      venueId: effectiveVenueId,
+      startDateTime: combineDateTime(dateParts.startDate, dateParts.startTime),
+      endDateTime: combineDateTime(dateParts.endDate || dateParts.startDate, dateParts.endTime),
+      expectedAttend: Number(formData.expectedAttend),
+      resources: numericResourcesArray,
+      services: enhancedServices,
+    };
+
+    const serializablePayload = JSON.parse(JSON.stringify(finalPayload));
+    navigate('/organizer/confirm-event', {
+      state: {
+        formData: serializablePayload,
+        selectedVenue,
+        termsAccepted,
+        themeImage: formData.themeImage,
+        submitMode: 'draft',
       }
     });
   };
@@ -574,6 +667,22 @@ const finalPayload = {
                   />
                 </div>
 
+                <div className="form-group">
+                  <label className="form-label">Attendee Faculty Audience *</label>
+                  <select
+                    name="audienceFaculty"
+                    value={formData.audienceFaculty}
+                    onChange={handleInputChange}
+                    className={`form-input ${errors.audienceFaculty ? 'error' : ''}`}
+                  >
+                    <option value="">Select audience faculty</option>
+                    {FACULTY_AUDIENCE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  {errors.audienceFaculty && <p className="error-message">{errors.audienceFaculty}</p>}
+                </div>
+
                 {/* Type of Function */}
                 <section className="form-section">
                   <h2 className="section-title">Type of Function *</h2>
@@ -679,6 +788,7 @@ const finalPayload = {
                       className={`form-input ${errors.startDate ? 'error' : ''}`}
                       placeholderText="Select start date"
                       filterDate={filterDate}
+                      minDate={new Date()}
                       dateFormat="yyyy-MM-dd"
                     />
                     {errors.startDate && <p className="error-message">{errors.startDate}</p>}
@@ -740,6 +850,7 @@ const finalPayload = {
                       className={`form-input ${errors.endDate ? 'error' : ''}`}
                       placeholderText="Select end date"
                       filterDate={(date) => {
+                        if (date < getStartOfToday()) return false;
                         if (!selectedVenue) return true;
                         if (!venueHasCalendarAvailability) return true;
                         const selectedDateStr = getDateStr(date);
@@ -820,6 +931,7 @@ const finalPayload = {
 
               <div className="form-footer">
                 <button type="submit" className="btn btn-primary">Submit Request</button>
+                <button type="button" className="btn btn-secondary" onClick={handleSaveForLater}>Save for Later</button>
               </div>
             </form>
 

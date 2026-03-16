@@ -187,6 +187,13 @@ All routes are under `http://localhost:3000/api/v1`:
 | `/themes`             | Event themes & images                    |
 | `/tools`              | Venue equipment & tools                  |
 
+### Event Cancellation & Reschedule Workflow
+
+- `POST /events/:eventId/cancel` (Organizer): Cancel an approved event and provide a required cancellation reason.
+- `POST /events/:eventId/reschedule-request` (Organizer): Submit a new date/time (and optional venue change) with reason.
+- `PATCH /admin/approvals/:approval_id` (Admin): Approve or reject organizer reschedule requests.
+- On reschedule approval, admin flow validates venue availability before updating event schedule.
+
 ## Database Schema
 
 The app uses **22+ tables** managed by Prisma ORM:

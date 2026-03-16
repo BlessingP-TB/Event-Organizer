@@ -5,11 +5,18 @@ import "../../styles/pages/_confirmevent.scss"; // Ensure this path is correct
 import { useNavigate, useLocation } from "react-router-dom";
 import api from "../../utils/api";
 
+const FACULTY_LABELS = {
+  ALL_STUDENTS: 'All Students',
+  MANAGEMENT_SCIENCE: 'Management Science',
+  ICT: 'ICT',
+  ENGINEERING_FEBE: 'Engineering (FEBE)',
+};
+
 export default function ConfirmEventDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   // Receive the complete formData from the CreateEvent page
-  const { formData, selectedVenue, termsAccepted, themeImage } = location.state || {};
+  const { formData, selectedVenue, termsAccepted, themeImage, submitMode = 'submit' } = location.state || {};
   const venueDetails = selectedVenue || {
     name: 'Selected venue',
     location: 'N/A',
@@ -54,8 +61,8 @@ export default function ConfirmEventDetails() {
   };
 
   // --- SUBMISSION ---
-  const handleSubmit = async () => {
-    if (!termsAccepted) {
+  const saveEvent = async ({ submitForApproval }) => {
+    if (submitForApproval && !termsAccepted) {
       showToastMessage("You must accept the terms before submitting.");
       return;
     }
@@ -70,7 +77,9 @@ export default function ConfirmEventDetails() {
     setLoading(true);
     try {
       let themeId = null;
+      let themeWarning = "";
       if (themeImage) {
+        try {
           const base64Image = themeImage.split(',')[1];
           const imageType = themeImage.split(';')[0].split('/')[1];
           const themeResponse = await api.post('/themes', {
@@ -84,6 +93,10 @@ export default function ConfirmEventDetails() {
           if (!themeId) {
               throw new Error('Failed to get theme ID from response');
           }
+        } catch (themeError) {
+          console.error("Theme creation failed, proceeding without theme:", themeError);
+          themeWarning = " Theme image could not be saved, but the event will still be created.";
+        }
       }
 
       // ✅ MERGE eventContext INTO services
@@ -105,7 +118,9 @@ export default function ConfirmEventDetails() {
         autoDistribute: formData.autoDistribute,
         resources: formData.resources || [],
         services: formData.services || {},
+        audienceFaculty: formData.audienceFaculty,
         themeId: themeId ?? null,
+        submitForApproval,
       };
 
       // Only include expectedAttend if it's a positive number
@@ -118,8 +133,14 @@ export default function ConfirmEventDetails() {
       const response = await api.post("/events", submissionData);
       console.log("Event submitted successfully:", response.data);
       const createdEvent = response?.data?.data || response?.data;
-      await notifyAdmin({ ...submissionData, id: createdEvent?.id }, selectedVenue);
-      showToastMessage("Event booking request submitted successfully!");
+      if (submitForApproval) {
+        await notifyAdmin({ ...submissionData, id: createdEvent?.id }, selectedVenue);
+      }
+      showToastMessage(
+        submitForApproval
+          ? "Event booking request submitted successfully!"
+          : "Draft saved successfully!"
+      );
       setTimeout(() => navigate("/organizer/events"), 2000);
     } catch (error) {
       console.error("Error submitting event:", error);
@@ -131,6 +152,14 @@ export default function ConfirmEventDetails() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async () => {
+    await saveEvent({ submitForApproval: true });
+  };
+
+  const handleSaveDraft = async () => {
+    await saveEvent({ submitForApproval: false });
   };
 
   // --- RENDER LOGIC ---
@@ -174,6 +203,7 @@ export default function ConfirmEventDetails() {
               <p><strong>Title:</strong> {formData.name}</p>
               <p><strong>Description:</strong> {formData.description || "No description provided"}</p>
               <p><strong>Purpose:</strong> {formData.purposeOfFunction || "Not specified"}</p>
+              <p><strong>Attendee Audience:</strong> {FACULTY_LABELS[formData.audienceFaculty] || formData.audienceFaculty || 'Not specified'}</p>
               <p><strong>Expected Guests:</strong> {formData.expectedAttend}</p>
               <p><strong>Starts:</strong> {start.date} at {start.time}</p>
               <p><strong>Ends:</strong> {end.date} at {end.time}</p>
@@ -238,6 +268,11 @@ export default function ConfirmEventDetails() {
             )}
 
             <div className="submit-button-container">
+              {submitMode !== 'submit' && (
+                <button className="btn-submit" type="button" onClick={handleSaveDraft} disabled={loading}>
+                  {loading ? "Saving..." : "Save as Draft"}
+                </button>
+              )}
               <button className="btn-submit" type="button" onClick={handleSubmit} disabled={loading}>
                 {loading ? "Submitting..." : "Confirm & Submit Request"}
               </button>

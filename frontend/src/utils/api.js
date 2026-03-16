@@ -22,7 +22,8 @@ api.interceptors.request.use((config) => {
   if (
     token &&
     !config.url.includes('/auth/login') &&
-    !config.url.includes('/auth/register')
+    !config.url.includes('/auth/register') &&
+    !config.headers?.Authorization
   ) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -37,11 +38,19 @@ api.interceptors.response.use(
   (error) => {
     if (error.response?.status === 401) {
       console.warn('🔒 Unauthorized - token may have expired');
+      const currentPath = window.location.pathname;
+      const isScannerPage =
+        currentPath.startsWith('/scanner') ||
+        currentPath.startsWith('/scanner-login');
+
+      if (isScannerPage) {
+        return Promise.reject(error);
+      }
+
       localStorage.removeItem('accessToken');
       localStorage.removeItem('role');
       localStorage.removeItem('user');
 
-      const currentPath = window.location.pathname;
       const isAuthPage =
         currentPath.startsWith('/login') ||
         currentPath.startsWith('/register') ||

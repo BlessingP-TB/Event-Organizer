@@ -79,6 +79,15 @@ router.delete(
 );
 
 router.post(
+    '/:eventId/delete-now',
+    authenticate,
+    authorize(ROLES.ORGANIZER),
+    validate(eventValidation.eventIdParam),
+    checkEventOwner,
+    eventController.deleteNowEvent
+);
+
+router.post(
     '/:eventId/publish',
     authenticate,
     authorize(ROLES.ORGANIZER),
@@ -86,6 +95,54 @@ router.post(
     //validate(eventValidation.eventIdParam),
     checkEventOwner,
     eventController.publishEvent
+);
+
+router.post(
+    '/:eventId/cancel',
+    authenticate,
+    authorize(ROLES.ORGANIZER),
+    validate(eventValidation.cancelEvent),
+    checkEventOwner,
+    eventController.cancelEvent
+);
+
+router.post(
+    '/:eventId/written-assign',
+    authenticate,
+    authorize(ROLES.ORGANIZER),
+    validate(eventValidation.writtenAssignCreate),
+    checkEventOwner,
+    eventController.createWrittenAssign
+);
+
+router.post(
+    '/:eventId/written-assign/login',
+    validate(eventValidation.writtenAssignLogin),
+    eventController.writtenAssignLogin
+);
+
+router.post(
+    '/:eventId/written-assign/redeem',
+    validate(eventValidation.writtenAssignRedeem),
+    eventController.redeemWithWrittenAssign
+);
+
+router.post(
+    '/:eventId/submit',
+    authenticate,
+    authorize(ROLES.ORGANIZER),
+    validate(eventValidation.submitDraft),
+    checkEventOwner,
+    eventController.submitDraft
+);
+
+router.post(
+    '/:eventId/reschedule-request',
+    authenticate,
+    authorize(ROLES.ORGANIZER),
+    validate(eventValidation.requestReschedule),
+    checkEventOwner,
+    eventController.requestReschedule
 );
 
 router.post(

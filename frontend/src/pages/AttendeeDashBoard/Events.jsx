@@ -173,7 +173,13 @@ const Events = () => {
   useEffect(() => {
     const fetchAvailableEvents = async () => {
       try {
-        const response = await api.get('/events/public?page=1&pageSize=100');
+        const response = await api.get('/events/public', {
+          params: {
+            page: 1,
+            pageSize: 100,
+            viewerFaculty: user?.address || undefined,
+          },
+        });
         const items = Array.isArray(response.data?.data)
           ? response.data.data
           : Array.isArray(response.data)
@@ -188,7 +194,7 @@ const Events = () => {
     };
 
     fetchAvailableEvents();
-  }, []);
+  }, [user?.address]);
 
   // Load notifications from shared admin feed.
   useEffect(() => {

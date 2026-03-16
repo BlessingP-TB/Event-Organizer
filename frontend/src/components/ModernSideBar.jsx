@@ -5,6 +5,7 @@ import { NavLink, useNavigate } from "react-router-dom";
 import { Bell, CircleHelp, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import api from "../utils/api";
+import { subscribeToNotificationStream } from "../utils/realtimeNotifications";
 import "../styles/components/_modernSidebar.scss";
 import NotificationModal from './NotificationModal';
 
@@ -54,13 +55,21 @@ const ModernSidebar = ({ role, links, storageKey }) => {
     };
 
     loadNotifications();
+    const pollId = window.setInterval(loadNotifications, 15000);
+    const unsubscribeRealtime = subscribeToNotificationStream(() => {
+      loadNotifications();
+    });
 
     const handleUpdate = () => {
       loadNotifications();
     };
 
     window.addEventListener('notificationsUpdated', handleUpdate);
-    return () => window.removeEventListener('notificationsUpdated', handleUpdate);
+    return () => {
+      unsubscribeRealtime();
+      window.clearInterval(pollId);
+      window.removeEventListener('notificationsUpdated', handleUpdate);
+    };
   }, [storageKey]);
 
   const unreadCount = parseInt(localStorage.getItem(`${storageKey}:unreadCount`) || String(notifications.filter((n) => !n.read).length), 10);

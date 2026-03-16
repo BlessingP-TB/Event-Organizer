@@ -2,6 +2,7 @@ const { prisma, ApiError } = require('../utils/index.util');
 const { HTTP_STATUS, ROLES } = require('../constants/index.constants');
 const { randomUUID } = require('crypto');
 const axios = require('axios');
+const { emitUserNotification } = require('../utils/realtime.util');
 
 let tableInitialized = false;
 let pushTableInitialized = false;
@@ -172,6 +173,7 @@ const createNotificationRecord = async ({ userId, title, message }, db = prisma)
     }).catch((error) => {
         console.warn('Failed to send push notification:', error?.message || error);
     });
+    emitUserNotification({ userId, notification: mapped });
 
     return mapped;
 };
@@ -275,11 +277,11 @@ const createSystemNotification = async ({ userId, title, message, tx }) => {
     return createNotificationRecord({ userId, title, message }, tx || prisma);
 };
 
-const createSystemRoleNotification = async ({ roles, title, message, tx }) => {
+const createSystemRoleNotification = async ({ roles, role, title, message, tx }) => {
     const db = tx || prisma;
     await ensureNotificationTable();
 
-    const normalizedRoles = [...new Set((roles || []).filter(Boolean))];
+    const normalizedRoles = [...new Set(([...(roles || []), role]).filter(Boolean))];
     if (!normalizedRoles.length) {
         return [];
     }
@@ -290,7 +292,7 @@ const createSystemRoleNotification = async ({ roles, title, message, tx }) => {
         ...normalizedRoles
     );
 
-    if (!users.length) {
+    if (!Array.isArray(users) || users.length === 0) {
         return [];
     }
 

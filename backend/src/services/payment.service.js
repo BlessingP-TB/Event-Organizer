@@ -4,6 +4,7 @@ const { HTTP_STATUS, PURCHASE_STATUS, INVOICE_STATUS, BOOKING_STATUS } = require
 const { payment: paymentConfig } = require('../configs/environment.config');
 const ticketService = require('./ticket.service');
 const invoiceService = require('./invoice.service');
+const notificationService = require('./notification.service');
 
 const paystack = axios.create({
     baseURL: 'https://api.paystack.co',
@@ -56,6 +57,28 @@ const processB2CPayment = async (purchase, paymentReference) => {
             }
             const t = await ticketService.issueTicket(p.eventId, { userId: p.userId, type: ticketDef.name, price: ticketDef.price, purchaseId: p.id, ticketDefinitionId: ticketDef.id }, tx);
             await invoiceService.createOrUpdateInvoiceDocument(p.id, null, tx);
+
+            const event = await tx.event.findUnique({
+                where: { id: p.eventId },
+                select: { name: true, organizerId: true },
+            });
+
+            await notificationService.createSystemNotification({
+                userId: p.userId,
+                title: 'Payment Completed',
+                message: `Your ticket payment for "${event?.name || 'event'}" is complete.`,
+                tx,
+            });
+
+            if (event?.organizerId) {
+                await notificationService.createSystemNotification({
+                    userId: event.organizerId,
+                    title: 'Ticket Purchase Completed',
+                    message: `A ticket purchase for "${event.name}" has been successfully completed.`,
+                    tx,
+                });
+            }
+
             return [p, i, t];
         });
         return { purchase: updatedPurchase, invoice, ticket };
@@ -90,6 +113,14 @@ const processB2BPayment = async (booking, invoice, paymentReference) => {
                 data: { status: newBookingStatus, depositPaid: newDepositPaid, totalPaid: newTotalPaid }
             });
             await invoiceService.createOrUpdateInvoiceDocument(null, b.id, tx);
+
+            await notificationService.createSystemNotification({
+                userId: booking.organizerId,
+                title: 'Booking Payment Processed',
+                message: `Your booking payment was received. Booking status is now ${newBookingStatus}.`,
+                tx,
+            });
+
             return [b, i];
         });
         return { booking: updatedBooking, invoice: updatedInvoice };

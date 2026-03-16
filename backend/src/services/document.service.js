@@ -3,6 +3,7 @@ const { HTTP_STATUS, DOC_STATUS } = require('../constants/index.constants');
 const { storage } = require('../configs/environment.config');
 const { app } = require('../configs/index.config');
 const { blobUtil } = require('../utils/blob.util');
+const notificationService = require('./notification.service');
 
 const createDocument = async (userId, docBody) => {
     const { type, content, filename, size, mimetype, eventId, purchaseId, organizerProfileId } = docBody;
@@ -120,7 +121,7 @@ const getDocumentById = async (docId) => {
 
 const updateDocumentStatus = async (docId, status, reviewedByAdminId) => {
     try {
-        return await prisma.document.update({
+        const updatedDocument = await prisma.document.update({
             where: { id: docId },
             data: {
                 status,
@@ -128,6 +129,14 @@ const updateDocumentStatus = async (docId, status, reviewedByAdminId) => {
                 reviewedAt: new Date()
             }
         });
+
+        await notificationService.createSystemNotification({
+            userId: updatedDocument.userId,
+            title: 'Document Review Completed',
+            message: `Your document "${updatedDocument.filename}" status is now ${status}.`,
+        });
+
+        return updatedDocument;
     } catch (error) {
         if (error.code === 'P2025') {
             throw new ApiError(HTTP_STATUS.NOT_FOUND, 'Document not found.');

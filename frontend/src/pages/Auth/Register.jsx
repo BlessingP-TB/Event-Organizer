@@ -18,10 +18,18 @@ export default function Register() {
     name: '',
     email: '',
     phone: '',
+    faculty: '',
     password: '',
     confirmPassword: '',
     role: 'attendee',
   });
+
+  const FACULTY_OPTIONS = [
+    { value: 'MANAGEMENT_SCIENCE', label: 'Management Science' },
+    { value: 'ICT', label: 'ICT' },
+    { value: 'ENGINEERING_FEBE', label: 'Engineering (FEBE)' },
+    { value: 'ALL_STUDENTS', label: 'All Students' },
+  ];
 
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -85,6 +93,12 @@ export default function Register() {
       return;
     }
 
+    if (form.role === 'attendee' && !form.faculty) {
+      toast.error('Faculty is required for attendee registration.');
+      setLoading(false);
+      return;
+    }
+
     try {
       await api.post('/auth/register', {
         name: form.name,
@@ -93,6 +107,7 @@ export default function Register() {
         verify_password: form.confirmPassword,
         cellphone_number: form.phone,
         role: form.role.toUpperCase(),
+        address: form.role === 'attendee' ? form.faculty : '',
       });
 
       toast.success('Registration successful! Redirecting to login...');
@@ -206,6 +221,24 @@ export default function Register() {
           <option value="attendee">Attendee</option>
           <option value="organizer">Organizer</option>
         </select>
+
+        {form.role === 'attendee' && (
+          <>
+            <label htmlFor="faculty">Faculty</label>
+            <select
+              name="faculty"
+              value={form.faculty}
+              onChange={handleChange}
+              required
+              disabled={loading}
+            >
+              <option value="">Select your faculty</option>
+              {FACULTY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>{option.label}</option>
+              ))}
+            </select>
+          </>
+        )}
 
         <button type="submit" disabled={loading}>
           {loading ? 'Registering…' : 'Register'}

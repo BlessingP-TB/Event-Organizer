@@ -10,6 +10,18 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api
 const DEFAULT_BANNER =
   "https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?w=800&q=80";
 
+const FACULTY_LABELS = {
+  ALL_STUDENTS: 'All Students',
+  MANAGEMENT_SCIENCE: 'Management Science',
+  ICT: 'ICT',
+  ENGINEERING_FEBE: 'Engineering (FEBE)',
+};
+
+const getAudienceLabel = (event) => {
+  const audience = event?.requestedResourcesAndServices?.__audienceFaculty;
+  return FACULTY_LABELS[audience] || 'All Students';
+};
+
 // Helper to convert byte object or array to base64 data URL
 const bytesToDataUrl = (bytes, mimeType = 'image/jpeg') => {
   if (!bytes) return null;
@@ -35,6 +47,28 @@ const bytesToDataUrl = (bytes, mimeType = 'image/jpeg') => {
     console.error("Failed to convert image bytes to data URL", e);
     return null;
   }
+};
+
+const parseApprovalNotes = (notes) => {
+  if (typeof notes !== 'string') return null;
+  try {
+    return JSON.parse(notes);
+  } catch {
+    return null;
+  }
+};
+
+const getPendingRescheduleApproval = (event) => {
+  if (!Array.isArray(event?.approvals)) return null;
+
+  return event.approvals.find(
+    (approval) => approval.targetType === 'EventReschedule' && approval.status === 'PENDING'
+  ) || null;
+};
+
+const getRequestedRescheduleValue = (payload, legacyKey, compactKey) => {
+  if (!payload || typeof payload !== 'object') return null;
+  return payload[legacyKey] ?? payload[compactKey] ?? null;
 };
 
 const EventDetails = () => {
@@ -130,6 +164,20 @@ const EventDetails = () => {
     );
 
   if (!event) return <p>Event not found.</p>;
+
+  const pendingRescheduleApproval = getPendingRescheduleApproval(event);
+  const pendingReschedulePayload = parseApprovalNotes(pendingRescheduleApproval?.notes);
+  const effectiveStartDateTime =
+    getRequestedRescheduleValue(pendingReschedulePayload, 'requestedStartDateTime', 's') ||
+    event.startDateTime;
+  const effectiveEndDateTime =
+    getRequestedRescheduleValue(pendingReschedulePayload, 'requestedEndDateTime', 'e') ||
+    event.endDateTime;
+  const effectiveVenueId =
+    getRequestedRescheduleValue(pendingReschedulePayload, 'requestedVenueId', 'v') ||
+    event.venueId;
+  const effectiveVenue =
+    effectiveVenueId === event.venue?.id || !effectiveVenueId ? event.venue : event.venue;
 
   const statsAvailable = event._count && typeof event._count.registrations !== "undefined";
 
@@ -246,21 +294,29 @@ const EventDetails = () => {
           <p>
             <strong>Expected Guests:</strong> {event.expectedAttend || "Information not available."}
           </p>
+          <p>
+            <strong>Attendee Audience:</strong> {getAudienceLabel(event)}
+          </p>
 
           <hr />
 
           <h3>When and Where</h3>
+          {pendingRescheduleApproval && (
+            <p className="pending-reschedule-note">
+              <strong>Pending Reschedule:</strong> These details reflect the requested schedule while admin approval is pending.
+            </p>
+          )}
           <p>
-            <strong>Date:</strong> {formatDate(event.startDateTime)} to {formatDate(event.endDateTime)}
+            <strong>Date:</strong> {formatDate(effectiveStartDateTime)} to {formatDate(effectiveEndDateTime)}
           </p>
           <p>
-            <strong>Time:</strong> {formatTime(event.startDateTime)} - {formatTime(event.endDateTime)}
+            <strong>Time:</strong> {formatTime(effectiveStartDateTime)} - {formatTime(effectiveEndDateTime)}
           </p>
           <p>
-            <strong>Venue:</strong> {event.venue?.name || "N/A"}
+            <strong>Venue:</strong> {effectiveVenue?.name || "N/A"}
           </p>
           <p>
-            <strong>Location:</strong> {event.venue?.location || "N/A"}
+            <strong>Location:</strong> {effectiveVenue?.location || "N/A"}
           </p>
 
           {statsAvailable && event.status !== "DRAFT" && (
@@ -278,7 +334,9 @@ const EventDetails = () => {
                 <hr />
                 <h3>Services & Resources</h3>
                 <ul className="services-resources-list">
-                  {Object.entries(event.requestedResourcesAndServices).map(([key, value]) => (
+                  {Object.entries(event.requestedResourcesAndServices)
+                    .filter(([key]) => key !== '__audienceFaculty')
+                    .map(([key, value]) => (
                     <li key={key}>
                       <strong>{key}:</strong> {typeof value === "boolean" ? (value ? "Yes" : "No") : value}
                     </li>
