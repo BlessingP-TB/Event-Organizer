@@ -4,7 +4,7 @@ import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
 import { useNavigation, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useOrgaDash } from '../../../hooks/organiser/useOrgaDash';
 import { triggerTestPushNotification } from '../../../hooks/pushNotifications';
@@ -16,11 +16,20 @@ export default function Organiser() {
   const dashData = useOrgaDash();
   const stats = dashData?.stats || {};
   const notifications = dashData?.notifications || [];
+  const markAllNotificationsAsRead = dashData?.markAllNotificationsAsRead;
+  const unreadCount = notifications.filter((item) => !item.read).length;
   const navigation = useNavigation();
-  const [search, setSearch] = useState('');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [isSendingTestPush, setIsSendingTestPush] = useState(false);
   const router = useRouter();
+
+  const handleNotificationToggle = useCallback(async () => {
+    const nextOpen = !isNotificationOpen;
+    setIsNotificationOpen(nextOpen);
+    if (nextOpen && typeof markAllNotificationsAsRead === 'function') {
+      await markAllNotificationsAsRead();
+    }
+  }, [isNotificationOpen, markAllNotificationsAsRead]);
 
   useEffect(() => {
     navigation.setOptions({
@@ -32,9 +41,12 @@ export default function Organiser() {
 
             </TouchableOpacity>
             <Text style={style.title}>Dashboard</Text>
-            <TouchableOpacity onPress={() => setIsNotificationOpen(!isNotificationOpen)}>
-              <Ionicons name="notifications-outline" size={26} color="black" />
-            </TouchableOpacity>
+            <View style={style.notificationBellWrap}>
+              <TouchableOpacity onPress={handleNotificationToggle}>
+                <Ionicons name="notifications-outline" size={26} color="black" />
+              </TouchableOpacity>
+              {unreadCount > 0 && <View style={style.unreadDot} />}
+            </View>
             <TouchableOpacity onPress={() => router.replace("/(tabs)/Organiser/Profile")}>
               <Image source={require('@/assets/images/pp.jpg')} style={style.logo2} />
             </TouchableOpacity>
@@ -46,7 +58,7 @@ export default function Organiser() {
     });
 
 
-  }, [navigation, router, isNotificationOpen]);
+  }, [navigation, router, unreadCount, handleNotificationToggle]);
 
   const handleSendTestPush = async () => {
     if (isSendingTestPush) {
@@ -248,6 +260,20 @@ const style = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
     color: '#333',
+  },
+  notificationBellWrap: {
+    position: 'relative',
+  },
+  unreadDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#dc2626',
+    borderWidth: 1,
+    borderColor: '#fff',
   },
   emptyText: {
     color: '#999',

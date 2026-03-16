@@ -85,6 +85,10 @@ export default function Admin() {
   const { width: screenWidth } = useWindowDimensions();
   const { dashboard, isLoaded, reload, markAllNotificationsAsRead } = useAdminDashboard();
   const unreadCount = (dashboard?.notifications || []).filter(n => !n.read).length;
+  const handleNotificationOpen = useCallback(async () => {
+    setIsNotificationOpen(true);
+    await markAllNotificationsAsRead();
+  }, [markAllNotificationsAsRead]);
   // destructure to simplify access
   const { notifications, occupancyData, revenueSummary, analyticsData } = dashboard || {
     notifications: [],
@@ -112,10 +116,7 @@ export default function Admin() {
             </TouchableOpacity>
             <Text style={style.title}>Admin Dashboard</Text>
             <View style={{ position: 'relative' }}>
-              <TouchableOpacity onPress={() => {
-                setIsNotificationOpen(true);
-                markAllNotificationsAsRead(); // 👈 make sure this exists in your hook
-              }}>
+              <TouchableOpacity onPress={handleNotificationOpen}>
                 <Ionicons name="notifications-outline" size={26} color="black" />
               </TouchableOpacity>
               {unreadCount > 0 && (
@@ -153,7 +154,8 @@ export default function Admin() {
     });
 
 
-  },);
+  }, [navigation, router, search, unreadCount, handleNotificationOpen]);
+
 
   if (!isLoaded) {
     return <Text style={{ textAlign: 'center', marginTop: 50 }}>Loading Dashboard...</Text>;

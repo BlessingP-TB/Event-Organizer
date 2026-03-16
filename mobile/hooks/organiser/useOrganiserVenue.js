@@ -1,12 +1,12 @@
 // app/hooks/organiser/useOrganiserVenue.js
 import API_URL from '@/config';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 // This hook fetches public venues without an Admin token
 export const useOrganiserVenue = () => {
     const [venues, setVenues] = useState([]);
 
-    const reload = async () => {
+    const reload = useCallback(async () => {
         try {
             // Use the public route from venue.validation.js
             const response = await fetch(`${API_URL}/venues/?page=1&pageSize=50`);
@@ -19,11 +19,11 @@ export const useOrganiserVenue = () => {
             console.error("Failed to load organiser venues:", error);
             setVenues([]);
         }
-    };
+    }, []);
 
     useEffect(() => {
         reload();
-    }, []);
+    }, [reload]);
 
     return { venues, reload };
 };

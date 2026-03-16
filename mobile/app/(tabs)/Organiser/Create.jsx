@@ -395,6 +395,7 @@ export default function Create() {
       const isEventFree = true;
       const autoDistribute = true;
       const eventCapacity = parseInt(capacity) || 1000;
+      const audienceFaculty = 'ALL_STUDENTS';
 
       // --- Build Payload based on Code 2 Logic ---
       const numericResourcesArray = [];
@@ -416,17 +417,20 @@ export default function Create() {
         venueId: selectedVenue,
         startDateTime: startDateObj.toISOString(),
         endDateTime: endDateObj.toISOString(),
+        audienceFaculty,
         isFree: isEventFree,
         ticketRequired: true,
         autoDistribute: autoDistribute,
         allowAttendeePurchase: true,
         resources: numericResourcesArray,
         services: servicesObject,
-        ticketDefinitions: isEventFree ? undefined : [{
-          name: "General Admission",
-          price: 0.00,
-          quantity: eventCapacity,
-        }],
+        ...(!isEventFree ? {
+          ticketDefinitions: [{
+            name: "General Admission",
+            price: 0.00,
+            quantity: eventCapacity,
+          }],
+        } : {}),
       };
 
       console.log("Submitting Payload:", apiPayload);

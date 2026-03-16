@@ -92,6 +92,7 @@ export const handleSignin = async (rememberMe, email, password, API_URL, router)
             await AsyncStorage.multiRemove(ROLE_TOKEN_KEYS);
             await AsyncStorage.setItem(tokenKey, accessToken);
             await AsyncStorage.setItem("user", JSON.stringify(user));
+            await AsyncStorage.setItem("userSession", JSON.stringify(user));
 
             registerForPushNotificationsAndSync(accessToken).catch((error) => {
                 console.warn(

@@ -42,13 +42,18 @@ export default function Index() {
     const checkLoginStatus = async () => {
       try {
         await new Promise(resolve => setTimeout(resolve, 100));
-        const savedUser = await AsyncStorage.getItem("userSession");
+        const savedUser = await AsyncStorage.getItem("userSession")
+          || await AsyncStorage.getItem("user");
         if (savedUser) {
           const user = JSON.parse(savedUser);
           const role = user.role?.toLowerCase();
-          if (role === "organiser") router.replace("(tabs)/Organiser/orgaDash");
-          else if (role === "admin") router.replace("(tabs)/Admin/adminDash");
-          else router.replace("(tabs)/Attendee/Home");
+          if (role === "organiser" || role === "organizer") {
+            router.replace("/(tabs)/Organiser/orgaDash");
+          } else if (role === "admin") {
+            router.replace("/(tabs)/Admin/adminDash");
+          } else {
+            router.replace("/(tabs)/Attendee/Home");
+          }
           return;
         }
       } catch (error) {
@@ -57,7 +62,7 @@ export default function Index() {
       fetchPublicEvents();
     };
     checkLoginStatus();
-  }, []);
+  }, [router]);
 
   // 2. Fetch Events
   const fetchPublicEvents = async () => {

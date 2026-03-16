@@ -55,10 +55,23 @@ export const useAdminDashboard = () => {
       setError(null);
       const config = await getAdminAuthHeaders();
 
-      const dashboardResponse = await axios.get(`${API_URL}/admin/dashboard`, config);
+      const [dashboardResponse, notificationsResponse] = await Promise.all([
+        axios.get(`${API_URL}/admin/dashboard`, config),
+        axios.get(`${API_URL}/notifications`, config),
+      ]);
       const dashboardStats = unwrapPayload(dashboardResponse, {});
       const topVenues = Array.isArray(dashboardStats.topVenues) ? dashboardStats.topVenues : [];
       const revenueData = Array.isArray(dashboardStats.revenueData) ? dashboardStats.revenueData : [];
+      const notificationsFromApi = Array.isArray(notificationsResponse?.data)
+        ? notificationsResponse.data.map((item) => ({
+            id: item.id,
+            title: item.title || 'Notification',
+            message: item.message || '',
+            read: Boolean(item.read),
+            createdAt: item.createdAt,
+            time: item.createdAt ? new Date(item.createdAt).toLocaleString() : 'Just now',
+          }))
+        : [];
 
       const combinedData = {
         ...DEFAULT_DASHBOARD,
@@ -88,7 +101,9 @@ export const useAdminDashboard = () => {
             value: String(dashboardStats.totalVenues || 0)
           }
         },
-        notifications: dashboardStats.notifications || []
+        notifications: notificationsFromApi.length
+          ? notificationsFromApi
+          : (dashboardStats.notifications || [])
       };
 
       setDashboard(combinedData);
@@ -118,7 +133,7 @@ export const useAdminDashboard = () => {
   }, [loadDashboard]);
 
   // --- Update dashboard data ---
-  const updateDashboard = async (newData) => {
+  const updateDashboard = useCallback(async (newData) => {
     try {
       const updated = { ...dashboard, ...newData };
       setDashboard(updated);
@@ -126,7 +141,7 @@ export const useAdminDashboard = () => {
     } catch (error) {
       console.error('❌ Error updating dashboard data:', error);
     }
-  };
+  }, [dashboard]);
 
   // ✅ Now reload can use loadDashboard
   const reload = useCallback(() => {
@@ -156,12 +171,24 @@ export const useAdminDashboard = () => {
     await updateDashboard({ notifications: updatedNotifications });
   };
 
-  const markAllNotificationsAsRead = async () => {
+  const markAllNotificationsAsRead = useCallback(async () => {
     if (!dashboard?.notifications) return;
 
-    const updatedNotifications = dashboard.notifications.map(n => ({ ...n, read: true }));
+    const unread = dashboard.notifications.filter((item) => !item.read);
+    if (!unread.length) return;
+
+    try {
+      const config = await getAdminAuthHeaders();
+      await Promise.all(
+        unread.map((item) => axios.patch(`${API_URL}/notifications/${item.id}`, { read: true }, config))
+      );
+    } catch (error) {
+      console.error('❌ Error marking admin notifications read on server:', error?.response?.data || error?.message || error);
+    }
+
+    const updatedNotifications = dashboard.notifications.map((item) => ({ ...item, read: true }));
     await updateDashboard({ notifications: updatedNotifications });
-  };
+  }, [dashboard?.notifications, updateDashboard]);
 
   return {
     dashboard,

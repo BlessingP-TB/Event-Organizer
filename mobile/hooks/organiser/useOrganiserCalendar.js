@@ -8,7 +8,7 @@ export const useOrganiserCalendar = () => {
     const [markedDates, setMarkedDates] = useState({});
     const [loading, setLoading] = useState(true);
 
-    const loadDates = async () => {
+    const loadDates = useCallback(async () => {
         setLoading(true);
         try {
             const data = await getOrganiserCalendarDates();
@@ -34,16 +34,16 @@ export const useOrganiserCalendar = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, []);
 
     useEffect(() => {
         loadDates();
-    }, []);
+    }, [loadDates]);
 
     useFocusEffect(
         useCallback(() => {
             loadDates();
-        }, [])
+        }, [loadDates])
     );
 
     const isVenueAvailable = (venueId, dateStr, startTime, endTime) => {

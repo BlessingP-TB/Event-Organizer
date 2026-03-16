@@ -17,35 +17,57 @@ export default function ScannerCheckIn() {
   const navigation = useNavigation();
   const router = useRouter();
   const { eventId, eventName } = useLocalSearchParams();
+  const normalizedEventId = Array.isArray(eventId) ? eventId[0] : eventId;
+  const normalizedEventName = Array.isArray(eventName) ? eventName[0] : eventName;
 
   const [permission, requestPermission] = useCameraPermissions();
   const [manualQr, setManualQr] = useState('');
   const [statusMessage, setStatusMessage] = useState('Ready to scan attendee QR codes.');
   const [lastAttendee, setLastAttendee] = useState(null);
   const [scannerToken, setScannerToken] = useState(null);
+  const [waitingForNext, setWaitingForNext] = useState(false);
 
   const isProcessingRef = useRef(false);
   const lastScanRef = useRef({ data: '', ts: 0 });
+  const waitingForNextRef = useRef(false);
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
-  }, []);
+  }, [navigation]);
 
   useEffect(() => {
     const loadToken = async () => {
-      const token = await AsyncStorage.getItem(`SCANNER_ACCESS_TOKEN_${eventId}`);
+      const token = await AsyncStorage.getItem(`SCANNER_ACCESS_TOKEN_${normalizedEventId}`);
       setScannerToken(token);
       if (!token) {
         Alert.alert('Session Expired', 'Please login with scanner credentials again.');
-        router.replace({ pathname: '/(tabs)/Organiser/ScannerLogin', params: { eventId, eventName } });
+        router.replace({ pathname: '/(tabs)/Organiser/ScannerLogin', params: { eventId: normalizedEventId, eventName: normalizedEventName } });
       }
     };
     loadToken();
-  }, [eventId]);
+
+    return () => {
+      isProcessingRef.current = false;
+      waitingForNextRef.current = false;
+    };
+  }, [normalizedEventId, normalizedEventName, router]);
+
+  const handleLogout = async () => {
+    await AsyncStorage.removeItem(`SCANNER_ACCESS_TOKEN_${normalizedEventId}`);
+    router.replace({ pathname: '/(tabs)/Organiser/ScannerLogin', params: { eventId: normalizedEventId, eventName: normalizedEventName } });
+  };
+
+  const handleScanNextAttendee = () => {
+    waitingForNextRef.current = false;
+    setWaitingForNext(false);
+    setLastAttendee(null);
+    setManualQr('');
+    setStatusMessage('Ready to scan attendee QR codes.');
+  };
 
   const processScan = async (rawData) => {
     const qrData = String(rawData || '').trim();
-    if (!qrData || !scannerToken) return;
+    if (!qrData || !scannerToken || waitingForNextRef.current) return;
 
     const now = Date.now();
     if (lastScanRef.current.data === qrData && now - lastScanRef.current.ts < 1600) {
@@ -58,9 +80,11 @@ export default function ScannerCheckIn() {
     lastScanRef.current = { data: qrData, ts: now };
 
     try {
-      const payload = await redeemWrittenScannerQr(eventId, qrData, scannerToken);
+      const payload = await redeemWrittenScannerQr(normalizedEventId, qrData, scannerToken);
       setLastAttendee(payload.attendee || null);
-      setStatusMessage(payload.message || 'Attendee validated. Continue scanning.');
+      waitingForNextRef.current = true;
+      setWaitingForNext(true);
+      setStatusMessage(payload.message || 'Attendee validated. Tap "Scan Next Attendee" to continue.');
     } catch (error) {
       setStatusMessage(error.message || 'Failed to validate attendee QR.');
     } finally {
@@ -91,7 +115,7 @@ export default function ScannerCheckIn() {
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>Scanner Check-In</Text>
-          <Text style={styles.subtitle}>{eventName || eventId}</Text>
+          <Text style={styles.subtitle}>{normalizedEventName || normalizedEventId}</Text>
         </View>
       </View>
 
@@ -100,7 +124,7 @@ export default function ScannerCheckIn() {
           style={styles.camera}
           facing="back"
           barcodeScannerSettings={{ barcodeTypes: ['qr'] }}
-          onBarcodeScanned={({ data }) => processScan(data)}
+          onBarcodeScanned={waitingForNext ? undefined : ({ data }) => processScan(data)}
         />
       </View>
 
@@ -121,27 +145,34 @@ export default function ScannerCheckIn() {
           value={manualQr}
           onChangeText={setManualQr}
           placeholder="Paste QR text / redeem-ticket URL"
+          editable={!waitingForNext}
         />
         <TouchableOpacity
-          style={styles.validateBtn}
+          style={[styles.validateBtn, (waitingForNext || !manualQr.trim()) && styles.disabledBtn]}
           onPress={() => {
             processScan(manualQr);
             setManualQr('');
           }}
+          disabled={waitingForNext || !manualQr.trim()}
         >
           <Text style={styles.validateBtnText}>Validate</Text>
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity
-        style={styles.logoutBtn}
-        onPress={async () => {
-          await AsyncStorage.removeItem(`SCANNER_ACCESS_TOKEN_${eventId}`);
-          router.replace({ pathname: '/(tabs)/Organiser/ScannerLogin', params: { eventId, eventName } });
-        }}
-      >
-        <Text style={styles.logoutBtnText}>Logout Scanner</Text>
-      </TouchableOpacity>
+      <View style={styles.actionRow}>
+        <TouchableOpacity
+          style={[styles.nextScanBtn, !waitingForNext && styles.disabledBtn]}
+          onPress={handleScanNextAttendee}
+          disabled={!waitingForNext}
+        >
+          <Text style={styles.nextScanBtnText}>Scan Next Attendee</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
+          <Text style={styles.logoutBtnText}>Done and Logout</Text>
+        </TouchableOpacity>
+      </View>
+
     </View>
   );
 }
@@ -214,9 +245,22 @@ const styles = StyleSheet.create({
     paddingVertical: 11,
   },
   validateBtnText: { color: '#fff', fontWeight: '700' },
-  logoutBtn: {
+  disabledBtn: {
+    backgroundColor: '#94a3b8',
+  },
+  actionRow: {
     marginTop: 12,
     marginHorizontal: 16,
+    gap: 10,
+  },
+  nextScanBtn: {
+    borderRadius: 10,
+    backgroundColor: '#0ea5e9',
+    alignItems: 'center',
+    paddingVertical: 11,
+  },
+  nextScanBtnText: { color: '#fff', fontWeight: '700' },
+  logoutBtn: {
     borderRadius: 10,
     backgroundColor: '#fff1f2',
     borderWidth: 1,
