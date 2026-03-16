@@ -5,13 +5,36 @@ import axios from 'axios';
 import API_URL from '@/config';
 
 const DASHBOARD_STORAGE_KEY = 'admin_dashboard_data';
+const DEFAULT_DASHBOARD = {
+  notifications: [],
+  occupancyData: [],
+  revenueSummary: {
+    amount: 'R0',
+    change: '+0%',
+    trend: 'vs. last month',
+    graph: [0, 0, 0, 0, 0]
+  },
+  analyticsData: {
+    totalRegisteredUsers: { value: '0' },
+    activeEvents: { value: '0' },
+    eventBookingsMonth: { value: '0' },
+    totalVenues: { value: '0' }
+  }
+};
+
+const unwrapPayload = (response, fallback) => {
+  const payload = response?.data?.data ?? response?.data;
+  return payload ?? fallback;
+};
 
 // --- Utility function to get the token and config ---
 const getAdminAuthHeaders = async () => {
     const token = await AsyncStorage.getItem("ADMIN_JWT_TOKEN");
 
     if (!token) {
-        throw new Error("ADMIN_JWT_TOKEN_MISSING");
+        const error = new Error("ADMIN_JWT_TOKEN_MISSING");
+        error.code = 'AUTH_TOKEN_MISSING';
+        throw error;
     }
 
     return {
@@ -32,20 +55,13 @@ export const useAdminDashboard = () => {
       setError(null);
       const config = await getAdminAuthHeaders();
 
-      // Fetch dashboard stats from backend
       const dashboardResponse = await axios.get(`${API_URL}/admin/dashboard`, config);
-      const dashboardStats = dashboardResponse.data.data;
+      const dashboardStats = unwrapPayload(dashboardResponse, {});
+      const topVenues = Array.isArray(dashboardStats.topVenues) ? dashboardStats.topVenues : [];
+      const revenueData = Array.isArray(dashboardStats.revenueData) ? dashboardStats.revenueData : [];
 
-      // Fetch top booked venues
-      const topVenuesResponse = await axios.get(`${API_URL}/admin/venues/top-booked`, config);
-      const topVenues = topVenuesResponse.data.data;
-
-      // Fetch revenue data
-      const revenueResponse = await axios.get(`${API_URL}/admin/analytics/revenue`, config);
-      const revenueData = revenueResponse.data.data;
-
-      // Combine data
       const combinedData = {
+        ...DEFAULT_DASHBOARD,
         ...dashboardStats,
         occupancyData: topVenues.map(venue => ({
           name: venue.name,
@@ -53,77 +69,43 @@ export const useAdminDashboard = () => {
           total: venue.capacity
         })),
         revenueSummary: {
-          amount: `R${dashboardStats.currentMonthRevenue}`,
-          change: `${dashboardStats.revenueChangePercent}%`,
+          amount: `R${Number(dashboardStats.currentMonthRevenue || 0)}`,
+          change: `${dashboardStats.revenueChangePercent || 0}%`,
           trend: 'vs. last month',
           graph: revenueData
         },
         analyticsData: {
           totalRegisteredUsers: {
-            value: dashboardStats.registeredUsers.toString()
+            value: String(dashboardStats.registeredUsers || 0)
           },
           activeEvents: {
-            value: dashboardStats.activeEvents.toString()
+            value: String(dashboardStats.activeEvents || 0)
           },
           eventBookingsMonth: {
-            value: dashboardStats.eventBookings.toString()
+            value: String(dashboardStats.eventBookings || 0)
           },
           totalVenues: {
-            value: dashboardStats.totalVenues.toString()
+            value: String(dashboardStats.totalVenues || 0)
           }
         },
-        notifications: [] // Keep notifications local for now
+        notifications: dashboardStats.notifications || []
       };
 
       setDashboard(combinedData);
-      // Optionally save to AsyncStorage for offline access
       await AsyncStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(combinedData));
     } catch (error) {
       console.error('❌ Error loading dashboard data:', error);
       setError(error);
-      // Fallback to AsyncStorage if API fails
       try {
         const json = await AsyncStorage.getItem(DASHBOARD_STORAGE_KEY);
         if (json) {
           setDashboard(JSON.parse(json));
         } else {
-          // If no stored data, set default empty data to prevent flickering
-          setDashboard({
-            notifications: [],
-            occupancyData: [],
-            revenueSummary: {
-              amount: 'R0',
-              change: '+0%',
-              trend: 'vs. last month',
-              graph: [0, 0, 0, 0, 0]
-            },
-            analyticsData: {
-              totalRegisteredUsers: { value: '0' },
-              activeEvents: { value: '0' },
-              eventBookingsMonth: { value: '0' },
-              totalVenues: { value: '0' }
-            }
-          });
+          setDashboard(DEFAULT_DASHBOARD);
         }
       } catch (storageError) {
         console.error('❌ Error loading from storage:', storageError);
-        // Set default empty data
-        setDashboard({
-          notifications: [],
-          occupancyData: [],
-          revenueSummary: {
-            amount: 'R0',
-            change: '+0%',
-            trend: 'vs. last month',
-            graph: [0, 0, 0, 0, 0]
-          },
-            analyticsData: {
-              totalRegisteredUsers: { value: '0' },
-              activeEvents: { value: '0' },
-              eventBookingsMonth: { value: '0' },
-              totalVenues: { value: '0' }
-            }
-        });
+        setDashboard(DEFAULT_DASHBOARD);
       }
     } finally {
       setIsLoaded(true);
@@ -155,9 +137,8 @@ export const useAdminDashboard = () => {
   // --- Reset to sample data ---
   const restoreDefaults = async () => {
     try {
-      // This would need to be updated if we want to reset to API data
-      const data = await getDashboardData();
-      setDashboard(data);
+      setDashboard(DEFAULT_DASHBOARD);
+      await AsyncStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(DEFAULT_DASHBOARD));
       setIsLoaded(true);
     } catch (error) {
       console.error('❌ Error resetting dashboard data:', error);

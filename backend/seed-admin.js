@@ -4,17 +4,28 @@
  */
 const { PrismaClient } = require('./prisma/generate/prisma');
 const bcrypt = require('bcrypt');
+const {
+  isAllowedAuthEmail,
+  normalizeAuthEmail,
+  ALLOWED_AUTH_EMAIL_MESSAGE,
+} = require('./src/utils/authEmail.util');
 
 const prisma = new PrismaClient();
 
-const ADMIN_EMAIL = 'admin@smartevents.com';
+const ADMIN_EMAIL = 'admin@tut.ac.za';
 const ADMIN_PASSWORD = 'Admin@1234';
 const ADMIN_NAME = 'System Admin';
 const BCRYPT_ROUNDS = 10;
 
 async function main() {
+  const normalizedAdminEmail = normalizeAuthEmail(ADMIN_EMAIL);
+
+  if (!isAllowedAuthEmail(normalizedAdminEmail)) {
+    throw new Error(ALLOWED_AUTH_EMAIL_MESSAGE);
+  }
+
   // Check if admin already exists
-  const existing = await prisma.user.findUnique({ where: { email: ADMIN_EMAIL } });
+  const existing = await prisma.user.findUnique({ where: { email: normalizedAdminEmail } });
   if (existing) {
     console.log('Admin user already exists:', existing.email);
     return;
@@ -24,7 +35,7 @@ async function main() {
 
   const user = await prisma.user.create({
     data: {
-      email: ADMIN_EMAIL,
+      email: normalizedAdminEmail,
       name: ADMIN_NAME,
       role: 'ADMIN',
       active: true,

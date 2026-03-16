@@ -1,6 +1,10 @@
 // app/(tabs)/AuthScreen.js
-import { handleSignin, handleSignup } from "@/app/hooks/Auth";
-import API_URL from "@/config"; // Replace with your API server IP
+import { handleSignin, handleSignup } from "@/hooks/Auth";
+import API_URL from "@/config";
+import {
+  ALLOWED_AUTH_EMAIL_MESSAGE,
+  isAllowedAuthEmail,
+} from "@/utils/allowedAuthEmail";
 import { useNavigation, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -37,7 +41,7 @@ export default function AuthScreen() {
 
   useEffect(() => {
     navigation.setOptions({ headerShown: false });
-  }, []);
+  }, [navigation]);
 
   const validateInputs = () => {
     if (!name || !surname || !email || !phone || !password || !confirmPassword) {
@@ -47,6 +51,10 @@ export default function AuthScreen() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert("Error", "Invalid email address.");
+      return false;
+    }
+    if (!isAllowedAuthEmail(email)) {
+      Alert.alert("Error", ALLOWED_AUTH_EMAIL_MESSAGE);
       return false;
     }
     if (password !== confirmPassword) {
@@ -115,6 +123,7 @@ export default function AuthScreen() {
             <View style={styles.fieldset}>
               <Text style={styles.legend}>Email</Text>
               <TextInput style={styles.input} placeholder="Enter your email" value={email} onChangeText={setEmail} placeholderTextColor="#999" />
+              <Text style={styles.inputHint}>Use a @tut.ac.za email, or a 9-digit student number with @tut4life.ac.za.</Text>
             </View>
             <View style={styles.fieldset}>
               <Text style={styles.legend}>Phone</Text>
@@ -172,6 +181,7 @@ export default function AuthScreen() {
             <View style={styles.fieldset}>
               <Text style={styles.legend}>Email</Text>
               <TextInput style={styles.input} placeholder="Enter your email" value={email} onChangeText={setEmail} placeholderTextColor="#999" />
+              <Text style={styles.inputHint}>Sign in with a @tut.ac.za email, or a 9-digit number @tut4life.ac.za email.</Text>
             </View>
             <View style={styles.fieldset}>
               <Text style={styles.legend}>Password</Text>
@@ -210,6 +220,7 @@ const styles = StyleSheet.create({
   fieldset: { margin: 20, marginBottom: 5, padding: 6, borderWidth: 1, borderColor: "#ccc", borderRadius: 6, position: "relative" },
   legend: { position: "absolute", top: -12, left: 12, backgroundColor: "#fff", paddingHorizontal: 6, fontSize: 14, fontWeight: "bold", color: "#333" },
   input: { color: "#000", padding: 8 },
+  inputHint: { color: "#667085", fontSize: 12, paddingHorizontal: 8, paddingBottom: 4 },
   forgotPassword: {
     color: '#0077B6',
     textAlign: 'center',

@@ -2,16 +2,40 @@ import API_URL from "@/config";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import { Alert } from "react-native";
+import { registerForPushNotificationsAndSync } from "@/hooks/pushNotifications";
+import {
+    ALLOWED_AUTH_EMAIL_MESSAGE,
+    isAllowedAuthEmail,
+    normalizeAuthEmail,
+} from "@/utils/allowedAuthEmail";
+
+const ROLE_TOKEN_KEYS = [
+    "ADMIN_JWT_TOKEN",
+    "ORGANISER_JWT_TOKEN",
+    "ATTENDEE_JWT_TOKEN",
+];
+
+const getAuthErrorMessage = (error, fallbackMessage) =>
+    error?.response?.data?.details?.[0]?.message
+    || error?.response?.data?.message
+    || fallbackMessage;
 
 /**
  * 🟩 Signup Function
  */
 export const handleSignup = async (name, surname, email, phone, password, confirmPassword, role,) => {
     try {
+        const normalizedEmail = normalizeAuthEmail(email);
+
+        if (!isAllowedAuthEmail(normalizedEmail)) {
+            Alert.alert("Error", ALLOWED_AUTH_EMAIL_MESSAGE);
+            return null;
+        }
+
         const response = await axios.post(`${API_URL}/auth/register`, {
             name,
             // surname is intentionally excluded from the final payload (server does not expect it)
-            email,
+            email: normalizedEmail,
             cellphone_number: phone,
             password,
             verify_password: confirmPassword,
@@ -19,7 +43,7 @@ export const handleSignup = async (name, surname, email, phone, password, confir
         });
 
         if (response.status === 201) {
-            Alert.alert("Success", "Account created successfully. Please verify your email.");
+            Alert.alert("Success", "Account created successfully. You can now log in.");
             return response.data;
         } else {
             Alert.alert("Error", response.data.message || "Something went wrong.");
@@ -27,7 +51,7 @@ export const handleSignup = async (name, surname, email, phone, password, confir
         }
     } catch (error) {
         console.error("Signup error:", error.response?.data || error.message);
-        Alert.alert("Error", error.response?.data?.message || "Failed to sign up.");
+        Alert.alert("Error", getAuthErrorMessage(error, "Failed to sign up."));
         return null;
     }
 };
@@ -37,8 +61,15 @@ export const handleSignup = async (name, surname, email, phone, password, confir
  */
 export const handleSignin = async (rememberMe, email, password, API_URL, router) => {
     try {
+        const normalizedEmail = normalizeAuthEmail(email);
+
+        if (!isAllowedAuthEmail(normalizedEmail)) {
+            Alert.alert("Error", ALLOWED_AUTH_EMAIL_MESSAGE);
+            return null;
+        }
+
         const response = await axios.post(`${API_URL}/auth/login`, {
-            email,
+            email: normalizedEmail,
             password,
         });
 
@@ -63,8 +94,16 @@ export const handleSignin = async (rememberMe, email, password, API_URL, router)
             }
             // --- FIX END ---
 
+            await AsyncStorage.multiRemove(ROLE_TOKEN_KEYS);
             await AsyncStorage.setItem(tokenKey, accessToken);
             await AsyncStorage.setItem("user", JSON.stringify(user));
+
+            registerForPushNotificationsAndSync(accessToken).catch((error) => {
+                console.warn(
+                    "Push token sync failed:",
+                    error?.response?.data || error?.message || error
+                );
+            });
 
             Alert.alert("Welcome", `Hello ${user.name}!`);
 
@@ -96,7 +135,7 @@ export const handleSignin = async (rememberMe, email, password, API_URL, router)
         if (error.message.includes("[AsyncStorage]")) {
             Alert.alert("Login Failed", "A problem occurred while trying to save your session. This is often due to an invalid API response.");
         } else {
-            Alert.alert("Error", error.response?.data?.message || "Login failed.");
+            Alert.alert("Error", getAuthErrorMessage(error, "Login failed."));
         }
         return null;
     }

@@ -3,11 +3,11 @@ import AntDesign from '@expo/vector-icons/AntDesign';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import SimpleLineIcons from '@expo/vector-icons/SimpleLineIcons';
-import * as Notifications from 'expo-notifications';
 import { useNavigation, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useOrgaDash } from '../../../hooks/organiser/useOrgaDash';
+import { triggerTestPushNotification } from '../../../hooks/pushNotifications';
 
 
 
@@ -19,30 +19,8 @@ export default function Organiser() {
   const navigation = useNavigation();
   const [search, setSearch] = useState('');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isSendingTestPush, setIsSendingTestPush] = useState(false);
   const router = useRouter();
-
-
-
-  Notifications.setNotificationHandler({
-    handleNotification: async () => ({
-      shouldPlaySound: true,
-      shouldSetBadge: false,
-      shouldShowAlert: true,
-    })
-  });
-
-
-
-  useEffect(() => {
-    const requestPermissin = async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== 'granted') {
-        console.log('Permission not granted!');
-
-      }
-    }
-    requestPermissin();
-  });
 
   useEffect(() => {
     navigation.setOptions({
@@ -68,7 +46,40 @@ export default function Organiser() {
     });
 
 
-  },);
+  }, [navigation, router, isNotificationOpen]);
+
+  const handleSendTestPush = async () => {
+    if (isSendingTestPush) {
+      return;
+    }
+
+    setIsSendingTestPush(true);
+    try {
+      await triggerTestPushNotification({
+        title: 'Organizer Test Push',
+      });
+      Alert.alert('Test push queued', 'A test notification was sent to this organizer account.');
+    } catch (error) {
+      const status = error?.response?.status;
+      const message = error?.response?.data?.message || error?.message;
+
+      if (error?.code === 'AUTH_TOKEN_MISSING' || status === 401) {
+        Alert.alert('Authentication required', 'Log in again as an organizer, then retry the test push.');
+      } else if (error?.code === 'PUSH_REQUIRES_DEVICE') {
+        Alert.alert('Physical device required', 'Remote push notifications require a real device, not a simulator.');
+      } else if (error?.code === 'EXPO_GO_ANDROID_PUSH_UNSUPPORTED') {
+        Alert.alert('Expo Go limitation', 'Remote push notifications are not supported in Expo Go on Android. Use a development build.');
+      } else if (error?.code === 'PUSH_PROJECT_ID_MISSING') {
+        Alert.alert('Push setup required', 'Set EXPO_PUBLIC_EAS_PROJECT_ID for the mobile app and restart Expo.');
+      } else if (error?.code === 'PUSH_PERMISSION_NOT_GRANTED') {
+        Alert.alert('Permission required', 'Allow notifications for this app in iPhone settings, then retry the test push.');
+      } else {
+        Alert.alert('Test push failed', message || 'Unable to queue a test push right now.');
+      }
+    } finally {
+      setIsSendingTestPush(false);
+    }
+  };
 
   return (
     <View style={style.container}>
@@ -189,6 +200,15 @@ export default function Organiser() {
         <TouchableOpacity style={style.searchBar2} onPress={() => router.replace("/(tabs)/Organiser/UploadDocument")}>
           <Feather name="upload" size={16} color="black" />
           <Text style={style.text4}>Upload Document</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={style.searchBar2}
+          onPress={handleSendTestPush}
+          disabled={isSendingTestPush}
+        >
+          <Feather name="bell" size={16} color="black" />
+          <Text style={style.text4}>{isSendingTestPush ? 'Sending Test Push...' : 'Send Test Push'}</Text>
         </TouchableOpacity>
 
 

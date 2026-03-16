@@ -2,7 +2,6 @@ import { Tabs } from "expo-router";
 
 import Feather from '@expo/vector-icons/Feather';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 
 export default function TabLayout() {
   return (
@@ -31,17 +30,6 @@ export default function TabLayout() {
         options={{
           tabBarIcon: ({ color, size }) => <Feather name="calendar" size={size} color={color} />,
           title: "My Events",
-        }}
-      />
-
-      {/* Inbox tab */}
-      <Tabs.Screen
-        name="Inbox"
-        options={{
-          tabBarIcon: ({ color, size }) => (
-            <MaterialIcons name="chat-bubble-outline" size={size} color={color} />
-          ),
-          title: "Inbox",
         }}
       />
 

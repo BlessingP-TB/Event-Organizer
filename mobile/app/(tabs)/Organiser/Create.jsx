@@ -19,6 +19,7 @@ import {
 } from "react-native";
 import { Calendar } from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage'; // Ensure this is installed
+import API_URL from '@/config';
 
 import { createEventAPI, updateEventAPI } from '../../../data/Organiser/myEvents';
 import { useEvents } from '../../../hooks/organiser/useMyEvents';
@@ -151,17 +152,9 @@ export default function Create() {
     const fetchTools = async () => {
       setIsLoadingTools(true);
       try {
-        // Retrieve token if your API needs it
-        const token = await AsyncStorage.getItem('accessToken');
-
-        // NOTE: In React Native Android Emulator, 'localhost' points to the device itself.
-        // Use '10.0.2.2' for Android emulator to reach your computer's localhost, 
-        // or your machine's LAN IP (e.g., 192.168.x.x) for physical devices.
-        // Keeping the URL as requested in the prompt, but be aware of this in RN environment.
-        const res = await fetch('http://localhost:3000/tools', {
+        const res = await fetch(`${API_URL}/tools`, {
           headers: {
             'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
           }
         });
 
@@ -170,7 +163,6 @@ export default function Create() {
         const toolsData = json.data || json || [];
         const toolNames = Array.isArray(toolsData) ? toolsData.map(t => t.name).filter(Boolean) : [];
 
-        // Initialize resources: number for tools, boolean for known services
         const initialResources = {};
         toolNames.forEach(name => {
           initialResources[name] = 0;
@@ -184,7 +176,6 @@ export default function Create() {
         setResources(initialResources);
       } catch (err) {
         console.error('Failed to fetch tools:', err);
-        // Fallback to services only if tools fetch fails
         const fallback = {};
         KNOWN_SERVICES.forEach(s => fallback[s] = false);
         setResources(fallback);
@@ -196,7 +187,7 @@ export default function Create() {
     fetchTools();
     reloadVenues?.();
     reloadCalendar?.();
-  }, []);
+  }, [reloadCalendar, reloadVenues]);
 
   useEffect(() => {
     if (!selectedVenue && Array.isArray(venues) && venues.length > 0) {

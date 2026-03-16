@@ -4,7 +4,11 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
-import VerificationModal from '../../components/VerificationModal';
+import {
+  ALLOWED_AUTH_EMAIL_MESSAGE,
+  isAllowedAuthEmail,
+  normalizeAuthEmail,
+} from '../../utils/allowedAuthEmail';
 import '../../styles/abstracts-auth/_auth.scss';
 
 export default function Register() {
@@ -22,8 +26,6 @@ export default function Register() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [showVerification, setShowVerification] = useState(false);
-  const [registeredEmail, setRegisteredEmail] = useState('');
 
   // Password strength validator - backend requires min 10 chars, upper, lower, digit
   const validatePasswordStrength = (password) => {
@@ -71,6 +73,12 @@ export default function Register() {
       return;
     }
 
+    if (!isAllowedAuthEmail(form.email)) {
+      toast.error(ALLOWED_AUTH_EMAIL_MESSAGE);
+      setLoading(false);
+      return;
+    }
+
     if (form.password !== form.confirmPassword) {
       toast.error('Passwords do not match!');
       setLoading(false);
@@ -80,16 +88,15 @@ export default function Register() {
     try {
       await api.post('/auth/register', {
         name: form.name,
-        email: form.email,
+        email: normalizeAuthEmail(form.email),
         password: form.password,
         verify_password: form.confirmPassword,
         cellphone_number: form.phone,
         role: form.role.toUpperCase(),
       });
 
-      toast.success('Registration successful! Please verify your email.');
-      setRegisteredEmail(form.email);
-      setShowVerification(true);
+      toast.success('Registration successful! Redirecting to login...');
+      setTimeout(() => navigate('/login'), 1000);
     } catch (err) {
       console.error('Registration error:', err);
       let msg = 'Registration failed. Please try again.';
@@ -135,6 +142,7 @@ export default function Register() {
           required
           disabled={loading}
         />
+        <small className="field-hint">Use a @tut.ac.za email, or a 9-digit student number with @tut4life.ac.za.</small>
 
         <label htmlFor="phone">Phone Number</label>
         <input
@@ -210,22 +218,6 @@ export default function Register() {
           </p>
         </div>
       </form>
-
-      {showVerification && (
-        <VerificationModal
-          email={registeredEmail}
-          onVerified={() => {
-            setShowVerification(false);
-            toast.success('Email verified! Redirecting to login...');
-            setTimeout(() => navigate('/login'), 1500);
-          }}
-          onClose={() => {
-            setShowVerification(false);
-            toast('You can verify your email later from the login page.', { icon: 'ℹ️' });
-            navigate('/login');
-          }}
-        />
-      )}
     </div>
   );
 }

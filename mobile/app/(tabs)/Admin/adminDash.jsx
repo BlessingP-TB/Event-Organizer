@@ -9,9 +9,10 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as d3 from "d3";
 import { useNavigation, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from "react-native";
+import { Alert, Dimensions, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, useWindowDimensions, View } from "react-native";
 import Svg, { Path } from 'react-native-svg';
 import { useAdminDashboard } from '../../../hooks/Admin/useAdminDashboard';
+import { triggerTestPushNotification } from '../../../hooks/pushNotifications';
 
 
 export function LineGraph({ data, label, stat, color }) {
@@ -79,6 +80,7 @@ export default function Admin() {
   const navigation = useNavigation();
   const [search, setSearch] = useState('');
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [isSendingTestPush, setIsSendingTestPush] = useState(false);
   const router = useRouter();
   const { width: screenWidth } = useWindowDimensions();
   const { dashboard, isLoaded, reload, markAllNotificationsAsRead } = useAdminDashboard();
@@ -156,6 +158,40 @@ export default function Admin() {
   if (!isLoaded) {
     return <Text style={{ textAlign: 'center', marginTop: 50 }}>Loading Dashboard...</Text>;
   }
+
+  const handleSendTestPush = async () => {
+    if (isSendingTestPush) {
+      return;
+    }
+
+    setIsSendingTestPush(true);
+    try {
+      await triggerTestPushNotification({
+        title: 'Admin Test Push',
+      });
+      Alert.alert('Test push queued', 'A test notification was sent to this admin account.');
+      reload();
+    } catch (error) {
+      const status = error?.response?.status;
+      const message = error?.response?.data?.message || error?.message;
+
+      if (error?.code === 'AUTH_TOKEN_MISSING' || message === 'ADMIN_JWT_TOKEN_MISSING' || status === 401) {
+        Alert.alert('Authentication required', 'Log in again as an admin, then retry the test push.');
+      } else if (error?.code === 'PUSH_REQUIRES_DEVICE') {
+        Alert.alert('Physical device required', 'Remote push notifications require a real device, not a simulator.');
+      } else if (error?.code === 'EXPO_GO_ANDROID_PUSH_UNSUPPORTED') {
+        Alert.alert('Expo Go limitation', 'Remote push notifications are not supported in Expo Go on Android. Use a development build.');
+      } else if (error?.code === 'PUSH_PROJECT_ID_MISSING') {
+        Alert.alert('Push setup required', 'Set EXPO_PUBLIC_EAS_PROJECT_ID for the mobile app and restart Expo.');
+      } else if (error?.code === 'PUSH_PERMISSION_NOT_GRANTED') {
+        Alert.alert('Permission required', 'Allow notifications for this app in iPhone settings, then retry the test push.');
+      } else {
+        Alert.alert('Test push failed', message || 'Unable to queue a test push right now.');
+      }
+    } finally {
+      setIsSendingTestPush(false);
+    }
+  };
 
   const renderOccupancyBar = (occupied, total) => {
     const percentage = (occupied / total) * 100;
@@ -359,6 +395,18 @@ export default function Admin() {
           ]} onPress={() => router.replace("/(tabs)/Admin/Calender")}>
             <MaterialCommunityIcons name="calendar" size={16} color="#413f3fff " />
             <Text style={style.text4}>Calender</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              style.searchBar2,
+              screenWidth < 768 ? style.fullWidthButton : style.halfWidthButton,
+            ]}
+            onPress={handleSendTestPush}
+            disabled={isSendingTestPush}
+          >
+            <MaterialCommunityIcons name="bell-badge-outline" size={16} color="#111111" />
+            <Text style={style.text4}>{isSendingTestPush ? 'Sending Test Push...' : 'Send Test Push'}</Text>
           </TouchableOpacity>
         </View>
 

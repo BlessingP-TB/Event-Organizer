@@ -11,6 +11,7 @@ const initialData = {
     totalEvents: { value: '0', change: { amount: '0', type: 'increase' } },
     totalRegistrations: { value: '0', change: { amount: '0', type: 'increase' } },
     totalAttendance: { value: '0', change: { amount: '0', type: 'increase' } },
+    resourceUtilized: { value: '0%', change: { amount: '0', type: 'increase' } },
     averageRating: { value: '0', change: { amount: '0', type: 'increase' } },
   },
   notifications: [],
@@ -31,41 +32,31 @@ export const useOrgaDash = () => {
         setLoading(true);
         setError(null);
 
-        // --- 1. Retrieve Credentials from AsyncStorage ---
         const token = await AsyncStorage.getItem("ORGANISER_JWT_TOKEN");
-        const userString = await AsyncStorage.getItem("user"); // Assuming user object is stored here like in Code 1
-        const user = userString ? JSON.parse(userString) : null;
-        const organizerId = user?.id;
-
-        if (!token || !organizerId) {
-          throw new Error("Authentication token or User ID not found. Please log in.");
+        if (!token) {
+          const authError = new Error("Authentication token not found. Please log in.");
+          authError.code = 'AUTH_TOKEN_MISSING';
+          throw authError;
         }
 
-        // --- 2. Fetch Data from Backend API (Parallel Requests) ---
-        // We use Promise.all to fetch events and registrations simultaneously
-        const [eventsResponse, registrationsResponse] = await Promise.all([
-          // Fetch Total Events
-          axios.get(`${API_URL}/events`, {
-            headers: { Authorization: `Bearer ${token}` },
-            params: { page: 1, limit: 1, organizerId }
-          }),
-          // Fetch Total Registrations
-          axios.get(`${API_URL}/registrations/total`, {
-            headers: { Authorization: `Bearer ${token}` },
-            params: { page: 1, limit: 1, organizerId }
-          })
+        const requestConfig = {
+          headers: { Authorization: `Bearer ${token}` },
+        };
+
+        const [statsResponse, registrationsResponse] = await Promise.all([
+          axios.get(`${API_URL}/organizer/stats/dashboard`, requestConfig),
+          axios.get(`${API_URL}/registrations/total`, requestConfig)
         ]);
-        console.log(registrationsResponse.data);
-        // --- 3. Extract Data ---
-        // Extract total events from meta
-        const eventsMeta = eventsResponse.data.meta || {};
-        const totalEventsCount = eventsMeta.totalItems || 0;
 
-        // Extract total registrations from count
-        const totalRegistrationsCount = registrationsResponse.data.count || 0;
+        const organizerStats = statsResponse.data || {};
+        const totalEventsCount = Number(organizerStats.totalEvents || 0);
+        const totalRegistrationsCount = Number(registrationsResponse.data?.count || 0);
+        const totalAttendanceCount = Number(organizerStats.totalTicketsSold || 0);
+        const upcomingEventsCount = Number(organizerStats.upcomingEvents || 0);
+        const resourceUtilization = totalEventsCount > 0
+          ? `${Math.round((upcomingEventsCount / totalEventsCount) * 100)}%`
+          : '0%';
 
-        // --- 4. Map to Frontend Structure ---
-        // We maintain the { value, change } structure required by the UI
         const mappedStats = {
           totalEvents: {
             value: String(totalEventsCount),
@@ -75,19 +66,20 @@ export const useOrgaDash = () => {
             value: String(totalRegistrationsCount),
             change: { amount: '0', type: 'increase' }
           },
-          // Hardcoded to 0 as per Code 1 logic
           totalAttendance: {
-            value: '0',
+            value: String(totalAttendanceCount),
             change: { amount: '0', type: 'increase' }
           },
-          // Hardcoded to 0 as per Code 1 logic
+          resourceUtilized: {
+            value: resourceUtilization,
+            change: { amount: '0', type: 'increase' }
+          },
           averageRating: {
             value: '0',
             change: { amount: '0', type: 'increase' }
           },
         };
 
-        // --- 5. Update State ---
         setData(prevData => ({
           ...prevData,
           stats: mappedStats,

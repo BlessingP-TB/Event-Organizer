@@ -15,6 +15,7 @@ const {
     env: envConfig,
 } = require('../configs/index.config');
 const jwtConfig = envConfig.jwt;
+const isDevelopment = envConfig.env === 'development';
 const {
     HTTP_STATUS,
     ERROR_MESSAGES,
@@ -23,6 +24,10 @@ const {
     APPROVAL_TYPE,
     APPROVAL_STATUS,
 } = require('../constants/index.constants');
+const {
+    isAllowedAuthEmail,
+    normalizeAuthEmail,
+} = require('../utils/authEmail.util');
 
 const ensureEmailServiceReady = () => {
     try {
@@ -193,8 +198,17 @@ const register = async (registerBody) => {
     // Don't require email service - we log verification code to console if email fails
 
     const { email, password, name, role, cellphone_number } = registerBody;
+    const normalizedEmail = normalizeAuthEmail(email);
 
-    const existingUser = await userService.findUserByEmail(email);
+    if (!isAllowedAuthEmail(normalizedEmail)) {
+        throw new ApiError(
+            HTTP_STATUS.BAD_REQUEST,
+            ERROR_MESSAGES.AUTH_EMAIL_DOMAIN_NOT_ALLOWED,
+            'EMAIL_DOMAIN_NOT_ALLOWED'
+        );
+    }
+
+    const existingUser = await userService.findUserByEmail(normalizedEmail);
     if (existingUser) {
         throw new ApiError(
             HTTP_STATUS.CONFLICT,
@@ -212,7 +226,7 @@ const register = async (registerBody) => {
 
         const createdUser = await tx.user.create({
             data: {
-                email,
+                email: normalizedEmail,
                 name,
                 cellphone_number,
                 role: userRole,
@@ -254,8 +268,18 @@ const register = async (registerBody) => {
 };
 
 const login = async (email, password, ipAddress, userAgent) => {
+    const normalizedEmail = normalizeAuthEmail(email);
+
+    if (!isAllowedAuthEmail(normalizedEmail)) {
+        throw new ApiError(
+            HTTP_STATUS.BAD_REQUEST,
+            ERROR_MESSAGES.AUTH_EMAIL_DOMAIN_NOT_ALLOWED,
+            'EMAIL_DOMAIN_NOT_ALLOWED'
+        );
+    }
+
     const userWithAccount = await prisma.user.findUnique({
-        where: { email },
+        where: { email: normalizedEmail },
         include: { account: true },
     });
 
@@ -275,13 +299,7 @@ const login = async (email, password, ipAddress, userAgent) => {
     }
 
     if (userWithAccount.account.lockedAt) {
-        const lockExpiry = new Date(
-            userWithAccount.account.lockedAt.getTime() +
-            authConfig.loginLockoutMinutes * 60 * 1000
-        );
-        if (new Date() < lockExpiry) {
-            throw accountLockedError;
-        } else {
+        if (isDevelopment) {
             await prisma.account.update({
                 where: { id: userWithAccount.account.id },
                 data: {
@@ -291,6 +309,24 @@ const login = async (email, password, ipAddress, userAgent) => {
             });
             userWithAccount.account.lockedAt = null;
             userWithAccount.account.failedLoginAttempts = 0;
+        } else {
+            const lockExpiry = new Date(
+                userWithAccount.account.lockedAt.getTime() +
+                authConfig.loginLockoutMinutes * 60 * 1000
+            );
+            if (new Date() < lockExpiry) {
+                throw accountLockedError;
+            } else {
+                await prisma.account.update({
+                    where: { id: userWithAccount.account.id },
+                    data: {
+                        lockedAt: null,
+                        failedLoginAttempts: 0,
+                    },
+                });
+                userWithAccount.account.lockedAt = null;
+                userWithAccount.account.failedLoginAttempts = 0;
+            }
         }
     }
 
@@ -300,6 +336,10 @@ const login = async (email, password, ipAddress, userAgent) => {
     );
 
     if (!isPasswordMatch) {
+        if (isDevelopment) {
+            throw invalidCredentialsError;
+        }
+
         const currentAttempts = userWithAccount.account.failedLoginAttempts + 1;
         let updateData = {
             failedLoginAttempts: currentAttempts,

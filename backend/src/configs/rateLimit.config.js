@@ -1,14 +1,17 @@
 const rateLimit = require('express-rate-limit');
-const { rateLimit: rateLimitConfig } = require('./environment.config');
+const { rateLimit: rateLimitConfig, env } = require('./environment.config');
 const ipKeyGenerator =
     typeof rateLimit.ipKeyGenerator === 'function'
         ? rateLimit.ipKeyGenerator
         : (ip) => ip;
 
+const isDevelopment = env === 'development';
+
 const baseConfig = {
     standardHeaders: true,
     legacyHeaders: false,
-    skip: () => !rateLimitConfig.enabled,
+    // Keep protection in non-dev environments, but avoid blocking rapid local test loops.
+    skip: () => !rateLimitConfig.enabled || isDevelopment,
 };
 
 const buildRetryMessage = (req) => {

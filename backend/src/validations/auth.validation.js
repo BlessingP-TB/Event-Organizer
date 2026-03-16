@@ -1,9 +1,25 @@
 const { customJoi } = require('./custom.validation');
 const { ROLES } = require('../constants/index.constants');
+const {
+    ALLOWED_AUTH_EMAIL_MESSAGE,
+    ALLOWED_AUTH_EMAIL_PATTERN,
+} = require('../utils/authEmail.util');
+
+const allowedEmail = () =>
+    customJoi
+        .string()
+        .trim()
+        .lowercase()
+        .email()
+        .pattern(ALLOWED_AUTH_EMAIL_PATTERN)
+        .required()
+        .messages({
+            'string.pattern.base': ALLOWED_AUTH_EMAIL_MESSAGE,
+        });
 
 const register = customJoi.object({
     body: customJoi.object({
-        email: customJoi.string().email().required(),
+        email: allowedEmail(),
         password: customJoi.string().password().required(),
         verify_password: customJoi
             .string()
@@ -24,7 +40,7 @@ const register = customJoi.object({
 
 const login = customJoi.object({
     body: customJoi.object({
-        email: customJoi.string().email().required(),
+        email: allowedEmail(),
         password: customJoi.string().required(),
     }),
 });

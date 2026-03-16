@@ -12,6 +12,7 @@ const {
     PURCHASE_STATUS,
     APPROVAL_STATUS,
     APPROVAL_TYPE,
+    ROLES,
 } = require('../constants/index.constants');
 const venueService = require('./venue.service.js');
 const bookingService = require('./booking.service.js');
@@ -189,6 +190,13 @@ const createEvent = async (organizerId, eventBody) => {
             userId: organizerId,
             title: 'Event Submitted',
             message: `Your event "${event.name}" has been submitted and is pending admin approval.`,
+            tx,
+        });
+
+        await notificationService.createSystemRoleNotification({
+            roles: [ROLES.ADMIN, ROLES.CAMPUS_ADMIN, ROLES.FACILITY_MANAGER],
+            title: 'New Event Pending Approval',
+            message: `A new event "${event.name}" was submitted and is waiting for admin approval.`,
             tx,
         });
 

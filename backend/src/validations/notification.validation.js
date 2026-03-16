@@ -38,10 +38,33 @@ const clearNotifications = customJoi.object({
     }),
 });
 
+const registerPushToken = customJoi.object({
+    body: customJoi.object({
+        token: customJoi.string().trim().required(),
+        platform: customJoi.string().valid('ios', 'android', 'web').optional(),
+    }),
+});
+
+const removePushToken = customJoi.object({
+    body: customJoi.object({
+        token: customJoi.string().trim().optional(),
+    }).optional(),
+});
+
+const testPushNotification = customJoi.object({
+    body: customJoi.object({
+        title: customJoi.string().trim().max(255).optional(),
+        message: customJoi.string().trim().optional(),
+    }).optional(),
+});
+
 module.exports = {
     notificationIdParam,
     listNotifications,
     createNotification,
     updateNotification,
     clearNotifications,
+    registerPushToken,
+    removePushToken,
+    testPushNotification,
 };

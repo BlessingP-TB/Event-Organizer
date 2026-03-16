@@ -3,6 +3,8 @@ const ERROR_MESSAGES = {
     PASSWORD_MISMATCH: 'Passwords do not match.',
     USER_NOT_FOUND: 'User not found with the provided credentials.',
     EMAIL_ALREADY_EXISTS: 'An account with this email already exists.',
+    AUTH_EMAIL_DOMAIN_NOT_ALLOWED:
+        'Use a @tut.ac.za email, or a @tut4life.ac.za email with exactly 9 digits before the @.',
     EMAIL_NOT_VERIFIED: 'Please verify your email address to proceed.',
     UNAUTHORIZED: 'You are not authorized to perform this action.',
     INVALID_TOKEN: 'Your session is invalid or has expired. Please log in again.',

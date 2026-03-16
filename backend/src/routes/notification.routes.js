@@ -19,6 +19,27 @@ router.post(
     notificationController.createNotification
 );
 
+router.post(
+    '/push-token',
+    authenticate,
+    validate(notificationValidation.registerPushToken),
+    notificationController.registerPushToken
+);
+
+router.delete(
+    '/push-token',
+    authenticate,
+    validate(notificationValidation.removePushToken),
+    notificationController.removePushToken
+);
+
+router.post(
+    '/test',
+    authenticate,
+    validate(notificationValidation.testPushNotification),
+    notificationController.sendTestPushNotification
+);
+
 router.patch(
     '/:id',
     authenticate,

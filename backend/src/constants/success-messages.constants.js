@@ -1,5 +1,5 @@
 const SUCCESS_MESSAGES = {
-    REGISTER_SUCCESS: 'Registration successful. Please check your email to verify.',
+    REGISTER_SUCCESS: 'Registration successful. You can now log in.',
     LOGIN_SUCCESS: 'Login successful',
     LOGOUT_SUCCESS: 'Logout successful',
     SESSION_REVOKED: 'Session revoked successfully',

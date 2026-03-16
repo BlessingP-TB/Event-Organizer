@@ -48,10 +48,40 @@ const clearNotifications = catchAsync(async (req, res) => {
     res.status(HTTP_STATUS.OK).send(result);
 });
 
+const registerPushToken = catchAsync(async (req, res) => {
+    const result = await notificationService.registerPushToken({
+        currentUser: req.user,
+        body: req.body,
+    });
+
+    res.status(HTTP_STATUS.OK).send(result);
+});
+
+const removePushToken = catchAsync(async (req, res) => {
+    const result = await notificationService.removePushToken({
+        currentUser: req.user,
+        body: req.body,
+    });
+
+    res.status(HTTP_STATUS.OK).send(result);
+});
+
+const sendTestPushNotification = catchAsync(async (req, res) => {
+    const result = await notificationService.sendTestPushNotification({
+        currentUser: req.user,
+        body: req.body,
+    });
+
+    res.status(HTTP_STATUS.CREATED).send(result);
+});
+
 module.exports = {
     listNotifications,
     createNotification,
     updateNotification,
     deleteNotification,
     clearNotifications,
+    registerPushToken,
+    removePushToken,
+    sendTestPushNotification,
 };

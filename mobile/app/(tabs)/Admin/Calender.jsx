@@ -314,8 +314,16 @@ export default function AdminCalendar() {
       setAvailableModalVisible(false);
       reload();
     } catch (error) {
-      console.error(error);
-      Alert.alert("Error", "Failed to save availability.");
+      const status = error?.response?.status;
+      if (error?.code === 'ADMIN_JWT_TOKEN_MISSING' || status === 401) {
+        Alert.alert("Authentication required", "Please log in as an admin to continue.");
+      } else if (status === 403) {
+        Alert.alert("Access denied", "This action is allowed for admin accounts only.");
+      } else {
+        const backendMessage = error?.response?.data?.message;
+        Alert.alert("Error", backendMessage || "Failed to save availability.");
+      }
+      console.warn("Failed to save availability:", error?.response?.data || error?.message || error);
     } finally {
       setLoading(false);
     }
