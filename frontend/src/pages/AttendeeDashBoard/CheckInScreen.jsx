@@ -2,7 +2,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import toast from 'react-hot-toast'; // Import toast
-import api from '../../utils/api'; // Import the centralized API utility
 import '../../styles/pages/_checkinscreen.scss'; // Assuming you create this SCSS file
 
 // Helper to generate QR URL
@@ -11,6 +10,119 @@ const getQrCodeUrl = (data) => {
   return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(data)}&size=180x180`;
 };
 
+const escapeHtml = (value) =>
+  String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
+const toDisplayValue = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return "N/A";
+  }
+  return String(value);
+};
+
+const formatDateTime = (value) => {
+  if (!value) return "N/A";
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) {
+    return String(value);
+  }
+  return parsed.toLocaleString();
+};
+
+const formatPrice = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return "N/A";
+  }
+
+  const numeric = Number(value);
+  if (Number.isFinite(numeric)) {
+    return `R${numeric.toFixed(2)}`;
+  }
+
+  return String(value);
+};
+
+const buildTicketHtml = (ticket) => {
+  const details = [
+    ["Event Name", ticket.eventName],
+    ["Event ID", ticket.eventId],
+    ["Ticket ID", ticket.ticketId],
+    ["Registration ID", ticket.registrationId],
+    ["Ticket Type", ticket.type],
+    ["Status", ticket.status],
+    ["Price", formatPrice(ticket.price)],
+    ["Event Date", formatDateTime(ticket.eventDateTime)],
+    ["Issued At", formatDateTime(ticket.issuedAt)],
+    ["Redeemed At", formatDateTime(ticket.redeemedAt)],
+    ["Last Synced", ticket.lastSynced],
+    ["QR Text", ticket.qrText],
+  ];
+
+  const rows = details
+    .map(
+      ([label, value]) => `
+        <tr>
+          <td class="label">${escapeHtml(label)}</td>
+          <td class="value">${escapeHtml(toDisplayValue(value))}</td>
+        </tr>
+      `
+    )
+    .join("");
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8" />
+        <title>SmartEvents Ticket</title>
+        <style>
+          body { font-family: Arial, sans-serif; color: #111827; margin: 24px; }
+          .header { margin-bottom: 18px; }
+          .title { font-size: 22px; margin: 0; color: #0f172a; }
+          .sub { margin: 6px 0 0; color: #475569; font-size: 13px; }
+          .card { border: 1px solid #dbe3ee; border-radius: 10px; padding: 18px; }
+          .qr-wrap { text-align: center; margin: 8px 0 14px; }
+          .qr { width: 190px; height: 190px; border: 1px solid #e2e8f0; border-radius: 8px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+          td { border-bottom: 1px solid #e5e7eb; padding: 8px 6px; vertical-align: top; font-size: 13px; }
+          td.label { width: 34%; color: #334155; font-weight: 700; }
+          td.value { color: #0f172a; word-break: break-word; }
+          .footer { margin-top: 16px; font-size: 12px; color: #6b7280; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <h1 class="title">SmartEvents Ticket</h1>
+          <p class="sub">Generated on ${escapeHtml(new Date().toLocaleString())}</p>
+        </div>
+
+        <div class="card">
+          <div class="qr-wrap">
+            <img class="qr" src="${escapeHtml(ticket.qrCodeUrl || "")}" alt="Ticket QR Code" />
+          </div>
+          <table>${rows}</table>
+        </div>
+
+        <div class="footer">
+          Keep this ticket safe. Present this QR code at event check-in.
+        </div>
+      </body>
+    </html>
+  `;
+};
+
+const toSafeFilePart = (value) =>
+  String(value || "ticket")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 60);
+
 export default function CheckInScreen() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -18,6 +130,7 @@ export default function CheckInScreen() {
   const [ticket, setTicket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [downloading, setDownloading] = useState(false);
 
   const processTicketData = useCallback((data) => {
     if (!data) {
@@ -36,16 +149,52 @@ export default function CheckInScreen() {
     }
 
     return {
-      eventName: data.eventData?.name || data.title || 'N/A',
+      eventName: data.eventData?.name || data.event?.name || data.title || 'N/A',
       type: data.type || "REGULAR",
       qrCodeUrl: getQrCodeUrl(qrValue),
       qrText: qrValue,
-      status: data.status || "Registered",
+      status: data.redeemed ? "Redeemed" : (data.status || "Registered"),
       lastSynced: new Date().toLocaleString(),
-      eventId: data.eventData?.id || data.eventId || data.id, // Ensure eventId is available for navigation
-      fullEventData: data.eventData || data, // Pass full data for robust navigation
+      eventId: data.eventData?.id || data.event?.id || data.eventId || null,
+      eventDateTime: data.eventData?.startDateTime || data.event?.startDateTime || null,
+      ticketId: data.id || null,
+      registrationId: data.registrationId || null,
+      issuedAt: data.issuedAt || null,
+      redeemedAt: data.redeemedAt || null,
+      price: data.price ?? null,
+      fullEventData: data.eventData || data.event || data,
     };
   }, []);
+
+  const handleDownloadTicket = useCallback(() => {
+    if (!ticket || downloading) {
+      return;
+    }
+
+    try {
+      setDownloading(true);
+      const html = buildTicketHtml(ticket);
+      const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+      const url = window.URL.createObjectURL(blob);
+
+      const eventPart = toSafeFilePart(ticket.eventName);
+      const ticketPart = toSafeFilePart(ticket.ticketId || ticket.eventId || "ticket");
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = `${eventPart || "event"}-${ticketPart || "ticket"}.html`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+
+      window.URL.revokeObjectURL(url);
+      toast.success("Ticket file downloaded. Open it in your browser to print or save as PDF.");
+    } catch (downloadError) {
+      console.error("Failed to download ticket:", downloadError);
+      toast.error("Could not download ticket. Please try again.");
+    } finally {
+      setDownloading(false);
+    }
+  }, [downloading, ticket]);
 
   useEffect(() => {
     setLoading(true);
@@ -90,8 +239,21 @@ export default function CheckInScreen() {
         <h2 className="title">Event Ticket</h2>
         <p className="subtitle">{ticket.eventName}</p>
 
-        <div className="qr-container">
-          <img src={ticket.qrCodeUrl} alt="QR Code" className="qr-code" />
+        <div className="qr-section">
+          <div className="qr-container">
+            <img src={ticket.qrCodeUrl} alt="QR Code" className="qr-code" />
+          </div>
+
+          <div className="qr-actions">
+            <button
+              className="button download-button"
+              onClick={handleDownloadTicket}
+              disabled={downloading}
+              type="button"
+            >
+              <span className="button-text">{downloading ? "Preparing..." : "Download Ticket"}</span>
+            </button>
+          </div>
         </div>
 
         <div className="qr-text-wrapper">
@@ -100,14 +262,23 @@ export default function CheckInScreen() {
         </div>
 
         <div className="info-section">
+          <p><strong>Ticket ID:</strong> {ticket.ticketId || 'N/A'}</p>
+          <p><strong>Event ID:</strong> {ticket.eventId || 'N/A'}</p>
+          <p><strong>Registration ID:</strong> {ticket.registrationId || 'N/A'}</p>
           <p><strong>Type:</strong> {ticket.type}</p>
+          <p><strong>Price:</strong> {formatPrice(ticket.price)}</p>
           <p><strong>Status:</strong> {ticket.status}</p>
+          <p><strong>Event Date:</strong> {formatDateTime(ticket.eventDateTime)}</p>
+          <p><strong>Issued At:</strong> {formatDateTime(ticket.issuedAt)}</p>
+          <p><strong>Redeemed At:</strong> {formatDateTime(ticket.redeemedAt)}</p>
         </div>
 
         <button
           className="button"
+          type="button"
+          disabled={!ticket.eventId}
           onClick={() =>
-            navigate(
+            ticket.eventId && navigate(
               `/attendee/view-event/${ticket.eventId}`,
               {
                 state: { eventData: ticket.fullEventData },

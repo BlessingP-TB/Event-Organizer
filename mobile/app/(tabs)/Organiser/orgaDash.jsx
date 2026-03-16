@@ -137,10 +137,10 @@ export default function Organiser() {
           <View style={style.box1}>
             <View style={style.box12}>
               <View>
-                <Text style={style.text5}>Total Events</Text>
-                <Text style={style.number}>{stats.totalEvents?.value || '0'}</Text>
+                <Text style={style.text5}>Expected Students</Text>
+                <Text style={style.number}>{stats.expectedStudents?.value || '0'}</Text>
               </View>
-              <FontAwesome name="calendar-check-o" size={20} color="#0077B6" style={style.logo1} />
+              <FontAwesome name="users" size={20} color="#0077B6" style={style.logo1} />
 
             </View>
             <View style={style.persentBox}>
@@ -152,7 +152,7 @@ export default function Organiser() {
           <View style={style.box2}>
             <View style={style.box12}>
               <View>
-                <Text style={style.text5}>Total Registartions</Text>
+                <Text style={style.text5}>Registered Students</Text>
                 <Text style={style.number}>{stats.totalRegistrations?.value || '0'}</Text>
               </View>
               <SimpleLineIcons name="people" size={20} color="black" style={style.logo1} />
@@ -166,35 +166,25 @@ export default function Organiser() {
           <View style={style.box3}>
             <View style={style.box12}>
               <View>
-                <Text style={style.text5}>Resource Utilized</Text>
-                <Text style={style.number}>{stats.resourceUtilized?.value || '0'}</Text>
+                <Text style={style.text5}>Attended Students</Text>
+                <Text style={style.number}>{stats.totalAttendance?.value || '0'}</Text>
               </View>
-              <SimpleLineIcons name="settings" size={20} color="black" style={style.logo1} />
+              <Feather name="check-circle" size={20} color="#16a34a" style={style.logo1} />
             </View>
             <View style={style.persentBox}>
-              <Feather
-                name={stats.resourceUtilized?.change?.type === 'increase' ? 'arrow-up-right' : 'arrow-down-left'}
-                size={12} color="#999"
-              />
-              <Text style={style.persent}>{stats.resourceUtilized?.change?.amount || '0'}</Text>
-              <Text style={style.persent}>% {stats.resourceUtilized?.change?.type || ''}</Text>
+              <Text style={style.persent}>Scanned check-ins</Text>
             </View>
           </View>
           <View style={style.box4}>
             <View style={style.box12}>
               <View>
-                <Text style={style.text5}>Average Rating</Text>
-                <Text style={style.number}>{stats.averageRating?.value || '0'}</Text>
+                <Text style={style.text5}>Did Not Attend</Text>
+                <Text style={style.number}>{stats.totalNotAttended?.value || '0'}</Text>
               </View>
-              <Feather name="star" size={20} color="#e9d700" style={style.logo1} />
+              <Feather name="x-circle" size={20} color="#dc2626" style={style.logo1} />
             </View>
             <View style={style.persentBox}>
-              <Feather
-                name={stats.averageRating?.change?.type === 'increase' ? 'arrow-up-right' : 'arrow-down-left'}
-                size={12} color="#999"
-              />
-              <Text style={style.persent}>{stats.averageRating?.change?.amount || '0'}</Text>
-              <Text style={style.persent}>% {stats.averageRating?.change?.type || ''}</Text>
+              <Text style={style.persent}>Registered but not checked-in</Text>
             </View>
           </View>
         </View>

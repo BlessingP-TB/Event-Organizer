@@ -22,6 +22,16 @@ import { getApprovedEventsPublic } from "../../data/Organiser/myEvents";
 
 const { width, height } = Dimensions.get('window');
 
+/** Decode a JWT and check whether it has expired (client-side only, no secret needed). */
+const isTokenExpired = (token) => {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    return payload.exp ? Date.now() >= payload.exp * 1000 : false;
+  } catch {
+    return true; // treat un-decodable tokens as expired
+  }
+};
+
 export default function Index() {
   const navigation = useNavigation();
   const router = useRouter();
@@ -47,6 +57,25 @@ export default function Index() {
         if (savedUser) {
           const user = JSON.parse(savedUser);
           const role = user.role?.toLowerCase();
+
+          // Determine role-specific token key
+          let tokenKey = "ATTENDEE_JWT_TOKEN";
+          if (role === "organiser" || role === "organizer") tokenKey = "ORGANISER_JWT_TOKEN";
+          else if (role === "admin") tokenKey = "ADMIN_JWT_TOKEN";
+
+          const token = await AsyncStorage.getItem(tokenKey);
+
+          // If no token or it has expired, clear everything and show public screen
+          if (!token || isTokenExpired(token)) {
+            await AsyncStorage.multiRemove([
+              "userSession", "user",
+              "ORGANISER_JWT_TOKEN", "ADMIN_JWT_TOKEN", "ATTENDEE_JWT_TOKEN",
+            ]);
+            fetchPublicEvents();
+            return;
+          }
+
+          // Token is valid — route to the correct dashboard
           if (role === "organiser" || role === "organizer") {
             router.replace("/(tabs)/Organiser/orgaDash");
           } else if (role === "admin") {

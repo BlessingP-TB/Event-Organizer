@@ -1,9 +1,11 @@
 // QrCode.jsx (Mobile - FIXED version)
 
 import { Ionicons } from "@expo/vector-icons";
+import * as Print from "expo-print";
+import * as Sharing from "expo-sharing";
 import { useLocalSearchParams } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { getAttendeeRegistrations, getAttendeeTickets } from "../../../data/Organiser/myEvents";
 
 // Helper to generate QR URL
@@ -12,14 +14,127 @@ const getQrCodeImageUrl = (qrCodeData) => {
     return `https://api.qrserver.com/v1/create-qr-code/?data=${encodeURIComponent(qrCodeData)}&size=150x150`;
 };
 
+const normalizeRouteParam = (value) => (Array.isArray(value) ? value[0] : value);
+
+const escapeHtml = (value) =>
+        String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/\"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+
+const toDisplayValue = (value) => {
+        if (value === null || value === undefined || value === "") {
+                return "N/A";
+        }
+        return String(value);
+};
+
+const formatDateTime = (value) => {
+        if (!value) return "N/A";
+        const parsed = new Date(value);
+        if (Number.isNaN(parsed.getTime())) {
+                return String(value);
+        }
+        return parsed.toLocaleString();
+};
+
+const formatPrice = (price) => {
+        if (price === null || price === undefined || price === "") {
+                return "N/A";
+        }
+        const numeric = Number(price);
+        if (Number.isFinite(numeric)) {
+                return `R${numeric.toFixed(2)}`;
+        }
+        return String(price);
+};
+
+const buildTicketPdfHtml = (ticket) => {
+        const details = [
+                ["Event Name", ticket.eventName],
+                ["Event ID", ticket.eventId],
+                ["Ticket ID", ticket.ticketId],
+                ["Ticket Type", ticket.type],
+                ["Status", ticket.status],
+                ["Price", formatPrice(ticket.price)],
+                ["Event Date", formatDateTime(ticket.eventDateTime)],
+                ["Issued At", formatDateTime(ticket.issuedAt)],
+                ["Redeemed At", formatDateTime(ticket.redeemedAt)],
+                ["Last Synced", ticket.lastSynced],
+                ["QR Text", ticket.qrText],
+        ];
+
+        const rows = details
+                .map(
+                        ([label, value]) => `
+                        <tr>
+                            <td class="label">${escapeHtml(label)}</td>
+                            <td class="value">${escapeHtml(toDisplayValue(value))}</td>
+                        </tr>
+                `
+                )
+                .join("");
+
+        return `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8" />
+                <title>Ticket - ${escapeHtml(ticket.eventName || "SmartEvents")}</title>
+                <style>
+                    body { font-family: Arial, sans-serif; color: #111827; margin: 24px; }
+                    .header { margin-bottom: 18px; }
+                    .title { font-size: 22px; margin: 0; color: #0f172a; }
+                    .sub { margin: 6px 0 0; color: #475569; font-size: 13px; }
+                    .card { border: 1px solid #dbe3ee; border-radius: 10px; padding: 18px; }
+                    .qr-wrap { text-align: center; margin: 8px 0 14px; }
+                    .qr { width: 190px; height: 190px; border: 1px solid #e2e8f0; border-radius: 8px; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                    td { border-bottom: 1px solid #e5e7eb; padding: 8px 6px; vertical-align: top; font-size: 13px; }
+                    td.label { width: 34%; color: #334155; font-weight: 700; }
+                    td.value { color: #0f172a; word-break: break-word; }
+                    .footer { margin-top: 16px; font-size: 12px; color: #6b7280; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1 class="title">SmartEvents Ticket</h1>
+                    <p class="sub">Generated on ${escapeHtml(new Date().toLocaleString())}</p>
+                </div>
+                <div class="card">
+                    <div class="qr-wrap">
+                        <img class="qr" src="${escapeHtml(ticket.qrCodeUrl || "")}" alt="Ticket QR Code" />
+                    </div>
+                    <table>
+                        ${rows}
+                    </table>
+                </div>
+                <div class="footer">
+                    Keep this ticket safe. Present this QR code at event check-in.
+                </div>
+            </body>
+            </html>
+        `;
+};
+
 export default function CheckInScreen() {
     const params = useLocalSearchParams();
     // Destructure parameters passed via navigation
     const { eventId, eventName, qrCodeUrl, status, type, price } = params;
 
+    const normalizedEventId = normalizeRouteParam(eventId);
+    const normalizedEventName = normalizeRouteParam(eventName);
+    const normalizedQrCodeUrl = normalizeRouteParam(qrCodeUrl);
+    const normalizedStatus = normalizeRouteParam(status);
+    const normalizedType = normalizeRouteParam(type);
+    const normalizedPrice = normalizeRouteParam(price);
+
     const [ticket, setTicket] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [isDownloading, setIsDownloading] = useState(false);
     const [retryAttempt, setRetryAttempt] = useState(0);
     const MAX_RETRIES = 3;
 
@@ -33,26 +148,73 @@ export default function CheckInScreen() {
 
     // Helper function to process initial navigation parameters
     const processInitialData = useCallback(() => {
-        if (qrCodeUrl) {
+        if (normalizedQrCodeUrl) {
             // SUCCESS PATH: Data passed from navigation is used immediately.
             setTicket({
-                eventName: eventName || 'N/A',
-                qrCodeUrl: getQrCodeImageUrl(qrCodeUrl),
-                qrText: String(qrCodeUrl),
-                status: status || 'Ready for Check-in',
+                eventName: normalizedEventName || 'N/A',
+                eventId: normalizedEventId || 'N/A',
+                ticketId: 'N/A',
+                qrCodeUrl: getQrCodeImageUrl(normalizedQrCodeUrl),
+                qrText: String(normalizedQrCodeUrl),
+                status: normalizedStatus || 'Ready for Check-in',
                 lastSynced: new Date().toLocaleTimeString(),
-                type: type || "REGULAR",
-                price: price,
+                type: normalizedType || "REGULAR",
+                price: normalizedPrice,
+                eventDateTime: null,
+                issuedAt: null,
+                redeemedAt: null,
             });
             setLoading(false);
             return true;
         }
         return false;
-    }, [eventName, qrCodeUrl, status, type, price]);
+    }, [
+        normalizedEventId,
+        normalizedEventName,
+        normalizedPrice,
+        normalizedQrCodeUrl,
+        normalizedStatus,
+        normalizedType,
+    ]);
+
+    const handleDownloadTicket = useCallback(async () => {
+        if (!ticket || isDownloading) {
+            return;
+        }
+
+        try {
+            setIsDownloading(true);
+            const html = buildTicketPdfHtml(ticket);
+
+            if (Platform.OS === 'web') {
+                await Print.printToFileAsync({ html });
+                Alert.alert('Save Ticket', 'Choose "Save as PDF" in your browser print dialog to download the ticket on your computer.');
+                return;
+            }
+
+            const { uri } = await Print.printToFileAsync({ html });
+
+            if (await Sharing.isAvailableAsync()) {
+                await Sharing.shareAsync(uri, {
+                    dialogTitle: 'Download Ticket PDF',
+                    UTI: '.pdf',
+                    mimeType: 'application/pdf',
+                });
+                return;
+            }
+
+            Alert.alert('Ticket Saved', `Ticket PDF saved at: ${uri}`);
+        } catch (downloadError) {
+            console.error('Failed to export attendee ticket PDF:', downloadError);
+            Alert.alert('Download Failed', 'Could not generate the ticket PDF. Please try again.');
+        } finally {
+            setIsDownloading(false);
+        }
+    }, [isDownloading, ticket]);
 
 
     useEffect(() => {
-        if (!eventId) {
+        if (!normalizedEventId) {
             setLoading(false);
             setError("Missing event ID.");
             return;
@@ -80,19 +242,24 @@ export default function CheckInScreen() {
 
                 if (!isMounted) return;
 
-                const eventTicket = tickets.find(t => t.eventId === eventId);
+                const eventTicket = tickets.find((t) => String(t.eventId) === String(normalizedEventId));
 
                 if (eventTicket && eventTicket.qrcodeORurl?.[0]) {
                     // TICKET FOUND VIA API: Display it
                     const qrData = eventTicket.qrcodeORurl[0];
                     setTicket({
-                        eventName: eventTicket.eventName,
+                        eventName: eventTicket.eventName || normalizedEventName || 'N/A',
+                        eventId: eventTicket.eventId || normalizedEventId,
+                        ticketId: eventTicket.id || 'N/A',
                         qrCodeUrl: getQrCodeImageUrl(qrData),
                         qrText: String(qrData),
                         status: eventTicket.redeemed ? 'Redeemed' : 'Ready for Check-in',
                         lastSynced: new Date().toLocaleTimeString(),
                         type: eventTicket.type || "REGULAR",
                         price: eventTicket.price,
+                        eventDateTime: eventTicket.event?.startDateTime || null,
+                        issuedAt: eventTicket.issuedAt || null,
+                        redeemedAt: eventTicket.redeemedAt || null,
                     });
                     setLoading(false);
                     return;
@@ -100,7 +267,7 @@ export default function CheckInScreen() {
 
                 // --- TICKET NOT FOUND: Check registrations and retry ---
                 const registrations = await getAttendeeRegistrations();
-                const eventRegistration = registrations.find(r => r.eventId === eventId);
+                const eventRegistration = registrations.find((r) => String(r.eventId) === String(normalizedEventId));
 
                 if (eventRegistration) {
                     // Check for APPROVED or ALLOCATED to trigger retries
@@ -132,7 +299,8 @@ export default function CheckInScreen() {
                 console.error("Error fetching data:", err);
                 if (isMounted) {
                     // Handles UNAUTHORIZED/Session Expired errors
-                    if (err.message && err.message.includes('UNAUTHORIZED') || err.message.includes('expired')) {
+                    const errorMessage = err?.message || '';
+                    if (errorMessage.includes('UNAUTHORIZED') || errorMessage.includes('expired')) {
                         setError("Please log in to view your ticket (Session Expired).");
                     } else {
                         setError("Failed to load ticket/registration data. Please check your connection and try again.");
@@ -145,14 +313,14 @@ export default function CheckInScreen() {
             }
         };
 
-        if (!qrCodeUrl) {
+        if (!normalizedQrCodeUrl) {
             fetchTicket();
         }
 
         return () => {
             isMounted = false;
         };
-    }, [eventId, retryAttempt, qrCodeUrl, processInitialData]);
+    }, [normalizedEventId, normalizedEventName, normalizedQrCodeUrl, retryAttempt, processInitialData]);
 
     // --- RENDERING ---
 
@@ -194,7 +362,7 @@ export default function CheckInScreen() {
     }
 
     return (
-        <View style={styles.container}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Your QR Code</Text>
@@ -218,16 +386,38 @@ export default function CheckInScreen() {
                 {/* Info Section */}
                 <View style={styles.infoSection}>
                     <Text style={styles.infoText}>
+                        <Text style={{ fontWeight: '600' }}>Ticket ID:</Text> {ticket.ticketId || 'N/A'}
+                    </Text>
+                    <Text style={styles.infoText}>
+                        <Text style={{ fontWeight: '600' }}>Event ID:</Text> {ticket.eventId || 'N/A'}
+                    </Text>
+                    <Text style={styles.infoText}>
                         <Text style={{ fontWeight: '600' }}>Type:</Text> {ticket.type}
+                    </Text>
+                    <Text style={styles.infoText}>
+                        <Text style={{ fontWeight: '600' }}>Price:</Text> {formatPrice(ticket.price)}
                     </Text>
                     <Text style={styles.infoText}>
                         <Text style={{ fontWeight: '600' }}>Status:</Text> {ticket.status}
                     </Text>
+                    <Text style={styles.infoText}>
+                        <Text style={{ fontWeight: '600' }}>Event Date:</Text> {formatDateTime(ticket.eventDateTime)}
+                    </Text>
+                    <Text style={styles.infoText}>
+                        <Text style={{ fontWeight: '600' }}>Issued At:</Text> {formatDateTime(ticket.issuedAt)}
+                    </Text>
+                    <Text style={styles.infoText}>
+                        <Text style={{ fontWeight: '600' }}>Redeemed At:</Text> {formatDateTime(ticket.redeemedAt)}
+                    </Text>
                 </View>
 
                 {/* Button */}
-                <TouchableOpacity style={styles.button}>
-                    <Text style={styles.buttonText}>View Event Details</Text>
+                <TouchableOpacity
+                    style={[styles.button, isDownloading && styles.buttonDisabled]}
+                    onPress={handleDownloadTicket}
+                    disabled={isDownloading}
+                >
+                    <Text style={styles.buttonText}>{isDownloading ? 'Preparing Ticket PDF...' : 'Download Ticket PDF'}</Text>
                 </TouchableOpacity>
             </View>
 
@@ -236,13 +426,14 @@ export default function CheckInScreen() {
                 <Ionicons name="cloud-done-outline" size={18} color="#777" />
                 <Text style={styles.syncText}>Last synced: {ticket.lastSynced}</Text>
             </View>
-        </View>
+        </ScrollView>
     );
 }
 
 // ... (styles remain the same) ...
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#FAFAFA", padding: 20 },
+    container: { flex: 1, backgroundColor: "#FAFAFA" },
+    contentContainer: { padding: 20, paddingBottom: 36 },
     center: { flex: 1, justifyContent: "center", alignItems: "center" },
     header: {
         paddingVertical: 10,
@@ -319,6 +510,9 @@ const styles = StyleSheet.create({
         marginTop: 10,
         width: '100%',
         alignItems: 'center',
+    },
+    buttonDisabled: {
+        backgroundColor: '#7aa4bb',
     },
     buttonText: { color: "#fff", fontWeight: "600" },
     syncContainer: { flexDirection: "row", alignItems: "center", justifyContent: "center", marginTop: 25 },

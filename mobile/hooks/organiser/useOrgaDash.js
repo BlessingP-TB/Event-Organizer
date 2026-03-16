@@ -3,15 +3,18 @@ import API_URL from '@/config';
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from 'axios';
 import { useFocusEffect } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 
 // Define the initial state structure
 // Updated to match Code 1: Events, Registrations, Attendance, Rating
 const initialData = {
   stats: {
+    expectedStudents: { value: '0', change: { amount: '0', type: 'increase' } },
     totalEvents: { value: '0', change: { amount: '0', type: 'increase' } },
     totalRegistrations: { value: '0', change: { amount: '0', type: 'increase' } },
     totalAttendance: { value: '0', change: { amount: '0', type: 'increase' } },
+    totalNotAttended: { value: '0', change: { amount: '0', type: 'increase' } },
     resourceUtilized: { value: '0%', change: { amount: '0', type: 'increase' } },
     averageRating: { value: '0', change: { amount: '0', type: 'increase' } },
   },
@@ -23,6 +26,7 @@ const initialData = {
  * Updated to match endpoints and logic from the Web Dashboard.
  */
 export const useOrgaDash = () => {
+  const router = useRouter();
   const [data, setData] = useState(initialData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -43,22 +47,33 @@ export const useOrgaDash = () => {
         headers: { Authorization: `Bearer ${token}` },
       };
 
-      const [statsResponse, registrationsResponse, notificationsResponse] = await Promise.all([
+      const [statsResponse, notificationsResponse] = await Promise.all([
         axios.get(`${API_URL}/organizer/stats/dashboard`, requestConfig),
-        axios.get(`${API_URL}/registrations/total`, requestConfig),
         axios.get(`${API_URL}/notifications`, requestConfig),
       ]);
 
       const organizerStats = statsResponse.data || {};
+      const expectedStudentsCount = Number(organizerStats.expectedStudents || 0);
       const totalEventsCount = Number(organizerStats.totalEvents || 0);
-      const totalRegistrationsCount = Number(registrationsResponse.data?.count || 0);
-      const totalAttendanceCount = Number(organizerStats.totalTicketsSold || 0);
+      const totalRegistrationsCount = Number(
+        organizerStats.totalApprovedRegistrations ?? organizerStats.totalRegistrations ?? 0
+      );
+      const totalAttendanceCount = Number(
+        organizerStats.totalAttendedStudents ?? organizerStats.totalAttendance ?? 0
+      );
+      const totalNotAttendedCount = Number(
+        organizerStats.totalNotAttendedStudents ?? Math.max(totalRegistrationsCount - totalAttendanceCount, 0)
+      );
       const upcomingEventsCount = Number(organizerStats.upcomingEvents || 0);
       const resourceUtilization = totalEventsCount > 0
         ? `${Math.round((upcomingEventsCount / totalEventsCount) * 100)}%`
         : '0%';
 
       const mappedStats = {
+        expectedStudents: {
+          value: String(expectedStudentsCount),
+          change: { amount: '0', type: 'increase' }
+        },
         totalEvents: {
           value: String(totalEventsCount),
           change: { amount: '0', type: 'increase' }
@@ -69,6 +84,10 @@ export const useOrgaDash = () => {
         },
         totalAttendance: {
           value: String(totalAttendanceCount),
+          change: { amount: '0', type: 'increase' }
+        },
+        totalNotAttended: {
+          value: String(totalNotAttendedCount),
           change: { amount: '0', type: 'increase' }
         },
         resourceUtilized: {
@@ -101,12 +120,22 @@ export const useOrgaDash = () => {
       }));
 
     } catch (err) {
+      const status = err?.response?.status;
+      const code = err?.response?.data?.code;
+      if (status === 401 || code === 'UNAUTHORIZED') {
+        await AsyncStorage.multiRemove([
+          'userSession', 'user',
+          'ORGANISER_JWT_TOKEN', 'ADMIN_JWT_TOKEN', 'ATTENDEE_JWT_TOKEN',
+        ]);
+        router.replace('/(tabs)');
+        return;
+      }
       console.error('Error fetching organizer dashboard stats:', err.response?.data || err.message);
       setError(err.message || "Could not load dashboard data.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     fetchDashboardStats();

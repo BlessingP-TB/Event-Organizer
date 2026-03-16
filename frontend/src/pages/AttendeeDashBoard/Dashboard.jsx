@@ -84,6 +84,27 @@ const Dashboard = () => {
     fetchPublicEvents();
   }, [fetchStats, fetchPublicEvents]);
 
+  useEffect(() => {
+    const refreshDashboard = () => {
+      fetchStats();
+      fetchPublicEvents();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshDashboard();
+      }
+    };
+
+    window.addEventListener('focus', refreshDashboard);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', refreshDashboard);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [fetchStats, fetchPublicEvents]);
+
   const COLORS = ['#10B981', '#F59E0B', '#EF4444', '#6366F1'];
 
   const Card = ({ title, children, className, actionText, onAction }) => (

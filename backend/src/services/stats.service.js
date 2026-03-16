@@ -92,6 +92,9 @@ const getOrganizerStats = async (organizerId) => {
         totalTicketsSold,
         totalRevenueResult,
         upcomingEvents,
+        expectedStudentsResult,
+        totalApprovedRegistrations,
+        totalAttendedStudents,
     ] = await prisma.$transaction([
         prisma.event.count({
             where: { organizerId, deletedAt: null },
@@ -114,7 +117,32 @@ const getOrganizerStats = async (organizerId) => {
                 startDateTime: { gte: new Date() },
             },
         }),
+        prisma.event.aggregate({
+            _sum: { expectedAttend: true },
+            where: { organizerId, deletedAt: null },
+        }),
+        prisma.registration.count({
+            where: {
+                event: { organizerId, deletedAt: null },
+                status: REGISTRATION_STATUS.APPROVED,
+            },
+        }),
+        prisma.attendance.count({
+            where: {
+                event: { organizerId, deletedAt: null },
+                status: {
+                    in: [
+                        ATTENDANCE_STATUS.CHECKED_IN,
+                        ATTENDANCE_STATUS.CHECKED_OUT,
+                        ATTENDANCE_STATUS.ATTENDED,
+                    ],
+                },
+            },
+        }),
     ]);
+
+    const expectedStudents = Number(expectedStudentsResult?._sum?.expectedAttend || 0);
+    const notAttendedStudents = Math.max(totalApprovedRegistrations - totalAttendedStudents, 0);
 
     return {
         totalEvents,
@@ -122,20 +150,41 @@ const getOrganizerStats = async (organizerId) => {
         // ✅ CORRECTED: Use 'new Decimal(0)'
         totalRevenue: totalRevenueResult._sum.amount || new Decimal(0),
         upcomingEvents,
+        expectedStudents,
+        totalApprovedRegistrations,
+        totalAttendedStudents,
+        totalNotAttendedStudents: notAttendedStudents,
     };
 };
 
 const getAttendeeStats = async (userId) => {
     const today = new Date();
+    const activeRegistrationStatuses = [
+        REGISTRATION_STATUS.PENDING,
+        REGISTRATION_STATUS.APPROVED,
+        REGISTRATION_STATUS.ALLOCATED,
+    ];
+    const confirmedRegistrationStatuses = [
+        REGISTRATION_STATUS.APPROVED,
+        REGISTRATION_STATUS.ALLOCATED,
+    ];
+    const attendedStatuses = [
+        ATTENDANCE_STATUS.CHECKED_IN,
+        ATTENDANCE_STATUS.CHECKED_OUT,
+        ATTENDANCE_STATUS.ATTENDED,
+    ];
 
     const totalRegistrations = await prisma.registration.count({
-        where: { userId, status: REGISTRATION_STATUS.APPROVED },
+        where: {
+            userId,
+            status: { in: activeRegistrationStatuses },
+        },
     });
 
     const upcomingEventsCount = await prisma.registration.count({
         where: {
             userId,
-            status: REGISTRATION_STATUS.APPROVED,
+            status: { in: activeRegistrationStatuses },
             event: {
                 startDateTime: { gte: today },
                 status: { not: EVENT_STATUS.CANCELLED }
@@ -144,7 +193,10 @@ const getAttendeeStats = async (userId) => {
     });
 
     const eventsAttended = await prisma.attendance.count({
-        where: { userId, status: ATTENDANCE_STATUS.CHECKED_IN },
+        where: {
+            userId,
+            status: { in: attendedStatuses },
+        },
     });
 
     const totalSpentResult = await prisma.purchase.aggregate({
@@ -190,7 +242,7 @@ const getAttendeeStats = async (userId) => {
     const nextEventsRaw = await prisma.registration.findMany({
         where: {
             userId,
-            status: REGISTRATION_STATUS.APPROVED,
+            status: { in: activeRegistrationStatuses },
             event: {
                 startDateTime: { gte: today },
                 status: { not: EVENT_STATUS.CANCELLED }
@@ -231,7 +283,9 @@ const getAttendeeStats = async (userId) => {
     };
 
     statusCounts.forEach((item) => {
-        if (item.status === REGISTRATION_STATUS.APPROVED) ticketStatusSummary.confirmed = item._count.status;
+        if (confirmedRegistrationStatuses.includes(item.status)) {
+            ticketStatusSummary.confirmed += item._count.status;
+        }
         else if (item.status === REGISTRATION_STATUS.PENDING) ticketStatusSummary.pending = item._count.status;
         else if (item.status === REGISTRATION_STATUS.CANCELLED) ticketStatusSummary.cancelled = item._count.status;
     });
@@ -258,13 +312,15 @@ const getAttendeeStats = async (userId) => {
         }
     });
 
-    const startOfToday = new Date(today.setHours(0, 0, 0, 0));
-    const endOfToday = new Date(today.setHours(23, 59, 59, 999));
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date();
+    endOfToday.setHours(23, 59, 59, 999);
 
     const todayEventsRaw = await prisma.registration.findMany({
         where: {
             userId,
-            status: REGISTRATION_STATUS.APPROVED,
+            status: { in: activeRegistrationStatuses },
             event: {
                 startDateTime: { gte: startOfToday, lte: endOfToday }
             }

@@ -135,6 +135,7 @@ export default function ScannerCheckIn() {
           <Text style={styles.attendeeTitle}>Last Valid Attendee</Text>
           <Text style={styles.attendeeText}>Name: {lastAttendee.name}</Text>
           <Text style={styles.attendeeText}>Email: {lastAttendee.email}</Text>
+          <Text style={styles.attendeeText}>Faculty: {lastAttendee.faculty || 'N/A'}</Text>
           <Text style={styles.attendeeText}>ID: {lastAttendee.id}</Text>
         </View>
       )}

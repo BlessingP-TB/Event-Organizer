@@ -909,7 +909,7 @@ const scannerRedeemAttendeeQr = async (eventId, qrData, authHeader) => {
         },
         include: {
             user: {
-                select: { id: true, name: true, email: true },
+                select: { id: true, name: true, email: true, address: true },
             },
             event: {
                 select: {
@@ -983,6 +983,7 @@ const scannerRedeemAttendeeQr = async (eventId, qrData, authHeader) => {
             id: ticket.user.id,
             name: ticket.user.name,
             email: ticket.user.email,
+            faculty: ticket.user.address,
         },
         ticket: {
             id: ticket.id,

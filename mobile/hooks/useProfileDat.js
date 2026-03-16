@@ -1,5 +1,6 @@
 import API_URL from "@/config"; // ensure this points to something like: http://192.168.x.x:3000/api
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 
 /**
@@ -42,6 +43,7 @@ const getAuthToken = async () => {
  * Custom React hook to fetch and manage the current user's profile data.
  */
 export const useProfileData = () => {
+    const router = useRouter();
     const [data, setData] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -66,9 +68,13 @@ export const useProfileData = () => {
                 const contentType = response.headers.get("content-type");
 
                 if (response.status === 401 || response.status === 403) {
-                    // Unauthenticated — clear session
-                    await AsyncStorage.multiRemove(["user", "userSession"]);
-                    throw new Error("Your session has expired. Please log in again.");
+                    // Unauthenticated — clear session and redirect to login
+                    await AsyncStorage.multiRemove([
+                        "user", "userSession",
+                        "ORGANISER_JWT_TOKEN", "ADMIN_JWT_TOKEN", "ATTENDEE_JWT_TOKEN",
+                    ]);
+                    router.replace("/(tabs)");
+                    return;
                 }
 
                 if (!response.ok) {

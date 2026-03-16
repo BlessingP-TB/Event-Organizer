@@ -3,6 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useState } from 'react';
 import axios from 'axios';
 import API_URL from '@/config';
+import { useRouter } from 'expo-router';
 
 const DASHBOARD_STORAGE_KEY = 'admin_dashboard_data';
 const DEFAULT_DASHBOARD = {
@@ -45,6 +46,7 @@ const getAdminAuthHeaders = async () => {
 };
 
 export const useAdminDashboard = () => {
+  const router = useRouter();
   const [dashboard, setDashboard] = useState(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const [error, setError] = useState(null);
@@ -109,6 +111,16 @@ export const useAdminDashboard = () => {
       setDashboard(combinedData);
       await AsyncStorage.setItem(DASHBOARD_STORAGE_KEY, JSON.stringify(combinedData));
     } catch (error) {
+      const status = error?.response?.status;
+      const code = error?.response?.data?.code;
+      if (status === 401 || code === 'UNAUTHORIZED') {
+        await AsyncStorage.multiRemove([
+          'userSession', 'user',
+          'ORGANISER_JWT_TOKEN', 'ADMIN_JWT_TOKEN', 'ATTENDEE_JWT_TOKEN',
+        ]);
+        router.replace('/(tabs)');
+        return;
+      }
       console.error('❌ Error loading dashboard data:', error);
       setError(error);
       try {
@@ -125,7 +137,7 @@ export const useAdminDashboard = () => {
     } finally {
       setIsLoaded(true);
     }
-  }, []);
+  }, [router]);
 
   // --- Load data on mount ---
   useEffect(() => {
