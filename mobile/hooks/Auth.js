@@ -63,11 +63,6 @@ export const handleSignin = async (rememberMe, email, password, API_URL, router)
     try {
         const normalizedEmail = normalizeAuthEmail(email);
 
-        if (!isAllowedAuthEmail(normalizedEmail)) {
-            Alert.alert("Error", ALLOWED_AUTH_EMAIL_MESSAGE);
-            return null;
-        }
-
         const response = await axios.post(`${API_URL}/auth/login`, {
             email: normalizedEmail,
             password,

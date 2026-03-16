@@ -38,6 +38,7 @@ export default function CheckInScreen() {
             setTicket({
                 eventName: eventName || 'N/A',
                 qrCodeUrl: getQrCodeImageUrl(qrCodeUrl),
+                qrText: String(qrCodeUrl),
                 status: status || 'Ready for Check-in',
                 lastSynced: new Date().toLocaleTimeString(),
                 type: type || "REGULAR",
@@ -87,6 +88,7 @@ export default function CheckInScreen() {
                     setTicket({
                         eventName: eventTicket.eventName,
                         qrCodeUrl: getQrCodeImageUrl(qrData),
+                        qrText: String(qrData),
                         status: eventTicket.redeemed ? 'Redeemed' : 'Ready for Check-in',
                         lastSynced: new Date().toLocaleTimeString(),
                         type: eventTicket.type || "REGULAR",
@@ -208,6 +210,11 @@ export default function CheckInScreen() {
                     <Image source={{ uri: ticket.qrCodeUrl }} style={styles.qrCode} />
                 </View>
 
+                <View style={styles.qrTextContainer}>
+                    <Text style={styles.qrTextLabel}>QR Text (Fallback)</Text>
+                    <Text selectable style={styles.qrTextValue}>{ticket.qrText || 'N/A'}</Text>
+                </View>
+
                 {/* Info Section */}
                 <View style={styles.infoSection}>
                     <Text style={styles.infoText}>
@@ -266,6 +273,34 @@ const styles = StyleSheet.create({
     subtitle: { fontSize: 14, color: "#666", marginBottom: 20 },
     qrContainer: { backgroundColor: "#000", borderRadius: 12, padding: 10, marginBottom: 15 },
     qrCode: { width: 150, height: 150 },
+    qrTextContainer: {
+        width: '100%',
+        maxWidth: 170,
+        marginBottom: 14,
+        alignItems: 'center',
+    },
+    qrTextLabel: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#555',
+        marginBottom: 6,
+        letterSpacing: 0.3,
+        textTransform: 'uppercase',
+    },
+    qrTextValue: {
+        width: '100%',
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#d1d5db',
+        backgroundColor: '#f3f4f6',
+        color: '#111',
+        fontSize: 12,
+        lineHeight: 16,
+        textAlign: 'center',
+        fontFamily: 'monospace',
+        paddingHorizontal: 8,
+        paddingVertical: 8,
+    },
     infoSection: {
         alignSelf: 'stretch',
         paddingHorizontal: 10,

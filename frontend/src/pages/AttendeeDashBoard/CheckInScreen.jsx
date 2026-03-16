@@ -39,6 +39,7 @@ export default function CheckInScreen() {
       eventName: data.eventData?.name || data.title || 'N/A',
       type: data.type || "REGULAR",
       qrCodeUrl: getQrCodeUrl(qrValue),
+      qrText: qrValue,
       status: data.status || "Registered",
       lastSynced: new Date().toLocaleString(),
       eventId: data.eventData?.id || data.eventId || data.id, // Ensure eventId is available for navigation
@@ -91,6 +92,11 @@ export default function CheckInScreen() {
 
         <div className="qr-container">
           <img src={ticket.qrCodeUrl} alt="QR Code" className="qr-code" />
+        </div>
+
+        <div className="qr-text-wrapper">
+          <p className="qr-text-label">QR Text (Fallback)</p>
+          <code className="qr-text-value">{ticket.qrText || 'N/A'}</code>
         </div>
 
         <div className="info-section">

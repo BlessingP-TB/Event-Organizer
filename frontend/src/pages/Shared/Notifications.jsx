@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import toast from "react-hot-toast";
+import { CheckCheck, Trash2 } from "lucide-react";
 import api from "../../utils/api";
 import { subscribeToNotificationStream } from "../../utils/realtimeNotifications";
 import "../../styles/pages/_notifications.scss";
@@ -82,6 +83,18 @@ const Notifications = () => {
     }
   };
 
+  const markAllAsRead = async () => {
+    const unread = notifications.filter((n) => !n.read);
+    if (!unread.length) return;
+    try {
+      await Promise.all(unread.map((n) => api.patch(`/notifications/${n.id}`, { read: true })));
+      setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+      window.dispatchEvent(new Event('notificationsUpdated'));
+    } catch (error) {
+      toast.error('Failed to mark all as read.');
+    }
+  };
+
   const clearAll = async () => {
     try {
       await api.delete('/notifications');
@@ -92,14 +105,25 @@ const Notifications = () => {
     }
   };
 
+  const unreadCount = notifications.filter((n) => !n.read).length;
+
   return (
     <section className="notifications-page">
       <div className="notifications-header">
         <h1>{title}</h1>
         {notifications.length > 0 && (
-          <button type="button" className="clear-btn" onClick={clearAll}>
-            Clear all
-          </button>
+          <div className="notifications-actions">
+            {unreadCount > 0 && (
+              <button type="button" className="notif-action" onClick={markAllAsRead}>
+                <CheckCheck size={16} aria-hidden="true" />
+                Mark all read
+              </button>
+            )}
+            <button type="button" className="notif-action danger" onClick={clearAll}>
+              <Trash2 size={16} aria-hidden="true" />
+              Clear all
+            </button>
+          </div>
         )}
       </div>
 

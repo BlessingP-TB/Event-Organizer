@@ -8,17 +8,40 @@ const ScannerCheckIn = () => {
   const navigate = useNavigate();
 
   const videoRef = useRef(null);
+  const manualInputRef = useRef(null);
   const streamRef = useRef(null);
   const scanTimerRef = useRef(null);
   const processingRef = useRef(false);
+  const waitingForNextRef = useRef(false);
 
   const [manualQr, setManualQr] = useState('');
   const [statusMsg, setStatusMsg] = useState('Ready to scan.');
   const [errorMsg, setErrorMsg] = useState('');
   const [lastAttendee, setLastAttendee] = useState(null);
   const [cameraReady, setCameraReady] = useState(false);
+  const [waitingForNext, setWaitingForNext] = useState(false);
 
   const scannerToken = sessionStorage.getItem('scannerAccessToken');
+
+  const handleLogout = () => {
+    sessionStorage.removeItem('scannerAccessToken');
+    sessionStorage.removeItem('scannerEventId');
+    stopCamera();
+    navigate(`/scanner-login/${eventId}`);
+  };
+
+  const handleScanNextAttendee = () => {
+    waitingForNextRef.current = false;
+    setWaitingForNext(false);
+    setLastAttendee(null);
+    setErrorMsg('');
+    setManualQr('');
+    setStatusMsg('Ready to scan.');
+
+    if (manualInputRef.current) {
+      manualInputRef.current.focus();
+    }
+  };
 
   const stopCamera = () => {
     if (scanTimerRef.current) {
@@ -33,7 +56,7 @@ const ScannerCheckIn = () => {
   };
 
   const submitScan = async (qrData) => {
-    if (!qrData || processingRef.current) return;
+    if (!qrData || processingRef.current || waitingForNextRef.current) return;
 
     processingRef.current = true;
     setErrorMsg('');
@@ -51,7 +74,9 @@ const ScannerCheckIn = () => {
       );
 
       setLastAttendee(response.data.attendee);
-      setStatusMsg('Valid attendee. Continue scanning next attendee.');
+      waitingForNextRef.current = true;
+      setWaitingForNext(true);
+      setStatusMsg('Valid attendee. Click "Scan Next Attendee" to continue.');
     } catch (err) {
       setErrorMsg(err?.response?.data?.message || 'Failed to validate QR code.');
       setStatusMsg('Scan failed. Try next attendee.');
@@ -91,7 +116,7 @@ const ScannerCheckIn = () => {
         setCameraReady(true);
 
         scanTimerRef.current = setInterval(async () => {
-          if (!videoRef.current || processingRef.current) return;
+          if (!videoRef.current || processingRef.current || waitingForNextRef.current) return;
 
           try {
             const detections = await detector.detect(videoRef.current);
@@ -125,12 +150,7 @@ const ScannerCheckIn = () => {
           <button
             type="button"
             className="logout-btn"
-            onClick={() => {
-              sessionStorage.removeItem('scannerAccessToken');
-              sessionStorage.removeItem('scannerEventId');
-              stopCamera();
-              navigate(`/scanner-login/${eventId}`);
-            }}
+            onClick={handleLogout}
           >
             Logout
           </button>
@@ -146,10 +166,12 @@ const ScannerCheckIn = () => {
 
         <div className="manual-entry">
           <input
+            ref={manualInputRef}
             type="text"
             value={manualQr}
             onChange={(e) => setManualQr(e.target.value)}
             placeholder="Paste scanned QR text or redeem-ticket URL"
+            disabled={waitingForNext}
           />
           <button
             type="button"
@@ -157,8 +179,27 @@ const ScannerCheckIn = () => {
               submitScan(manualQr.trim());
               setManualQr('');
             }}
+            disabled={waitingForNext || !manualQr.trim()}
           >
             Validate QR
+          </button>
+        </div>
+
+        <div className="scanner-actions">
+          <button
+            type="button"
+            className="next-scan-btn"
+            onClick={handleScanNextAttendee}
+            disabled={!waitingForNext}
+          >
+            Scan Next Attendee
+          </button>
+          <button
+            type="button"
+            className="done-logout-btn"
+            onClick={handleLogout}
+          >
+            Done and Logout
           </button>
         </div>
 

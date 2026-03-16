@@ -8,8 +8,6 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import './App.scss';
 import './styles/abstracts/profile.scss';
 
-const NotificationsPage = lazy(() => import('./pages/NotificationsPage'));
-
 /* ---------- Lazy Layouts ---------- */
 const AdminLayout = lazy(() => import('./layouts/AdminLayout'));
 const AttendeeLayout = lazy(() => import('./layouts/AttendeeLayout'));
@@ -108,7 +106,7 @@ function App() {
             <Route path="discover" element={<Discover />} />
             <Route path="events" element={<MyEvents />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="notifications" element={<NotificationsPage role="ORGANIZER" />} />
+            <Route path="notifications" element={<Notifications />} />
             <Route path="upload-pop/:id" element={<UploadProofOfPayment />} />
             <Route path="create-event" element={<CreateEvent />} />
             <Route path="confirm-event" element={<ConfirmEventDetails />} />
@@ -146,7 +144,7 @@ function App() {
             <Route path="tools" element={<AdminTools />} />
             <Route path="chat" element={<AdminChat />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="notifications" element={<Notifications />} />
            <Route path="events" element={<AdminEvents />} />
           {/* <Route path="events/:id" element={<AdminEventDetails />} />  */}
 
@@ -171,7 +169,7 @@ function App() {
             <Route path="ratings" element={<AttendeeEventRating />} />
             <Route path="help-support" element={<HelpSupport />} />
             <Route path="profile" element={<ProfilePage />} />
-            <Route path="notifications" element={<NotificationsPage />} />
+            <Route path="notifications" element={<Notifications />} />
           </Route>
 
           {/* ---------- 404 ---------- */}

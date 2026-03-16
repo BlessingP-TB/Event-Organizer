@@ -270,14 +270,7 @@ const register = async (registerBody) => {
 
 const login = async (email, password, ipAddress, userAgent) => {
     const normalizedEmail = normalizeAuthEmail(email);
-
-    if (!isAllowedAuthEmail(normalizedEmail)) {
-        throw new ApiError(
-            HTTP_STATUS.BAD_REQUEST,
-            ERROR_MESSAGES.AUTH_EMAIL_DOMAIN_NOT_ALLOWED,
-            'EMAIL_DOMAIN_NOT_ALLOWED'
-        );
-    }
+    const isDomainAllowed = isAllowedAuthEmail(normalizedEmail);
 
     const userWithAccount = await prisma.user.findUnique({
         where: { email: normalizedEmail },
@@ -297,6 +290,14 @@ const login = async (email, password, ipAddress, userAgent) => {
 
     if (!userWithAccount || !userWithAccount.account) {
         throw invalidCredentialsError;
+    }
+
+    if (!isDomainAllowed && userWithAccount.role !== ROLES.ADMIN) {
+        throw new ApiError(
+            HTTP_STATUS.BAD_REQUEST,
+            ERROR_MESSAGES.AUTH_EMAIL_DOMAIN_NOT_ALLOWED,
+            'EMAIL_DOMAIN_NOT_ALLOWED'
+        );
     }
 
     if (userWithAccount.account.lockedAt) {

@@ -115,6 +115,44 @@
       color: #fff;
       font-weight: 600;
       cursor: pointer;
+
+      &:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+      }
+    }
+  }
+
+  .scanner-actions {
+    margin-top: 0.85rem;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.6rem;
+
+    .next-scan-btn,
+    .done-logout-btn {
+      height: 42px;
+      border-radius: 10px;
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 0 0.95rem;
+    }
+
+    .next-scan-btn {
+      background: #0ea5e9;
+      color: #fff;
+
+      &:disabled {
+        background: #94a3b8;
+        cursor: not-allowed;
+      }
+    }
+
+    .done-logout-btn {
+      background: #fff1f2;
+      color: #be123c;
+      border: 1px solid #fecdd3;
     }
   }
 

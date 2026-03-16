@@ -48,7 +48,7 @@ const register = customJoi.object({
 
 const login = customJoi.object({
     body: customJoi.object({
-        email: allowedEmail(),
+        email: customJoi.string().trim().lowercase().email().required(),
         password: customJoi.string().required(),
     }),
 });

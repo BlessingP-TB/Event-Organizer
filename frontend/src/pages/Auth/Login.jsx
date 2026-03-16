@@ -5,8 +5,6 @@ import { Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import api from '../../utils/api';
 import {
-  ALLOWED_AUTH_EMAIL_MESSAGE,
-  isAllowedAuthEmail,
   normalizeAuthEmail,
 } from '../../utils/allowedAuthEmail';
 import '../../styles/abstracts-auth/_auth.scss';
@@ -26,11 +24,6 @@ export default function Login() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (loading || retryAfterSeconds > 0) return;
-
-    if (!isAllowedAuthEmail(form.email)) {
-      toast.error(ALLOWED_AUTH_EMAIL_MESSAGE, { id: 'auth-email-domain-error' });
-      return;
-    }
 
     setLoading(true);
 
@@ -95,7 +88,7 @@ export default function Login() {
           required
           disabled={loading}
         />
-        <small className="field-hint">Sign in with a @tut.ac.za email, or a 9-digit number @tut4life.ac.za email.</small>
+        <small className="field-hint">Use your account email. Non-TUT emails are only accepted for admin accounts.</small>
 
         <label htmlFor="password">Password</label>
         <div className="password-wrapper">

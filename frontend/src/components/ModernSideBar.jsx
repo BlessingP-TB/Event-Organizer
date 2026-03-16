@@ -72,7 +72,7 @@ const ModernSidebar = ({ role, links, storageKey }) => {
     };
   }, [storageKey]);
 
-  const unreadCount = parseInt(localStorage.getItem(`${storageKey}:unreadCount`) || String(notifications.filter((n) => !n.read).length), 10);
+  const unreadCount = notifications.filter((n) => !n.read).length;
 
   /* ---------------- Toggle Sidebar ---------------- */
   const toggleMobile = () => setIsMobileOpen((prev) => !prev);
@@ -87,23 +87,21 @@ const ModernSidebar = ({ role, links, storageKey }) => {
   const handleOpen = async (note) => {
     try {
       // mark as read on the server
-      await api.patch(`/notifications/${note.id}/read`);
+      await api.patch(`/notifications/${note.id}`, { read: true });
     } catch (err) {
       console.warn('Failed to mark notification read on server', err);
     }
 
-    // re-fetch notifications from server (poller will also update soon)
+    // re-fetch notifications from server
     try {
       const res = await api.get('/notifications');
-      const serverNotes = res.data?.data || [];
+      const serverNotes = Array.isArray(res.data) ? res.data : [];
       setNotifications(serverNotes);
-      localStorage.setItem(storageKey, JSON.stringify(serverNotes));
-      window.dispatchEvent(new Event(`${storageKey}Updated`));
+      window.dispatchEvent(new Event('notificationsUpdated'));
     } catch (err) {
       // fallback: mark locally
       const updated = notifications.map((n) => (n.id === note.id ? { ...n, read: true } : n));
       setNotifications(updated);
-      localStorage.setItem(storageKey, JSON.stringify(updated));
     }
 
     // Navigate to the Notifications page so user sees the full list
